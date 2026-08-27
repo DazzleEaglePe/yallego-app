@@ -7,6 +7,12 @@
     "node": ">=22.0.0",
     "pnpm": ">=9.0.0"
   },
+  "pnpm": {
+    "overrides": {
+      "deepmerge-ts": "8.0.2",
+      "postcss": "8.5.26"
+    }
+  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
