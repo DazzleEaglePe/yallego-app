@@ -2,7 +2,9 @@ package app.yallego.capture.ui.onboarding
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.annotation.OptIn as AndroidxOptIn
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -65,6 +67,7 @@ import com.google.mlkit.vision.common.InputImage
  * El permiso de cámara se solicita desde `MainActivity` antes de navegar aquí.
  */
 @Composable
+@AndroidxOptIn(markerClass = [ExperimentalGetImage::class])
 fun QrScanScreen(onCodeScanned: (String) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
