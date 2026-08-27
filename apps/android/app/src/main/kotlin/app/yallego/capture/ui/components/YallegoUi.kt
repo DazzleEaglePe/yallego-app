@@ -1,0 +1,315 @@
+package app.yallego.capture.ui.components
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import app.yallego.capture.ui.theme.AppBlue
+import app.yallego.capture.ui.theme.AppBlueBright
+import app.yallego.capture.ui.theme.AppBorder
+import app.yallego.capture.ui.theme.AppCyan
+import app.yallego.capture.ui.theme.AppInk
+import app.yallego.capture.ui.theme.AppInkSoft
+import app.yallego.capture.ui.theme.AppSurface
+import app.yallego.capture.ui.theme.AppSurfaceElevated
+import app.yallego.capture.ui.theme.AppTextSecondary
+import app.yallego.capture.ui.theme.AppTextTertiary
+
+@Composable
+fun YallegoBackdrop(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(AppInk, AppInkSoft, AppInk),
+                ),
+            ),
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(AppBlue.copy(alpha = 0.18f), Color.Transparent),
+                    center = Offset(size.width * 0.92f, size.height * 0.04f),
+                    radius = size.minDimension * 0.82f,
+                ),
+            )
+            drawGrid()
+        }
+        content()
+    }
+}
+
+private fun DrawScope.drawGrid() {
+    val gridColor = Color.White.copy(alpha = 0.025f)
+    val gap = 48.dp.toPx()
+    var x = 0f
+    while (x <= size.width) {
+        drawLine(gridColor, Offset(x, 0f), Offset(x, size.height * 0.68f), strokeWidth = 0.6.dp.toPx())
+        x += gap
+    }
+    var y = 0f
+    while (y <= size.height * 0.68f) {
+        drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 0.6.dp.toPx())
+        y += gap
+    }
+}
+
+@Composable
+fun YallegoBrandHeader(
+    trailingLabel: String? = null,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppMark()
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(
+                text = "Yallegó",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "¿Ya llegó?",
+                color = AppTextTertiary,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        if (trailingLabel != null) {
+            Surface(
+                color = AppSurface,
+                shape = CircleShape,
+                border = BorderStroke(1.dp, AppBorder),
+            ) {
+                Text(
+                    text = trailingLabel,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                    color = AppTextSecondary,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AppMark(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(42.dp)
+            .background(
+                Brush.linearGradient(listOf(AppBlueBright, AppBlue)),
+                RoundedCornerShape(14.dp),
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "¿",
+            color = Color.White,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+        )
+    }
+}
+
+@Composable
+fun ScreenEyebrow(text: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(6.dp).background(AppCyan, CircleShape))
+        Text(text = text.uppercase(), color = AppCyan, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+fun ProgressDots(current: Int, total: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(total) { index ->
+            Box(
+                Modifier
+                    .width(if (index == current) 26.dp else 7.dp)
+                    .height(7.dp)
+                    .background(
+                        if (index == current) AppBlueBright else Color.White.copy(alpha = 0.12f),
+                        CircleShape,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+fun YallegoCard(
+    modifier: Modifier = Modifier,
+    elevated: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        color = if (elevated) AppSurfaceElevated else AppSurface,
+        contentColor = Color.White,
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, AppBorder.copy(alpha = 0.9f)),
+        tonalElevation = 0.dp,
+        shadowElevation = if (elevated) 12.dp else 0.dp,
+    ) {
+        Column(modifier = Modifier.padding(20.dp), content = content)
+    }
+}
+
+@Composable
+fun PrimaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    leadingIcon: ImageVector? = null,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().height(58.dp),
+        enabled = enabled && !loading,
+        shape = RoundedCornerShape(18.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AppBlue,
+            contentColor = Color.White,
+            disabledContainerColor = if (loading) AppBlue else AppSurfaceElevated,
+            disabledContentColor = if (loading) Color.White else AppTextTertiary,
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp, pressedElevation = 2.dp),
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(19.dp),
+                color = Color.White,
+                strokeWidth = 2.dp,
+            )
+            Spacer(Modifier.width(9.dp))
+        } else if (leadingIcon != null) {
+            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(19.dp))
+            Spacer(Modifier.width(9.dp))
+        }
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
+        if (!loading) {
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(19.dp))
+        }
+    }
+}
+
+@Composable
+fun SecondaryActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, AppBorder),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(19.dp))
+            Spacer(Modifier.width(9.dp))
+        }
+        Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+fun IconBadge(
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    tint: Color = AppBlueBright,
+    size: Int = 52,
+) {
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .background(tint.copy(alpha = 0.12f), RoundedCornerShape((size * 0.32f).dp))
+            .border(1.dp, tint.copy(alpha = 0.2f), RoundedCornerShape((size * 0.32f).dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.43f).dp))
+    }
+}
+
+@Composable
+fun SupportNote(
+    text: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = AppTextTertiary, modifier = Modifier.size(15.dp))
+            Spacer(Modifier.width(7.dp))
+        }
+        Text(
+            text = text,
+            color = AppTextTertiary,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+        )
+    }
+}

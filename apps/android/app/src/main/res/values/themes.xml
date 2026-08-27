@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Tema del sistema previo a que Compose tome el control (splash/ventana).
+      Los colores efectivos de la interfaz están en ui/theme/Theme.kt.
+    -->
+    <style name="Theme.Yallego" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#060A13</item>
+        <item name="android:navigationBarColor">#060A13</item>
+        <item name="android:windowBackground">#060A13</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
