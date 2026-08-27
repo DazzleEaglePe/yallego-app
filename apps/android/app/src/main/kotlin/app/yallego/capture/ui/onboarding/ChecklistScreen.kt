@@ -86,7 +86,7 @@ fun ChecklistScreen(
             )
             Spacer(Modifier.height(24.dp))
 
-            YallegoCard(modifier = Modifier.fillMaxWidth(), elevated = true) {
+            YallegoCard(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = completed.toString(),
@@ -110,14 +110,14 @@ fun ChecklistScreen(
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth()) {
                     repeat(3) { index ->
                         Box(
                             modifier = Modifier
                                 .padding(end = if (index < 2) 6.dp else 0.dp)
                                 .weight(1f)
-                                .height(5.dp)
+                                .height(3.dp)
                                 .background(
                                     if (index < completed) SuccessBright else AppBorder,
                                     CircleShape,
@@ -125,35 +125,34 @@ fun ChecklistScreen(
                         )
                     }
                 }
+                ChecklistDivider()
+                ChecklistRow(
+                    label = stringResource(R.string.checklist_item_pairing),
+                    detail = stringResource(R.string.checklist_item_pairing_detail),
+                    done = pairingDone,
+                    icon = Icons.Rounded.Link,
+                )
+                ChecklistDivider()
+                ChecklistRow(
+                    label = stringResource(R.string.checklist_item_notifications),
+                    detail = stringResource(R.string.checklist_item_notifications_detail),
+                    done = notificationsGranted,
+                    icon = Icons.Rounded.NotificationsActive,
+                )
+                ChecklistDivider()
+                ChecklistRow(
+                    label = stringResource(R.string.checklist_item_battery),
+                    detail = stringResource(R.string.checklist_item_battery_detail),
+                    done = batteryGranted,
+                    icon = Icons.Rounded.Shield,
+                )
             }
-
-            Spacer(Modifier.height(16.dp))
-            ChecklistRow(
-                label = stringResource(R.string.checklist_item_pairing),
-                detail = stringResource(R.string.checklist_item_pairing_detail),
-                done = pairingDone,
-                icon = Icons.Rounded.Link,
-            )
-            Spacer(Modifier.height(10.dp))
-            ChecklistRow(
-                label = stringResource(R.string.checklist_item_notifications),
-                detail = stringResource(R.string.checklist_item_notifications_detail),
-                done = notificationsGranted,
-                icon = Icons.Rounded.NotificationsActive,
-            )
-            Spacer(Modifier.height(10.dp))
-            ChecklistRow(
-                label = stringResource(R.string.checklist_item_battery),
-                detail = stringResource(R.string.checklist_item_battery_detail),
-                done = batteryGranted,
-                icon = Icons.Rounded.Shield,
-            )
 
             Spacer(Modifier.height(18.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(AppBlue.copy(alpha = 0.1f), MaterialTheme.shapes.medium)
+                    .background(AppSurfaceElevated, MaterialTheme.shapes.medium)
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -178,37 +177,47 @@ fun ChecklistScreen(
 
 @Composable
 private fun ChecklistRow(label: String, detail: String, done: Boolean, icon: ImageVector) {
-    YallegoCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(
-                icon = icon,
-                tint = if (done) SuccessBright else AppTextTertiary,
-                size = 44,
-            )
-            Column(Modifier.padding(horizontal = 12.dp).weight(1f)) {
-                Text(label, color = Color.White, style = MaterialTheme.typography.labelLarge)
-                Text(detail, color = AppTextSecondary, style = MaterialTheme.typography.bodySmall)
-            }
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .background(
-                        if (done) SuccessBright else AppSurfaceElevated,
-                        CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (done) {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        tint = Color.Black,
-                        modifier = Modifier.size(17.dp),
-                    )
-                } else {
-                    Box(Modifier.size(7.dp).background(AppTextTertiary, CircleShape))
-                }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (done) SuccessBright else AppTextTertiary,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(Modifier.padding(horizontal = 13.dp).weight(1f)) {
+            Text(label, color = Color.White, style = MaterialTheme.typography.labelLarge)
+            Text(detail, color = AppTextSecondary, style = MaterialTheme.typography.bodySmall)
+        }
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(
+                    if (done) SuccessBright.copy(alpha = 0.13f) else AppSurfaceElevated,
+                    CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (done) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = SuccessBright,
+                    modifier = Modifier.size(15.dp),
+                )
+            } else {
+                Box(Modifier.size(6.dp).background(AppTextTertiary, CircleShape))
             }
         }
     }
+}
+
+@Composable
+private fun ChecklistDivider() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 14.dp)
+            .height(1.dp)
+            .background(AppBorder),
+    )
 }

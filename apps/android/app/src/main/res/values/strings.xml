@@ -13,21 +13,21 @@
     <string name="foreground_notification_title">Yallegó está activo</string>
     <string name="foreground_notification_text">Esperando cobros de tus billeteras.</string>
 
-    <string name="onboarding_eyebrow">Monitoreo de cobros</string>
-    <string name="onboarding_welcome_title">Cada cobro, confirmado al instante.</string>
-    <string name="onboarding_welcome_body">Yallegó conecta las notificaciones de tus billeteras con tu panel para que sepas cuándo pagaron, sin revisar este celular.</string>
+    <string name="onboarding_eyebrow">Cobros en tiempo real</string>
+    <string name="onboarding_welcome_title">Tus cobros, en un solo lugar.</string>
+    <string name="onboarding_welcome_body">Conecta este celular y recibe cada confirmación directamente en tu panel.</string>
     <string name="onboarding_welcome_cta">Configurar este celular</string>
     <string name="onboarding_private_note">Tus mensajes personales se mantienen privados</string>
-    <string name="preview_live_title">ACTIVIDAD EN VIVO</string>
-    <string name="preview_live_body">Cobros llegando a tu panel</string>
+    <string name="preview_live_title">Últimos cobros</string>
+    <string name="preview_live_body">Actualización en tiempo real</string>
     <string name="preview_yape_payment">S/ 24,00 recibido · ahora</string>
     <string name="preview_plin_payment">S/ 58,50 recibido · hace 1 min</string>
 
     <string name="pairing_eyebrow">Conecta tu negocio</string>
     <string name="pairing_title">Vincula este celular</string>
     <string name="pairing_body">Abre Yallegó en tu panel web y escanea el código para conectar este equipo de forma segura.</string>
-    <string name="pairing_scan_title">La forma más rápida</string>
-    <string name="pairing_scan_hint">Apunta la cámara al QR de tu panel</string>
+    <string name="pairing_scan_title">Escanea el QR</string>
+    <string name="pairing_scan_hint">Encuéntralo en tu panel web</string>
     <string name="pairing_scan_cta">Escanear código QR</string>
     <string name="pairing_or_manual">O USA TU CÓDIGO</string>
     <string name="pairing_manual_label">Código de vinculación</string>
@@ -45,8 +45,8 @@
     <string name="scanner_private_note">La cámara solo se usa mientras escaneas el código</string>
 
     <string name="pairing_confirmation_eyebrow">Conexión verificada</string>
-    <string name="pairing_confirmation_title">Este celular ya es parte de tu operación.</string>
-    <string name="pairing_confirmation_body">La conexión con %1$s quedó lista. Ahora activaremos lo necesario para no perder ningún cobro.</string>
+    <string name="pairing_confirmation_title">Celular conectado.</string>
+    <string name="pairing_confirmation_body">%1$s ya puede usar este equipo. Solo faltan dos permisos.</string>
     <string name="pairing_confirmation_business_label">NEGOCIO VINCULADO</string>
     <string name="pairing_confirmation_business_hint">Las confirmaciones de pago se enviarán a este espacio.</string>
     <string name="pairing_confirmation_private_note">Vinculación cifrada y exclusiva para este negocio</string>
@@ -54,15 +54,15 @@
 
     <string name="permission_notifications_eyebrow">Detección de pagos</string>
     <string name="permission_notifications_title">Acceso a notificaciones</string>
-    <string name="permission_notifications_body">Yallegó necesita leer las notificaciones de tus billeteras para avisarte cuando recibes un cobro. No lee ni comparte ninguna otra notificación.</string>
-    <string name="permission_notifications_detail">Solo procesamos alertas compatibles con las billeteras configuradas. El contenido personal no se guarda ni se envía.</string>
+    <string name="permission_notifications_body">Permite que Yallegó detecte las confirmaciones de las billeteras configuradas.</string>
+    <string name="permission_notifications_detail">Las demás notificaciones se ignoran. Tus mensajes personales no salen del celular.</string>
     <string name="permission_notifications_cta">Activar en ajustes</string>
     <string name="permission_notifications_granted">Acceso concedido</string>
 
     <string name="permission_battery_eyebrow">Operación continua</string>
     <string name="permission_battery_title">Optimización de batería</string>
-    <string name="permission_battery_body">El sistema podría detener Yallegó para ahorrar batería. Exclúyela para que la captura no se interrumpa.</string>
-    <string name="permission_battery_detail">Esta excepción permite que Yallegó siga escuchando cobros con la pantalla apagada, sin modificar tus otras aplicaciones.</string>
+    <string name="permission_battery_body">Evita que el sistema pause la captura cuando la pantalla esté apagada.</string>
+    <string name="permission_battery_detail">La excepción solo mantiene activa la detección de cobros.</string>
     <string name="permission_battery_cta">Excluir de la optimización</string>
     <string name="permission_battery_granted">Exclusión activa</string>
     <string name="permission_privacy_title">Controlado y transparente</string>
@@ -78,8 +78,8 @@
     <string name="permission_vendor_continue">Ya lo hice</string>
 
     <string name="checklist_eyebrow">Última revisión</string>
-    <string name="checklist_title">Todo listo para recibir cobros.</string>
-    <string name="checklist_body">Revisa que los tres puntos esenciales estén activos antes de iniciar el monitoreo.</string>
+    <string name="checklist_title">Última revisión</string>
+    <string name="checklist_body">Confirma estos tres ajustes antes de comenzar.</string>
     <string name="checklist_progress_total">/ 3</string>
     <string name="checklist_ready">LISTO</string>
     <string name="checklist_pending">REVISAR</string>
@@ -97,17 +97,18 @@
     <string name="status_warning">Con advertencias</string>
     <string name="status_stopped">Detenido</string>
     <string name="status_monitoring_label">EN MONITOREO</string>
-    <string name="status_eyebrow">Centro de captura</string>
+    <string name="status_eyebrow">Estado del dispositivo</string>
     <string name="status_greeting">Hola, %1$s</string>
-    <string name="status_subtitle">Este celular mantiene tus confirmaciones de pago conectadas.</string>
+    <string name="status_subtitle">Este celular recibe y envía las confirmaciones de pago.</string>
     <string name="status_connection_label">CONEXIÓN</string>
-    <string name="status_active_body">La captura está funcionando y el equipo está listo para enviar nuevos cobros a tu panel.</string>
+    <string name="status_active_body">La captura funciona correctamente.</string>
     <string name="status_warning_body">La captura funciona, pero un ajuste podría interrumpirla. Revisa la configuración indicada abajo.</string>
     <string name="status_stopped_body">Yallegó no puede detectar cobros hasta que restaures el acceso pendiente.</string>
     <string name="status_device_label">Dispositivo</string>
     <string name="status_last_heartbeat">Última señal</string>
     <string name="status_never">Nunca</string>
     <string name="status_queue_label">Pendientes</string>
+    <string name="status_summary_title">Resumen</string>
     <string name="status_configuration_title">Configuración esencial</string>
     <string name="status_configuration_body">Permisos que mantienen la captura disponible.</string>
     <string name="status_notifications_label">Lectura de notificaciones</string>
@@ -117,5 +118,5 @@
     <string name="status_battery_ready">Protegida frente al ahorro de batería</string>
     <string name="status_battery_missing">Podría detenerse con la pantalla apagada</string>
     <string name="status_background_title">Yallegó trabaja en segundo plano</string>
-    <string name="status_background_body">Puedes cerrar esta pantalla; verás una notificación mientras la captura siga activa.</string>
+    <string name="status_background_body">Puedes cerrar la app. La captura seguirá activa.</string>
 </resources>

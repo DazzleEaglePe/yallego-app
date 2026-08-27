@@ -5,9 +5,9 @@
       Los colores efectivos de la interfaz están en ui/theme/Theme.kt.
     -->
     <style name="Theme.Yallego" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#060A13</item>
-        <item name="android:navigationBarColor">#060A13</item>
-        <item name="android:windowBackground">#060A13</item>
+        <item name="android:statusBarColor">#0C0C0E</item>
+        <item name="android:navigationBarColor">#0C0C0E</item>
+        <item name="android:windowBackground">#0C0C0E</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

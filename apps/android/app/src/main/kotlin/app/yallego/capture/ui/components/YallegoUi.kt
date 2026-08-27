@@ -1,7 +1,6 @@
 package app.yallego.capture.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,10 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,7 +41,6 @@ import app.yallego.capture.ui.theme.AppBlueBright
 import app.yallego.capture.ui.theme.AppBorder
 import app.yallego.capture.ui.theme.AppCyan
 import app.yallego.capture.ui.theme.AppInk
-import app.yallego.capture.ui.theme.AppInkSoft
 import app.yallego.capture.ui.theme.AppSurface
 import app.yallego.capture.ui.theme.AppSurfaceElevated
 import app.yallego.capture.ui.theme.AppTextSecondary
@@ -59,38 +54,9 @@ fun YallegoBackdrop(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(AppInk, AppInkSoft, AppInk),
-                ),
-            ),
+            .background(AppInk),
     ) {
-        Canvas(Modifier.fillMaxSize()) {
-            drawRect(
-                brush = Brush.radialGradient(
-                    colors = listOf(AppBlue.copy(alpha = 0.18f), Color.Transparent),
-                    center = Offset(size.width * 0.92f, size.height * 0.04f),
-                    radius = size.minDimension * 0.82f,
-                ),
-            )
-            drawGrid()
-        }
         content()
-    }
-}
-
-private fun DrawScope.drawGrid() {
-    val gridColor = Color.White.copy(alpha = 0.025f)
-    val gap = 48.dp.toPx()
-    var x = 0f
-    while (x <= size.width) {
-        drawLine(gridColor, Offset(x, 0f), Offset(x, size.height * 0.68f), strokeWidth = 0.6.dp.toPx())
-        x += gap
-    }
-    var y = 0f
-    while (y <= size.height * 0.68f) {
-        drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 0.6.dp.toPx())
-        y += gap
     }
 }
 
@@ -104,34 +70,20 @@ fun YallegoBrandHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppMark()
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(
-                text = "Yallegó",
-                color = Color.White,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "¿Ya llegó?",
-                color = AppTextTertiary,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
+        Spacer(Modifier.width(9.dp))
+        Text(
+            text = "Yallegó",
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
         Spacer(Modifier.weight(1f))
         if (trailingLabel != null) {
-            Surface(
-                color = AppSurface,
-                shape = CircleShape,
-                border = BorderStroke(1.dp, AppBorder),
-            ) {
-                Text(
-                    text = trailingLabel,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                    color = AppTextSecondary,
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
+            Text(
+                text = trailingLabel,
+                color = AppTextTertiary,
+                style = MaterialTheme.typography.labelSmall,
+            )
         }
     }
 }
@@ -140,33 +92,27 @@ fun YallegoBrandHeader(
 fun AppMark(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(42.dp)
-            .background(
-                Brush.linearGradient(listOf(AppBlueBright, AppBlue)),
-                RoundedCornerShape(14.dp),
-            )
-            .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp)),
+            .size(34.dp)
+            .background(AppBlue, RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = "¿",
             color = Color.White,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Black,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
 
 @Composable
 fun ScreenEyebrow(text: String, modifier: Modifier = Modifier) {
-    Row(
+    Text(
+        text = text,
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.size(6.dp).background(AppCyan, CircleShape))
-        Text(text = text.uppercase(), color = AppCyan, style = MaterialTheme.typography.labelSmall)
-    }
+        color = AppBlueBright,
+        style = MaterialTheme.typography.labelMedium,
+    )
 }
 
 @Composable
@@ -179,10 +125,10 @@ fun ProgressDots(current: Int, total: Int, modifier: Modifier = Modifier) {
         repeat(total) { index ->
             Box(
                 Modifier
-                    .width(if (index == current) 26.dp else 7.dp)
-                    .height(7.dp)
+                    .width(if (index == current) 28.dp else 18.dp)
+                    .height(3.dp)
                     .background(
-                        if (index == current) AppBlueBright else Color.White.copy(alpha = 0.12f),
+                        if (index == current) AppBlueBright else Color.White.copy(alpha = 0.1f),
                         CircleShape,
                     ),
             )
@@ -200,12 +146,11 @@ fun YallegoCard(
         modifier = modifier,
         color = if (elevated) AppSurfaceElevated else AppSurface,
         contentColor = Color.White,
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, AppBorder.copy(alpha = 0.9f)),
+        shape = RoundedCornerShape(16.dp),
         tonalElevation = 0.dp,
-        shadowElevation = if (elevated) 12.dp else 0.dp,
+        shadowElevation = 0.dp,
     ) {
-        Column(modifier = Modifier.padding(20.dp), content = content)
+        Column(modifier = Modifier.padding(18.dp), content = content)
     }
 }
 
@@ -220,16 +165,16 @@ fun PrimaryActionButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(58.dp),
+        modifier = modifier.fillMaxWidth().height(54.dp),
         enabled = enabled && !loading,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = AppBlue,
             contentColor = Color.White,
             disabledContainerColor = if (loading) AppBlue else AppSurfaceElevated,
             disabledContentColor = if (loading) Color.White else AppTextTertiary,
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp, pressedElevation = 2.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
     ) {
         if (loading) {
             CircularProgressIndicator(
@@ -259,10 +204,13 @@ fun SecondaryActionButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(56.dp),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, AppBorder),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+        modifier = modifier.fillMaxWidth().height(52.dp),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, AppBorder.copy(alpha = 0.9f)),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = Color.White,
+            containerColor = AppSurface,
+        ),
     ) {
         if (icon != null) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(19.dp))
@@ -282,11 +230,10 @@ fun IconBadge(
     Box(
         modifier = modifier
             .size(size.dp)
-            .background(tint.copy(alpha = 0.12f), RoundedCornerShape((size * 0.32f).dp))
-            .border(1.dp, tint.copy(alpha = 0.2f), RoundedCornerShape((size * 0.32f).dp)),
+            .background(AppSurfaceElevated, RoundedCornerShape((size * 0.28f).dp)),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.43f).dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.4f).dp))
     }
 }
 

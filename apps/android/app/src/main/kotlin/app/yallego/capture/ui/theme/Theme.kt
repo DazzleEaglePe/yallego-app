@@ -26,11 +26,11 @@ private val LightColors = lightColorScheme(
 
 private val DarkColors = darkColorScheme(
     primary = AppBlueBright,
-    onPrimary = AppInk,
-    primaryContainer = Brand800,
-    onPrimaryContainer = Brand100,
+    onPrimary = Neutral0,
+    primaryContainer = AppSurfaceElevated,
+    onPrimaryContainer = Neutral50,
     secondary = AppCyan,
-    onSecondary = AppInk,
+    onSecondary = Neutral0,
     background = AppInk,
     onBackground = Neutral50,
     surface = AppSurface,
@@ -44,11 +44,11 @@ private val DarkColors = darkColorScheme(
 )
 
 private val YallegoShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(26.dp),
-    extraLarge = RoundedCornerShape(34.dp),
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(18.dp),
+    extraLarge = RoundedCornerShape(22.dp),
 )
 
 @Composable

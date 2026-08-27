@@ -235,16 +235,16 @@ fun VendorGuidanceStep(vendor: Vendor, onSkip: () -> Unit, onContinue: () -> Uni
             )
             Spacer(Modifier.height(24.dp))
 
-            guidance.instructions.forEachIndexed { index, instruction ->
-                YallegoCard(modifier = Modifier.fillMaxWidth()) {
+            YallegoCard(modifier = Modifier.fillMaxWidth()) {
+                guidance.instructions.forEachIndexed { index, instruction ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier.size(34.dp).background(AppSurfaceElevated, CircleShape),
+                            modifier = Modifier.size(30.dp).background(AppSurfaceElevated, CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = (index + 1).toString().padStart(2, '0'),
-                                color = AppCyan,
+                                color = AppBlueBright,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -256,8 +256,16 @@ fun VendorGuidanceStep(vendor: Vendor, onSkip: () -> Unit, onContinue: () -> Uni
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
+                    if (index < guidance.instructions.lastIndex) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp)
+                                .height(1.dp)
+                                .background(AppSurfaceElevated),
+                        )
+                    }
                 }
-                Spacer(Modifier.height(10.dp))
             }
 
             Spacer(Modifier.height(12.dp))

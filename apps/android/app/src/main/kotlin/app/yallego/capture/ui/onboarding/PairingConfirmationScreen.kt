@@ -1,7 +1,6 @@
 package app.yallego.capture.ui.onboarding
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -36,7 +34,6 @@ import app.yallego.capture.ui.components.YallegoBackdrop
 import app.yallego.capture.ui.components.YallegoBrandHeader
 import app.yallego.capture.ui.components.YallegoCard
 import app.yallego.capture.ui.theme.AppBlue
-import app.yallego.capture.ui.theme.AppBlueBright
 import app.yallego.capture.ui.theme.AppCyan
 import app.yallego.capture.ui.theme.AppTextSecondary
 
@@ -57,19 +54,15 @@ fun PairingConfirmationScreen(businessName: String, onContinue: () -> Unit) {
 
             Box(
                 modifier = Modifier
-                    .size(92.dp)
-                    .background(
-                        Brush.linearGradient(listOf(AppCyan.copy(alpha = 0.2f), AppBlue.copy(alpha = 0.16f))),
-                        CircleShape,
-                    )
-                    .border(1.dp, AppCyan.copy(alpha = 0.35f), CircleShape),
+                    .size(72.dp)
+                    .background(AppBlue.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
-                    modifier = Modifier.size(60.dp).background(AppBlue, CircleShape),
+                    modifier = Modifier.size(48.dp).background(AppBlue, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(25.dp))
                 }
             }
             Spacer(Modifier.height(28.dp))
@@ -88,7 +81,7 @@ fun PairingConfirmationScreen(businessName: String, onContinue: () -> Unit) {
             )
             Spacer(Modifier.height(24.dp))
 
-            YallegoCard(modifier = Modifier.fillMaxWidth(), elevated = true) {
+            YallegoCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = stringResource(R.string.pairing_confirmation_business_label),
                     color = AppCyan,

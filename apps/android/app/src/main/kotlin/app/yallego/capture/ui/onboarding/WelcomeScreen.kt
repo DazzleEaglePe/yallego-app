@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +37,6 @@ import app.yallego.capture.ui.components.SupportNote
 import app.yallego.capture.ui.components.YallegoBackdrop
 import app.yallego.capture.ui.components.YallegoBrandHeader
 import app.yallego.capture.ui.components.YallegoCard
-import app.yallego.capture.ui.theme.AppBlue
 import app.yallego.capture.ui.theme.AppCyan
 import app.yallego.capture.ui.theme.AppTextSecondary
 import app.yallego.capture.ui.theme.WalletPlin
@@ -92,24 +90,23 @@ fun WelcomeScreen(onStart: () -> Unit) {
 private fun PaymentPreview() {
     YallegoCard(
         modifier = Modifier.fillMaxWidth(),
-        elevated = true,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(Icons.Rounded.NotificationsActive, tint = AppCyan)
-            Column(Modifier.padding(start = 14.dp)) {
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.preview_live_title),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AppCyan,
-                )
-                Text(
-                    text = stringResource(R.string.preview_live_body),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                 )
+                Text(
+                    text = stringResource(R.string.preview_live_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTextSecondary,
+                )
             }
+            Box(Modifier.size(8.dp).background(AppCyan, CircleShape))
         }
-        Spacer(Modifier.height(22.dp))
+        Spacer(Modifier.height(20.dp))
         WalletNotification(
             wallet = "Yape",
             message = stringResource(R.string.preview_yape_payment),
@@ -120,16 +117,6 @@ private fun PaymentPreview() {
             wallet = "Plin",
             message = stringResource(R.string.preview_plin_payment),
             color = WalletPlin,
-        )
-        Spacer(Modifier.height(18.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .background(
-                    Brush.horizontalGradient(listOf(AppBlue, AppCyan)),
-                    CircleShape,
-                ),
         )
     }
 }
@@ -151,13 +138,13 @@ private fun WalletNotification(wallet: String, message: String, color: Color) {
                 text = wallet.take(1),
                 color = Color.White,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Black,
+                fontWeight = FontWeight.SemiBold,
             )
         }
         Column(Modifier.weight(1f)) {
             Text(wallet, color = Color.White, style = MaterialTheme.typography.labelLarge)
             Text(message, color = AppTextSecondary, style = MaterialTheme.typography.bodySmall)
         }
-        Box(Modifier.size(7.dp).background(AppCyan, CircleShape))
+        Text("•••", color = AppTextSecondary, style = MaterialTheme.typography.bodySmall)
     }
 }
