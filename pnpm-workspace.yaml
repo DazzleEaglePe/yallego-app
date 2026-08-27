@@ -1,0 +1,15 @@
+packages:
+  - 'apps/api'
+  - 'apps/dashboard'
+  - 'apps/landing'
+  - 'apps/docs'
+  - 'packages/*'
+  - 'tools/*'
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - 'esbuild'
+  - 'prisma'
+  - 'sharp'

@@ -1,0 +1,594 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [citext, pgcrypto, pg_trgm]
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  OPERATOR
+  VIEWER
+
+  @@map("membership_role")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+
+  @@map("tenant_status")
+}
+
+enum DeviceStatus {
+  ACTIVE
+  PAUSED
+  REVOKED
+
+  @@map("device_status")
+}
+
+enum ParseStatus {
+  PENDING
+  PARSED
+  UNMATCHED
+  ERROR
+
+  @@map("parse_status")
+}
+
+enum TransactionStatus {
+  CAPTURED
+  CONFIRMED
+  DISPUTED
+  VOIDED
+
+  @@map("transaction_status")
+}
+
+enum DeliveryStatus {
+  PENDING
+  IN_PROGRESS
+  DELIVERED
+  FAILED
+  ABANDONED
+
+  @@map("delivery_status")
+}
+
+enum BillingCycle {
+  MONTHLY
+  SEMIANNUAL
+  ANNUAL
+
+  @@map("billing_cycle")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+
+  @@map("subscription_status")
+}
+
+enum OneTimeTokenPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+
+  @@map("one_time_token_purpose")
+}
+
+model Tenant {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                String       @unique @db.VarChar(64)
+  businessName        String       @map("business_name") @db.VarChar(200)
+  legalName           String?      @map("legal_name") @db.VarChar(200)
+  taxId               String?      @map("tax_id") @db.VarChar(20)
+  industry            String?      @db.VarChar(64)
+  country             String       @default("PE") @db.Char(2)
+  timezone            String       @default("America/Lima") @db.VarChar(64)
+  status              TenantStatus @default(ACTIVE)
+  deletionRequestedAt DateTime?    @map("deletion_requested_at") @db.Timestamptz(6)
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships         Membership[]
+  invitations         Invitation[]
+  devices             Device[]
+  pairingCodes        PairingCode[]
+  tenantWallets       TenantWallet[]
+  rawNotifications    RawNotification[]
+  transactions        Transaction[]
+  apiKeys             ApiKey[]
+  webhookEndpoints    WebhookEndpoint[]
+  webhookDeliveries   WebhookDelivery[]
+  subscriptions       Subscription[]
+  subscriptionChanges SubscriptionChange[]
+  usagePeriods        UsagePeriod[]
+  manualPayments      ManualPayment[]
+  auditEvents         AuditEvent[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                   String    @unique @db.Citext
+  passwordHash            String    @map("password_hash") @db.VarChar(255)
+  fullName                String    @map("full_name") @db.VarChar(200)
+  phone                   String?   @db.VarChar(20)
+  emailVerified           Boolean   @default(false) @map("email_verified")
+  failedAttempts          Int       @default(0) @map("failed_attempts") @db.SmallInt
+  failedAttemptsStartedAt DateTime? @map("failed_attempts_started_at") @db.Timestamptz(6)
+  lockedUntil             DateTime? @map("locked_until") @db.Timestamptz(6)
+  lastLoginAt             DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships           Membership[]
+  invitationsSent       Invitation[]         @relation("InvitationSender")
+  refreshTokens         RefreshToken[]
+  oneTimeTokens         OneTimeToken[]
+  pairingCodesCreated   PairingCode[]        @relation("PairingCodeCreator")
+  transactionsConfirmed Transaction[]        @relation("TransactionConfirmer")
+  apiKeysCreated        ApiKey[]             @relation("ApiKeyCreator")
+  webhooksCreated       WebhookEndpoint[]    @relation("WebhookCreator")
+  subscriptionChanges   SubscriptionChange[] @relation("SubscriptionChanger")
+  auditEvents           AuditEvent[]
+
+  @@map("users")
+}
+
+model Membership {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String         @map("tenant_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  role      MembershipRole
+  joinedAt  DateTime       @default(now()) @map("joined_at") @db.Timestamptz(6)
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String         @map("tenant_id") @db.Uuid
+  email      String         @db.Citext
+  role       MembershipRole
+  tokenHash  String         @unique @map("token_hash") @db.VarChar(255)
+  invitedBy  String?        @map("invited_by") @db.Uuid
+  expiresAt  DateTime       @map("expires_at") @db.Timestamptz(6)
+  acceptedAt DateTime?      @map("accepted_at") @db.Timestamptz(6)
+  revokedAt  DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inviter User?  @relation("InvitationSender", fields: [invitedBy], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, email])
+  @@map("invitations")
+}
+
+model RefreshToken {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash") @db.VarChar(255)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedById String?   @map("replaced_by") @db.Uuid
+  userAgent    String?   @map("user_agent")
+  ipAddress    String?   @map("ip_address") @db.Inet
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy RefreshToken?  @relation("TokenReplacement", fields: [replacedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replaces   RefreshToken[] @relation("TokenReplacement")
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model OneTimeToken {
+  id         String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String              @map("user_id") @db.Uuid
+  purpose    OneTimeTokenPurpose
+  tokenHash  String              @unique @map("token_hash") @db.VarChar(255)
+  expiresAt  DateTime            @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime?           @map("consumed_at") @db.Timestamptz(6)
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("one_time_tokens")
+}
+
+model Device {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  tokenHash    String       @unique @map("token_hash") @db.VarChar(255)
+  label        String       @db.VarChar(120)
+  manufacturer String?      @db.VarChar(64)
+  model        String?      @db.VarChar(120)
+  osVersion    String?      @map("os_version") @db.VarChar(32)
+  appVersion   String?      @map("app_version") @db.VarChar(32)
+  lastSeenAt   DateTime?    @map("last_seen_at") @db.Timestamptz(6)
+  lastIngestAt DateTime?    @map("last_ingest_at") @db.Timestamptz(6)
+  status       DeviceStatus @default(ACTIVE)
+  pairedAt     DateTime     @default(now()) @map("paired_at") @db.Timestamptz(6)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pairingCodes     PairingCode[]
+  rawNotifications RawNotification[]
+  transactions     Transaction[]
+
+  @@index([tenantId])
+  @@index([lastSeenAt])
+  @@map("devices")
+}
+
+model PairingCode {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash") @db.VarChar(255)
+  label     String?   @db.VarChar(120)
+  createdBy String?   @map("created_by") @db.Uuid
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  deviceId  String?   @map("device_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator User?   @relation("PairingCodeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  device  Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@map("pairing_codes")
+}
+
+model Wallet {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code           String   @unique @db.VarChar(64)
+  displayName    String   @map("display_name") @db.VarChar(120)
+  provider       String   @db.VarChar(32)
+  issuer         String?  @db.VarChar(64)
+  androidPackage String   @map("android_package") @db.VarChar(255)
+  iconUrl        String?  @map("icon_url")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenantWallets  TenantWallet[]
+  parserPatterns ParserPattern[]
+  transactions   Transaction[]
+
+  @@index([androidPackage])
+  @@map("wallets")
+}
+
+model TenantWallet {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  walletId         String   @map("wallet_id") @db.Uuid
+  isEnabled        Boolean  @default(true) @map("is_enabled")
+  accountReference String?  @map("account_reference") @db.VarChar(120)
+  enabledAt        DateTime @default(now()) @map("enabled_at") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@unique([tenantId, walletId])
+  @@index([tenantId])
+  @@map("tenant_wallets")
+}
+
+model ParserPattern {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId    String    @map("wallet_id") @db.Uuid
+  version     Int
+  rules       Json
+  notes       String?
+  isActive    Boolean   @default(false) @map("is_active")
+  createdBy   String?   @map("created_by") @db.Uuid
+  activatedAt DateTime? @map("activated_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  wallet           Wallet            @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  rawNotifications RawNotification[]
+
+  @@unique([walletId, version])
+  @@index([walletId])
+  @@map("parser_patterns")
+}
+
+model RawNotification {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String      @map("tenant_id") @db.Uuid
+  deviceId        String      @map("device_id") @db.Uuid
+  packageName     String      @map("package_name") @db.VarChar(255)
+  title           String?
+  body            String?
+  dedupeHash      String      @map("dedupe_hash") @db.VarChar(64)
+  postedAt        DateTime    @map("posted_at") @db.Timestamptz(6)
+  receivedAt      DateTime    @default(now()) @map("received_at") @db.Timestamptz(6)
+  parseStatus     ParseStatus @default(PENDING) @map("parse_status")
+  parseError      String?     @map("parse_error")
+  parserPatternId String?     @map("parser_pattern_id") @db.Uuid
+  archivedAt      DateTime?   @map("archived_at") @db.Timestamptz(6)
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  device        Device         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  parserPattern ParserPattern? @relation(fields: [parserPatternId], references: [id])
+  transaction   Transaction?
+
+  @@unique([deviceId, dedupeHash])
+  @@index([tenantId, receivedAt(sort: Desc)])
+  @@index([parseStatus, receivedAt])
+  @@map("raw_notifications")
+}
+
+model Transaction {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String            @map("tenant_id") @db.Uuid
+  deviceId            String            @map("device_id") @db.Uuid
+  walletId            String            @map("wallet_id") @db.Uuid
+  rawNotificationId   String            @unique @map("raw_notification_id") @db.Uuid
+  senderNameEncrypted Bytes?            @map("sender_name_encrypted") @db.ByteA
+  senderNameSearch    String?           @map("sender_name_search") @db.VarChar(200)
+  amount              Decimal           @db.Decimal(12, 2)
+  currency            String            @default("PEN") @db.Char(3)
+  securityCode        String?           @map("security_code") @db.VarChar(16)
+  approvalCode        String?           @map("approval_code") @db.VarChar(64)
+  status              TransactionStatus @default(CAPTURED)
+  occurredAt          DateTime          @map("occurred_at") @db.Timestamptz(6)
+  confirmedAt         DateTime?         @map("confirmed_at") @db.Timestamptz(6)
+  confirmedBy         String?           @map("confirmed_by") @db.Uuid
+  note                String?
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  device          Device          @relation(fields: [deviceId], references: [id])
+  wallet          Wallet          @relation(fields: [walletId], references: [id])
+  rawNotification RawNotification @relation(fields: [rawNotificationId], references: [id])
+  confirmer       User?           @relation("TransactionConfirmer", fields: [confirmedBy], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, occurredAt(sort: Desc)])
+  @@index([tenantId, walletId, occurredAt(sort: Desc)])
+  @@index([tenantId, amount])
+  @@index([tenantId, status])
+  @@index([senderNameSearch(ops: raw("gin_trgm_ops"))], type: Gin, map: "transactions_sender_search_idx")
+  @@map("transactions")
+}
+
+model ApiKey {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  label      String    @db.VarChar(120)
+  keyPrefix  String    @map("key_prefix") @db.VarChar(24)
+  keyHash    String    @unique @map("key_hash") @db.VarChar(255)
+  scopes     String[]  @default(["transactions:read"])
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(6)
+  createdBy  String?   @map("created_by") @db.Uuid
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator     User?        @relation("ApiKeyCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  auditEvents AuditEvent[]
+
+  @@index([tenantId])
+  @@map("api_keys")
+}
+
+model WebhookEndpoint {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  url                 String
+  secretEncrypted     Bytes     @map("secret_encrypted") @db.ByteA
+  subscribedEvents    String[]  @map("subscribed_events")
+  description         String?
+  isEnabled           Boolean   @default(true) @map("is_enabled")
+  consecutiveFailures Int       @default(0) @map("consecutive_failures")
+  lastSuccessAt       DateTime? @map("last_success_at") @db.Timestamptz(6)
+  lastFailureAt       DateTime? @map("last_failure_at") @db.Timestamptz(6)
+  createdBy           String?   @map("created_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator    User?             @relation("WebhookCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String         @map("tenant_id") @db.Uuid
+  endpointId     String         @map("endpoint_id") @db.Uuid
+  eventId        String         @map("event_id") @db.Uuid
+  eventType      String         @map("event_type") @db.VarChar(64)
+  payload        Json
+  status         DeliveryStatus @default(PENDING)
+  attempts       Int            @default(0)
+  maxAttempts    Int            @default(8) @map("max_attempts")
+  nextAttemptAt  DateTime?      @map("next_attempt_at") @db.Timestamptz(6)
+  lastAttemptAt  DateTime?      @map("last_attempt_at") @db.Timestamptz(6)
+  lastStatusCode Int?           @map("last_status_code")
+  lastError      String?        @map("last_error")
+  deliveredAt    DateTime?      @map("delivered_at") @db.Timestamptz(6)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@unique([endpointId, eventId])
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt(sort: Desc)])
+  @@map("webhook_deliveries")
+}
+
+model Plan {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String   @unique @db.VarChar(32)
+  displayName     String   @map("display_name") @db.VarChar(64)
+  description     String?
+  priceMonthly    Decimal  @default(0) @map("price_monthly") @db.Decimal(10, 2)
+  priceSemiannual Decimal? @map("price_semiannual") @db.Decimal(10, 2)
+  priceAnnual     Decimal? @map("price_annual") @db.Decimal(10, 2)
+  currency        String   @default("PEN") @db.Char(3)
+  limits          Json
+  isPublic        Boolean  @default(true) @map("is_public")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subscriptions           Subscription[]
+  subscriptionChangesFrom SubscriptionChange[] @relation("SubscriptionFromPlan")
+  subscriptionChangesTo   SubscriptionChange[] @relation("SubscriptionToPlan")
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String             @map("tenant_id") @db.Uuid
+  planId            String             @map("plan_id") @db.Uuid
+  billingCycle      BillingCycle       @default(MONTHLY) @map("billing_cycle")
+  status            SubscriptionStatus @default(ACTIVE)
+  periodStart       DateTime           @map("period_start") @db.Timestamptz(6)
+  periodEnd         DateTime           @map("period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd Boolean            @default(false) @map("cancel_at_period_end")
+  canceledAt        DateTime?          @map("canceled_at") @db.Timestamptz(6)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan           Plan            @relation(fields: [planId], references: [id])
+  manualPayments ManualPayment[]
+
+  @@index([tenantId])
+  @@map("subscriptions")
+}
+
+model SubscriptionChange {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  fromPlanId  String?       @map("from_plan_id") @db.Uuid
+  toPlanId    String        @map("to_plan_id") @db.Uuid
+  fromCycle   BillingCycle? @map("from_cycle")
+  toCycle     BillingCycle  @map("to_cycle")
+  effectiveAt DateTime      @map("effective_at") @db.Timestamptz(6)
+  performedBy String?       @map("performed_by") @db.Uuid
+  reason      String?
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromPlan  Plan?  @relation("SubscriptionFromPlan", fields: [fromPlanId], references: [id])
+  toPlan    Plan   @relation("SubscriptionToPlan", fields: [toPlanId], references: [id])
+  performer User?  @relation("SubscriptionChanger", fields: [performedBy], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("subscription_changes")
+}
+
+model UsagePeriod {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  periodStart       DateTime @map("period_start") @db.Date
+  periodEnd         DateTime @map("period_end") @db.Date
+  transactionsCount Int      @default(0) @map("transactions_count")
+  apiCallsCount     Int      @default(0) @map("api_calls_count")
+  webhookCallsCount Int      @default(0) @map("webhook_calls_count")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, periodStart])
+  @@index([tenantId, periodStart(sort: Desc)])
+  @@map("usage_periods")
+}
+
+model ManualPayment {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  subscriptionId String?  @map("subscription_id") @db.Uuid
+  amount         Decimal  @db.Decimal(10, 2)
+  currency       String   @default("PEN") @db.Char(3)
+  method         String?  @db.VarChar(64)
+  reference      String?  @db.VarChar(120)
+  coversFrom     DateTime @map("covers_from") @db.Date
+  coversTo       DateTime @map("covers_to") @db.Date
+  confirmedBy    String?  @map("confirmed_by") @db.Uuid
+  confirmedAt    DateTime @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([tenantId])
+  @@map("manual_payments")
+}
+
+model AuditEvent {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String?  @map("tenant_id") @db.Uuid
+  actorUserId   String?  @map("actor_user_id") @db.Uuid
+  actorApiKeyId String?  @map("actor_api_key_id") @db.Uuid
+  actorType     String   @map("actor_type") @db.VarChar(24)
+  action        String   @db.VarChar(128)
+  resourceType  String?  @map("resource_type") @db.VarChar(64)
+  resourceId    String?  @map("resource_id") @db.Uuid
+  metadata      Json?
+  ipAddress     String?  @map("ip_address") @db.Inet
+  userAgent     String?  @map("user_agent")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant      Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  actorUser   User?   @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorApiKey ApiKey? @relation(fields: [actorApiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_events")
+}
+
+model PlatformAdmin {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique @db.Citext
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  fullName     String    @map("full_name") @db.VarChar(200)
+  isActive     Boolean   @default(true) @map("is_active")
+  totpSecret   Bytes?    @map("totp_secret") @db.ByteA
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("platform_admins")
+}

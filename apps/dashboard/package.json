@@ -1,0 +1,35 @@
+{
+  "name": "@yallego/dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port 3000",
+    "start": "next start --port 3000",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@yallego/contracts": "workspace:*",
+    "@yallego/design-tokens": "workspace:*",
+    "next": "15.5.24",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "15.5.24",
+    "@types/node": "22.20.1",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
+    "@yallego/config-eslint": "workspace:*",
+    "@yallego/config-typescript": "workspace:*",
+    "autoprefixer": "10.4.21",
+    "eslint": "9.39.5",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.19",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
