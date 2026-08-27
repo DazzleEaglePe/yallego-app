@@ -13,11 +13,12 @@
 
 html {
   background: theme('colors.neutral.50');
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  min-width: 360px;
+  min-width: 320px;
   color: theme('colors.neutral.900');
   background: theme('colors.neutral.50');
   font-family: theme('fontFamily.sans');
