@@ -378,7 +378,7 @@
 ### Panel
 
 - [x] Implementar la vista de claves de API _(Codex)_ — creación con alcances y vencimiento, secreto visible una sola vez, listado y revocación
-- [ ] Implementar la vista de webhooks
+- [x] Implementar la vista de webhooks _(Codex)_ — alta, edición de suscripciones, pausa/activación, prueba, rotación de secreto y eliminación
 - [ ] Implementar el historial de entregas con detalle expandible
 - [ ] Implementar el reintento manual desde la interfaz
 

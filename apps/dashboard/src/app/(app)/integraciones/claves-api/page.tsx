@@ -11,6 +11,7 @@ import { useApiKeyActions, useApiKeys } from '@/features/api-keys/hooks/use-api-
 import { ApiRequestError } from '@/features/auth/api';
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
+import { IntegrationsTabs } from '@/features/integrations/components/IntegrationsTabs';
 
 export default function ApiKeysPage() {
   const router = useRouter();
@@ -60,12 +61,7 @@ export default function ApiKeysPage() {
         </button>
       </section>
 
-      <nav aria-label="Secciones de integraciones" className="mt-7 flex gap-1 border-b border-neutral-200">
-        <span className="border-b-2 border-brand-500 px-4 py-3 text-sm font-semibold text-brand-700">
-          Claves API
-        </span>
-        <span className="px-4 py-3 text-sm font-medium text-neutral-400">Webhooks · Próximamente</span>
-      </nav>
+      <IntegrationsTabs active="api-keys" />
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
