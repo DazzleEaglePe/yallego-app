@@ -43,6 +43,7 @@ interface SessionResponse {
 interface AuthSessionContextValue {
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
   session: AuthSession | null;
   status: 'authenticated' | 'loading' | 'unauthenticated';
   switchTenant: (tenantId: string) => Promise<void>;
@@ -160,8 +161,8 @@ export function AuthSessionProvider({ children }: Readonly<{ children: ReactNode
   );
 
   const value = useMemo(
-    () => ({ login, logout, session, status, switchTenant }),
-    [login, logout, session, status, switchTenant],
+    () => ({ login, logout, refreshSession: refresh, session, status, switchTenant }),
+    [login, logout, refresh, session, status, switchTenant],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;

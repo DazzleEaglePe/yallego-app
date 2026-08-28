@@ -2,6 +2,7 @@ import type {
   Invitation,
   InviteMemberInput,
   Member,
+  TransferOwnershipInput,
   UpdateMemberRoleInput,
 } from '@yallego/contracts';
 
@@ -40,5 +41,15 @@ export function removeMember(accessToken: string, memberId: string): Promise<voi
 export function revokeInvitation(accessToken: string, invitationId: string): Promise<void> {
   return authenticatedRequest(`/members/invitations/${invitationId}`, accessToken, {
     method: 'DELETE',
+  });
+}
+
+export function transferOwnership(
+  accessToken: string,
+  input: TransferOwnershipInput,
+): Promise<void> {
+  return authenticatedRequest('/members/transfer-ownership', accessToken, {
+    body: JSON.stringify(input),
+    method: 'POST',
   });
 }

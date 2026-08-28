@@ -9,6 +9,7 @@ import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 import { ConfirmTeamActionDialog } from '@/features/team/components/ConfirmTeamActionDialog';
 import { InviteMemberDialog } from '@/features/team/components/InviteMemberDialog';
 import { RoleBadge } from '@/features/team/components/RoleBadge';
+import { TransferOwnershipDialog } from '@/features/team/components/TransferOwnershipDialog';
 import { useTeamActions } from '@/features/team/hooks/use-team-actions';
 import { useTeamInvitations, useTeamMembers } from '@/features/team/hooks/use-team';
 
@@ -32,6 +33,7 @@ export default function TeamPage() {
   const actions = useTeamActions();
   const [isInviteOpen, setInviteOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [transferTarget, setTransferTarget] = useState<Member | null>(null);
 
   const memberList = members.data ?? [];
   const invitationList = invitations.data ?? [];
@@ -40,6 +42,7 @@ export default function TeamPage() {
     actions.updateRole.error,
     actions.remove.error,
     actions.revoke.error,
+    actions.transfer.error,
   );
 
   function confirmPendingAction() {
@@ -132,7 +135,12 @@ export default function TeamPage() {
               <MemberRow
                 canAssignRole={canAssignRoles && !member.is_current_user && member.role !== 'OWNER'}
                 canRemove={canManageMembers && !member.is_current_user && member.role !== 'OWNER'}
-                isBusy={actions.updateRole.isPending || actions.remove.isPending}
+                canTransfer={role === 'OWNER' && !member.is_current_user && member.role !== 'OWNER'}
+                isBusy={
+                  actions.updateRole.isPending ||
+                  actions.remove.isPending ||
+                  actions.transfer.isPending
+                }
                 key={member.id}
                 member={member}
                 onRemove={() =>
@@ -141,6 +149,10 @@ export default function TeamPage() {
                 onRoleChange={(nextRole) =>
                   actions.updateRole.mutate({ memberId: member.id, input: { role: nextRole } })
                 }
+                onTransfer={() => {
+                  actions.transfer.reset();
+                  setTransferTarget(member);
+                }}
               />
             ))}
           </div>
@@ -218,6 +230,21 @@ export default function TeamPage() {
           title={pendingAction.kind === 'remove' ? '¿Quitar integrante?' : '¿Revocar invitación?'}
         />
       )}
+
+      {transferTarget && (
+        <TransferOwnershipDialog
+          error={errorMessage(actions.transfer.error)}
+          isPending={actions.transfer.isPending}
+          member={transferTarget}
+          onCancel={() => setTransferTarget(null)}
+          onConfirm={() =>
+            actions.transfer.mutate(
+              { member_id: transferTarget.id },
+              { onSuccess: () => setTransferTarget(null) },
+            )
+          }
+        />
+      )}
     </div>
   );
 }
@@ -225,17 +252,21 @@ export default function TeamPage() {
 function MemberRow({
   canAssignRole,
   canRemove,
+  canTransfer,
   isBusy,
   member,
   onRemove,
   onRoleChange,
+  onTransfer,
 }: Readonly<{
   canAssignRole: boolean;
   canRemove: boolean;
+  canTransfer: boolean;
   isBusy: boolean;
   member: Member;
   onRemove: () => void;
   onRoleChange: (role: AssignableRole) => void;
+  onTransfer: () => void;
 }>) {
   return (
     <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
@@ -280,6 +311,16 @@ function MemberRow({
           type="button"
         >
           Quitar
+        </button>
+      )}
+      {canTransfer && (
+        <button
+          className="rounded-lg px-2.5 py-2 text-xs font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
+          disabled={isBusy}
+          onClick={onTransfer}
+          type="button"
+        >
+          Transferir propiedad
         </button>
       )}
     </div>

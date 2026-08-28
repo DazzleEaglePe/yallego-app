@@ -1,15 +1,25 @@
 'use client';
 
-import type { InviteMemberInput, UpdateMemberRoleInput } from '@yallego/contracts';
+import type {
+  InviteMemberInput,
+  TransferOwnershipInput,
+  UpdateMemberRoleInput,
+} from '@yallego/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthSession } from '@/features/auth/auth-session';
 
-import { inviteMember, removeMember, revokeInvitation, updateMemberRole } from '../api/team';
+import {
+  inviteMember,
+  removeMember,
+  revokeInvitation,
+  transferOwnership,
+  updateMemberRole,
+} from '../api/team';
 import { teamQueryKeys } from './use-team';
 
 export function useTeamActions() {
-  const { session } = useAuthSession();
+  const { refreshSession, session } = useAuthSession();
   const accessToken = session?.accessToken ?? '';
   const queryClient = useQueryClient();
 
@@ -38,5 +48,13 @@ export function useTeamActions() {
     onSuccess: refreshInvitations,
   });
 
-  return { invite, remove, revoke, updateRole };
+  const transfer = useMutation({
+    mutationFn: (input: TransferOwnershipInput) => transferOwnership(accessToken, input),
+    onSuccess: () => {
+      void refreshMembers();
+      void refreshSession().catch(() => window.location.reload());
+    },
+  });
+
+  return { invite, remove, revoke, transfer, updateRole };
 }
