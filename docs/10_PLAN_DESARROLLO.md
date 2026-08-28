@@ -379,8 +379,8 @@
 
 - [x] Implementar la vista de claves de API _(Codex)_ — creación con alcances y vencimiento, secreto visible una sola vez, listado y revocación
 - [x] Implementar la vista de webhooks _(Codex)_ — alta, edición de suscripciones, pausa/activación, prueba, rotación de secreto y eliminación
-- [ ] Implementar el historial de entregas con detalle expandible
-- [ ] Implementar el reintento manual desde la interfaz
+- [x] Implementar el historial de entregas con detalle expandible _(Codex)_ — filtros por estado, actualización automática de entregas activas y detalle de intentos, respuesta y error sin exponer el payload
+- [x] Implementar el reintento manual desde la interfaz _(Codex)_ — disponible para entregas fallidas o abandonadas, con invalidación del historial y confirmación de encolado
 
 ### Criterios de aceptación
 

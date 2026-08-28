@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { WebhookEndpointSummary } from '@yallego/contracts';
 
-import { webhookEventLabel, webhookHealth } from './webhook-config';
+import { canRetryDelivery, webhookEventLabel, webhookHealth } from './webhook-config';
 
 const webhook: WebhookEndpointSummary = {
   consecutive_failures: 0,
@@ -30,5 +30,15 @@ describe('webhookHealth', () => {
 describe('webhookEventLabel', () => {
   it('presenta el nombre de evento en lenguaje de negocio', () => {
     expect(webhookEventLabel('notification.unmatched')).toBe('Notificación no reconocida');
+  });
+});
+
+describe('canRetryDelivery', () => {
+  it('limita el reintento manual a entregas fallidas o abandonadas', () => {
+    expect(canRetryDelivery('FAILED')).toBe(true);
+    expect(canRetryDelivery('ABANDONED')).toBe(true);
+    expect(canRetryDelivery('PENDING')).toBe(false);
+    expect(canRetryDelivery('IN_PROGRESS')).toBe(false);
+    expect(canRetryDelivery('DELIVERED')).toBe(false);
   });
 });

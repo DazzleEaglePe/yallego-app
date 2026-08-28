@@ -1,4 +1,4 @@
-import type { WebhookEndpointSummary, WebhookEventType } from '@yallego/contracts';
+import type { DeliveryStatus, WebhookEndpointSummary, WebhookEventType } from '@yallego/contracts';
 
 export const webhookEventOptions = [
   { label: 'Cobro recibido', value: 'transaction.created' },
@@ -24,4 +24,40 @@ export function webhookHealth(
   if (webhook.consecutive_failures > 0) return 'failing';
   if (webhook.last_success_at) return 'healthy';
   return 'new';
+}
+
+export const deliveryStatusOptions = [
+  { label: 'Todas', value: undefined },
+  { label: 'Pendientes', value: 'PENDING' },
+  { label: 'En proceso', value: 'IN_PROGRESS' },
+  { label: 'Entregadas', value: 'DELIVERED' },
+  { label: 'Fallidas', value: 'FAILED' },
+  { label: 'Abandonadas', value: 'ABANDONED' },
+] satisfies Array<{ label: string; value: DeliveryStatus | undefined }>;
+
+export const deliveryStatusMeta: Record<DeliveryStatus, { className: string; label: string }> = {
+  ABANDONED: {
+    className: 'bg-neutral-200 text-neutral-700',
+    label: 'Abandonada',
+  },
+  DELIVERED: {
+    className: 'bg-success-50 text-success-700',
+    label: 'Entregada',
+  },
+  FAILED: {
+    className: 'bg-danger-50 text-danger-700',
+    label: 'Fallida',
+  },
+  IN_PROGRESS: {
+    className: 'bg-brand-50 text-brand-700',
+    label: 'En proceso',
+  },
+  PENDING: {
+    className: 'bg-warning-50 text-warning-700',
+    label: 'Pendiente',
+  },
+};
+
+export function canRetryDelivery(status: DeliveryStatus): boolean {
+  return status === 'FAILED' || status === 'ABANDONED';
 }

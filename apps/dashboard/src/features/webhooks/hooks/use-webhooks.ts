@@ -1,6 +1,6 @@
 'use client';
 
-import type { RegisterWebhookInput, UpdateWebhookInput } from '@yallego/contracts';
+import type { DeliveryStatus, RegisterWebhookInput, UpdateWebhookInput } from '@yallego/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthSession } from '@/features/auth/auth-session';
@@ -8,13 +8,19 @@ import { useAuthSession } from '@/features/auth/auth-session';
 import {
   createWebhook,
   deleteWebhook,
+  fetchWebhookDeliveries,
   fetchWebhooks,
+  retryWebhookDelivery,
   rotateWebhookSecret,
   sendWebhookTest,
   updateWebhook,
 } from '../api/webhooks';
 
 export const webhooksQueryKey = ['webhooks'] as const;
+
+export function webhookDeliveriesQueryKey(webhookId: string, status?: DeliveryStatus) {
+  return [...webhooksQueryKey, webhookId, 'deliveries', status ?? 'ALL'] as const;
+}
 
 export function useWebhooks() {
   const { session } = useAuthSession();
@@ -38,13 +44,8 @@ export function useWebhookActions() {
     onSuccess: refresh,
   });
   const update = useMutation({
-    mutationFn: ({
-      input,
-      webhookId,
-    }: {
-      input: UpdateWebhookInput;
-      webhookId: string;
-    }) => updateWebhook(accessToken, webhookId, input),
+    mutationFn: ({ input, webhookId }: { input: UpdateWebhookInput; webhookId: string }) =>
+      updateWebhook(accessToken, webhookId, input),
     onSuccess: refresh,
   });
   const remove = useMutation({
@@ -60,4 +61,43 @@ export function useWebhookActions() {
   });
 
   return { create, remove, rotateSecret, test, update };
+}
+
+export function useWebhookDeliveries(
+  webhookId: string,
+  status: DeliveryStatus | undefined,
+  enabled: boolean,
+) {
+  const { session } = useAuthSession();
+  const accessToken = session?.accessToken ?? null;
+
+  return useQuery({
+    queryKey: webhookDeliveriesQueryKey(webhookId, status),
+    queryFn: () => fetchWebhookDeliveries(accessToken!, webhookId, status),
+    enabled: enabled && Boolean(accessToken),
+    refetchInterval: (query) =>
+      query.state.data?.data.some(
+        (delivery) => delivery.status === 'PENDING' || delivery.status === 'IN_PROGRESS',
+      )
+        ? 3_000
+        : false,
+  });
+}
+
+export function useRetryWebhookDelivery(webhookId: string) {
+  const { session } = useAuthSession();
+  const accessToken = session?.accessToken ?? '';
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (deliveryId: string) => retryWebhookDelivery(accessToken, webhookId, deliveryId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [...webhooksQueryKey, webhookId, 'deliveries'],
+        }),
+        queryClient.invalidateQueries({ queryKey: webhooksQueryKey }),
+      ]);
+    },
+  });
 }

@@ -1,6 +1,8 @@
 import type {
+  DeliveryStatus,
   RegisterWebhookInput,
   UpdateWebhookInput,
+  WebhookDeliveryListResponse,
   WebhookEndpointCreated,
   WebhookEndpointSummary,
 } from '@yallego/contracts';
@@ -50,4 +52,27 @@ export function rotateWebhookSecret(
   return authenticatedRequest(`/webhooks/${webhookId}/rotate-secret`, accessToken, {
     method: 'POST',
   });
+}
+
+export function fetchWebhookDeliveries(
+  accessToken: string,
+  webhookId: string,
+  status?: DeliveryStatus,
+): Promise<WebhookDeliveryListResponse> {
+  const query = new URLSearchParams({ limit: '50' });
+  if (status) query.set('status', status);
+
+  return authenticatedRequest(`/webhooks/${webhookId}/deliveries?${query.toString()}`, accessToken);
+}
+
+export function retryWebhookDelivery(
+  accessToken: string,
+  webhookId: string,
+  deliveryId: string,
+): Promise<{ delivery_id: string }> {
+  return authenticatedRequest(
+    `/webhooks/${webhookId}/deliveries/${deliveryId}/retry`,
+    accessToken,
+    { method: 'POST' },
+  );
 }

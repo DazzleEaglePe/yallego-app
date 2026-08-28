@@ -8,6 +8,7 @@ import { ApiRequestError } from '@/features/auth/api';
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 import { IntegrationsTabs } from '@/features/integrations/components/IntegrationsTabs';
+import { WebhookDeliveriesPanel } from '@/features/webhooks/components/WebhookDeliveriesPanel';
 import { WebhookFormDialog } from '@/features/webhooks/components/WebhookFormDialog';
 import { WebhookSecretDialog } from '@/features/webhooks/components/WebhookSecretDialog';
 import { useWebhookActions, useWebhooks } from '@/features/webhooks/hooks/use-webhooks';
@@ -32,6 +33,7 @@ export default function WebhooksPage() {
     secret: string;
   } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [expandedWebhookId, setExpandedWebhookId] = useState<string | null>(null);
 
   useEffect(() => {
     if (role !== undefined && !hasAccess) router.replace('/inicio');
@@ -119,7 +121,10 @@ export default function WebhooksPage() {
       )}
 
       {actionError && !confirmation && (
-        <p className="mt-5 rounded-xl border border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-600" role="alert">
+        <p
+          className="mt-5 rounded-xl border border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-600"
+          role="alert"
+        >
           {actionError}
         </p>
       )}
@@ -150,9 +155,7 @@ export default function WebhooksPage() {
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">
               <DashboardIcon className="h-5 w-5" name="plug" />
             </span>
-            <h3 className="mt-4 text-base font-semibold text-neutral-950">
-              Aún no hay webhooks
-            </h3>
+            <h3 className="mt-4 text-base font-semibold text-neutral-950">Aún no hay webhooks</h3>
             <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-neutral-500">
               Registra una dirección HTTPS y elige qué eventos debe recibir tu sistema.
             </p>
@@ -163,6 +166,7 @@ export default function WebhooksPage() {
           <div className="divide-y divide-neutral-100">
             {webhookList.map((webhook) => (
               <WebhookRow
+                isDeliveriesOpen={expandedWebhookId === webhook.id}
                 isBusy={isAnyActionPending(actions)}
                 key={webhook.id}
                 onDelete={() => {
@@ -173,6 +177,9 @@ export default function WebhooksPage() {
                   actions.update.reset();
                   setEditTarget(webhook);
                 }}
+                onToggleDeliveries={() =>
+                  setExpandedWebhookId((current) => (current === webhook.id ? null : webhook.id))
+                }
                 onRotate={() => {
                   actions.rotateSecret.reset();
                   setConfirmation({ kind: 'rotate', webhook });
@@ -249,13 +256,9 @@ export default function WebhooksPage() {
       {confirmation && (
         <ConfirmWebhookActionDialog
           action={confirmation.kind}
-          error={
-            errorMessage(
-              confirmation.kind === 'delete'
-                ? actions.remove.error
-                : actions.rotateSecret.error,
-            )
-          }
+          error={errorMessage(
+            confirmation.kind === 'delete' ? actions.remove.error : actions.rotateSecret.error,
+          )}
           isPending={actions.remove.isPending || actions.rotateSecret.isPending}
           onCancel={() => setConfirmation(null)}
           onConfirm={confirmAction}
@@ -267,28 +270,32 @@ export default function WebhooksPage() {
 }
 
 function WebhookRow({
+  isDeliveriesOpen,
   isBusy,
   onDelete,
   onEdit,
   onRotate,
   onTest,
   onToggle,
+  onToggleDeliveries,
   webhook,
 }: Readonly<{
+  isDeliveriesOpen: boolean;
   isBusy: boolean;
   onDelete: () => void;
   onEdit: () => void;
   onRotate: () => void;
   onTest: () => void;
   onToggle: () => void;
+  onToggleDeliveries: () => void;
   webhook: WebhookEndpointSummary;
 }>) {
   const health = webhookHealth(webhook);
   const healthMeta = webhookHealthMeta[health];
 
   return (
-    <article className="px-5 py-5 sm:px-6">
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
+    <article>
+      <div className="flex flex-col gap-5 px-5 py-5 sm:px-6 xl:flex-row xl:items-start">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neutral-950 text-brand-300">
           <DashboardIcon className="h-5 w-5" name="plug" />
         </span>
@@ -326,6 +333,11 @@ function WebhookRow({
           </div>
         </div>
         <div className="flex flex-wrap gap-2 xl:max-w-sm xl:justify-end">
+          <ActionButton
+            disabled={false}
+            label={isDeliveriesOpen ? 'Ocultar entregas' : 'Ver entregas'}
+            onClick={onToggleDeliveries}
+          />
           <ActionButton disabled={isBusy} label="Editar" onClick={onEdit} />
           <ActionButton
             disabled={isBusy || !webhook.is_enabled}
@@ -348,6 +360,7 @@ function WebhookRow({
           </button>
         </div>
       </div>
+      {isDeliveriesOpen && <WebhookDeliveriesPanel webhookId={webhook.id} />}
     </article>
   );
 }
@@ -403,7 +416,10 @@ function ConfirmWebhookActionDialog({
             : 'Deberás actualizar el secreto en tu sistema. El valor anterior seguirá funcionando durante 24 horas.'}
         </p>
         {error && (
-          <p className="mt-3 rounded-xl bg-danger-50 px-3.5 py-3 text-sm text-danger-600" role="alert">
+          <p
+            className="mt-3 rounded-xl bg-danger-50 px-3.5 py-3 text-sm text-danger-600"
+            role="alert"
+          >
             {error}
           </p>
         )}
