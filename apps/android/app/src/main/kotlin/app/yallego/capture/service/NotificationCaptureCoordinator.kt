@@ -40,11 +40,18 @@ class NotificationCaptureCoordinator @Inject constructor(
             val monitoredPackages = remoteConfig.monitoredPackages.first()
             if (notification.packageName !in monitoredPackages) return@launch
 
+            val title = sanitizeNotificationField(notification.title, 500)
+            val body = sanitizeNotificationField(notification.body, 2_000)
+            if (!hasNotificationContent(title, body)) {
+                Timber.d("Notificación vacía ignorada: package=%s", notification.packageName)
+                return@launch
+            }
+
             val entity = QueuedNotificationEntity(
                 clientRef = UUID.randomUUID().toString(),
                 packageName = notification.packageName.take(255),
-                title = sanitizeNotificationField(notification.title, 500),
-                body = sanitizeNotificationField(notification.body, 2_000),
+                title = title,
+                body = body,
                 postedAtEpochMs = notification.postedAtEpochMs,
                 createdAtEpochMs = System.currentTimeMillis(),
                 attemptCount = 0,
@@ -60,3 +67,5 @@ class NotificationCaptureCoordinator @Inject constructor(
 
 internal fun sanitizeNotificationField(value: String?, maxLength: Int): String? =
     value?.trim()?.takeIf { it.isNotEmpty() }?.take(maxLength)
+
+internal fun hasNotificationContent(title: String?, body: String?): Boolean = title != null || body != null

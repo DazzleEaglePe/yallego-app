@@ -68,7 +68,7 @@ fun StatusScreen(state: StatusUiState) {
                 .navigationBarsPadding()
                 .padding(horizontal = 22.dp, vertical = 18.dp),
         ) {
-            YallegoBrandHeader(trailingLabel = stringResource(R.string.status_monitoring_label))
+            //YallegoBrandHeader(trailingLabel = stringResource(R.string.status_monitoring_label))
             Spacer(Modifier.height(38.dp))
             ScreenEyebrow(stringResource(R.string.status_eyebrow))
             Spacer(Modifier.height(8.dp))
@@ -145,7 +145,7 @@ fun StatusScreen(state: StatusUiState) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconBadge(Icons.Rounded.Shield, tint = AppBlueBright, size = 40)
+                //IconBadge(Icons.Rounded.Shield, tint = AppBlueBright, size = 40)
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(
                         text = stringResource(R.string.status_background_body),

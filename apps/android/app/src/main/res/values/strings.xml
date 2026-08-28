@@ -109,13 +109,13 @@
     <string name="status_never">Nunca</string>
     <string name="status_queue_label">Pendientes</string>
     <string name="status_summary_title">Resumen</string>
-    <string name="status_configuration_title">Configuración esencial</string>
-    <string name="status_configuration_body">Permisos que mantienen la captura disponible.</string>
+    <string name="status_configuration_title">Configuración</string>
+    <string name="status_configuration_body">Permisos que necesitas tener activo</string>
     <string name="status_notifications_label">Lectura de notificaciones</string>
-    <string name="status_permission_ready">Detectando billeteras compatibles</string>
+    <string name="status_permission_ready">Detectando las billeteras digitales</string>
     <string name="status_permission_missing">Acceso requerido para detectar cobros</string>
     <string name="status_battery_label">Actividad en segundo plano</string>
-    <string name="status_battery_ready">Protegida frente al ahorro de batería</string>
+    <string name="status_battery_ready">Para permanecer activa</string>
     <string name="status_battery_missing">Podría detenerse con la pantalla apagada</string>
     <string name="status_background_title">Yallegó trabaja en segundo plano</string>
     <string name="status_background_body">Puedes cerrar la app. La captura seguirá activa.</string>

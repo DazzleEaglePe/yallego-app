@@ -20,4 +20,11 @@ class NotificationCaptureCoordinatorTest {
     fun `sanitizer enforces API length limit`() {
         assertEquals("12345", sanitizeNotificationField("123456789", 5))
     }
+
+    @Test
+    fun `empty notification is not considered capturable content`() {
+        assertEquals(false, hasNotificationContent(null, null))
+        assertEquals(true, hasNotificationContent("Confirmación de Pago", null))
+        assertEquals(true, hasNotificationContent(null, "Yape! Persona te envió un pago por S/ 1"))
+    }
 }

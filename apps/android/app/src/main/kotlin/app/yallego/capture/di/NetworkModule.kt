@@ -33,7 +33,9 @@ object NetworkModule {
         val logging = HttpLoggingInterceptor().apply {
             redactHeader("Authorization")
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                // La carga contiene nombres, montos y texto de notificaciones.
+                // Incluso en debug registramos solo método, URL, estado y tiempo.
+                HttpLoggingInterceptor.Level.BASIC
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }
