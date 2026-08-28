@@ -115,7 +115,8 @@
 ### Panel
 
 - [x] Implementar la vista de equipo con listado de miembros e invitaciones _(Codex)_
-- [ ] Implementar envío de invitaciones y gestión de integrantes desde el panel
+- [x] Implementar envío de invitaciones, cambio de rol, revocación y remoción desde el panel _(Codex)_
+- [ ] Exponer la transferencia de propiedad en el panel como acción sensible
 - [ ] Implementar el selector de tenant activo
 - [ ] Implementar la ocultación de acciones no permitidas según el rol
 

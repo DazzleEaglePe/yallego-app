@@ -1,10 +1,15 @@
 'use client';
 
-import { can, type Invitation, type Member } from '@yallego/contracts';
+import { can, type AssignableRole, type Invitation, type Member } from '@yallego/contracts';
+import { useState } from 'react';
 
 import { useAuthSession } from '@/features/auth/auth-session';
+import { ApiRequestError } from '@/features/auth/api';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
+import { ConfirmTeamActionDialog } from '@/features/team/components/ConfirmTeamActionDialog';
+import { InviteMemberDialog } from '@/features/team/components/InviteMemberDialog';
 import { RoleBadge } from '@/features/team/components/RoleBadge';
+import { useTeamActions } from '@/features/team/hooks/use-team-actions';
 import { useTeamInvitations, useTeamMembers } from '@/features/team/hooks/use-team';
 
 const invitationStatus = {
@@ -14,16 +19,39 @@ const invitationStatus = {
   REVOKED: 'Revocada',
 } satisfies Record<Invitation['status'], string>;
 
+type PendingAction =
+  { id: string; kind: 'remove'; label: string } | { id: string; kind: 'revoke'; label: string };
+
 export default function TeamPage() {
   const { session } = useAuthSession();
   const role = session?.tenants[0]?.role ?? 'VIEWER';
   const canManageMembers = can(role, 'members:manage');
+  const canAssignRoles = can(role, 'members:assign-role');
   const members = useTeamMembers();
   const invitations = useTeamInvitations(canManageMembers);
+  const actions = useTeamActions();
+  const [isInviteOpen, setInviteOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const memberList = members.data ?? [];
   const invitationList = invitations.data ?? [];
   const pendingInvitations = invitationList.filter((invitation) => invitation.status === 'PENDING');
+  const actionError = firstError(
+    actions.updateRole.error,
+    actions.remove.error,
+    actions.revoke.error,
+  );
+
+  function confirmPendingAction() {
+    if (!pendingAction) return;
+
+    if (pendingAction.kind === 'remove') {
+      actions.remove.mutate(pendingAction.id, { onSuccess: () => setPendingAction(null) });
+      return;
+    }
+
+    actions.revoke.mutate(pendingAction.id, { onSuccess: () => setPendingAction(null) });
+  }
 
   return (
     <div className="pb-8">
@@ -40,17 +68,42 @@ export default function TeamPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-5 text-sm text-neutral-500">
-          <span>
-            <strong className="text-neutral-950">{memberList.length}</strong> integrantes
-          </span>
-          {canManageMembers && (
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-5 text-sm text-neutral-500">
             <span>
-              <strong className="text-neutral-950">{pendingInvitations.length}</strong> invitaciones
+              <strong className="text-neutral-950">{memberList.length}</strong> integrantes
             </span>
+            {canManageMembers && (
+              <span>
+                <strong className="text-neutral-950">{pendingInvitations.length}</strong>{' '}
+                invitaciones
+              </span>
+            )}
+          </div>
+          {canManageMembers && (
+            <button
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
+              onClick={() => {
+                actions.invite.reset();
+                setInviteOpen(true);
+              }}
+              type="button"
+            >
+              <DashboardIcon className="h-4 w-4" name="team" />
+              Invitar persona
+            </button>
           )}
         </div>
       </section>
+
+      {actionError && (
+        <p
+          className="mt-5 rounded-xl border border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-600"
+          role="alert"
+        >
+          {actionError}
+        </p>
+      )}
 
       <section className="mt-7 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-neutral-200 px-5 py-4 sm:px-6">
@@ -76,7 +129,19 @@ export default function TeamPage() {
         {!members.isLoading && !members.isError && memberList.length > 0 && (
           <div className="divide-y divide-neutral-100">
             {memberList.map((member) => (
-              <MemberRow key={member.id} member={member} />
+              <MemberRow
+                canAssignRole={canAssignRoles && !member.is_current_user && member.role !== 'OWNER'}
+                canRemove={canManageMembers && !member.is_current_user && member.role !== 'OWNER'}
+                isBusy={actions.updateRole.isPending || actions.remove.isPending}
+                key={member.id}
+                member={member}
+                onRemove={() =>
+                  setPendingAction({ id: member.id, kind: 'remove', label: member.full_name })
+                }
+                onRoleChange={(nextRole) =>
+                  actions.updateRole.mutate({ memberId: member.id, input: { role: nextRole } })
+                }
+              />
             ))}
           </div>
         )}
@@ -109,17 +174,69 @@ export default function TeamPage() {
           {!invitations.isLoading && !invitations.isError && invitationList.length > 0 && (
             <div className="divide-y divide-neutral-100">
               {invitationList.map((invitation) => (
-                <InvitationRow invitation={invitation} key={invitation.id} />
+                <InvitationRow
+                  canRevoke={invitation.status === 'PENDING'}
+                  invitation={invitation}
+                  isBusy={actions.revoke.isPending}
+                  key={invitation.id}
+                  onRevoke={() =>
+                    setPendingAction({
+                      id: invitation.id,
+                      kind: 'revoke',
+                      label: invitation.email,
+                    })
+                  }
+                />
               ))}
             </div>
           )}
         </section>
       )}
+
+      {isInviteOpen && (
+        <InviteMemberDialog
+          error={errorMessage(actions.invite.error)}
+          isPending={actions.invite.isPending}
+          onClose={() => setInviteOpen(false)}
+          onSubmit={(input) =>
+            actions.invite.mutate(input, { onSuccess: () => setInviteOpen(false) })
+          }
+        />
+      )}
+
+      {pendingAction && (
+        <ConfirmTeamActionDialog
+          body={
+            pendingAction.kind === 'remove'
+              ? `${pendingAction.label} perderá el acceso a este negocio de inmediato.`
+              : `La invitación enviada a ${pendingAction.label} dejará de ser válida.`
+          }
+          confirmLabel={pendingAction.kind === 'remove' ? 'Quitar acceso' : 'Revocar invitación'}
+          isPending={actions.remove.isPending || actions.revoke.isPending}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={confirmPendingAction}
+          title={pendingAction.kind === 'remove' ? '¿Quitar integrante?' : '¿Revocar invitación?'}
+        />
+      )}
     </div>
   );
 }
 
-function MemberRow({ member }: Readonly<{ member: Member }>) {
+function MemberRow({
+  canAssignRole,
+  canRemove,
+  isBusy,
+  member,
+  onRemove,
+  onRoleChange,
+}: Readonly<{
+  canAssignRole: boolean;
+  canRemove: boolean;
+  isBusy: boolean;
+  member: Member;
+  onRemove: () => void;
+  onRoleChange: (role: AssignableRole) => void;
+}>) {
   return (
     <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">
@@ -140,12 +257,46 @@ function MemberRow({ member }: Readonly<{ member: Member }>) {
           {member.last_login_at ? formatDate(member.last_login_at) : 'Sin registro'}
         </span>
       </span>
-      <RoleBadge role={member.role} />
+      {canAssignRole ? (
+        <select
+          aria-label={`Rol de ${member.full_name}`}
+          className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs font-semibold text-neutral-600 outline-none transition hover:border-neutral-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-50"
+          disabled={isBusy}
+          onChange={(event) => onRoleChange(event.target.value as AssignableRole)}
+          value={member.role}
+        >
+          <option value="ADMIN">Administrador</option>
+          <option value="OPERATOR">Operador</option>
+          <option value="VIEWER">Solo lectura</option>
+        </select>
+      ) : (
+        <RoleBadge role={member.role} />
+      )}
+      {canRemove && (
+        <button
+          className="rounded-lg px-2.5 py-2 text-xs font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
+          disabled={isBusy}
+          onClick={onRemove}
+          type="button"
+        >
+          Quitar
+        </button>
+      )}
     </div>
   );
 }
 
-function InvitationRow({ invitation }: Readonly<{ invitation: Invitation }>) {
+function InvitationRow({
+  canRevoke,
+  invitation,
+  isBusy,
+  onRevoke,
+}: Readonly<{
+  canRevoke: boolean;
+  invitation: Invitation;
+  isBusy: boolean;
+  onRevoke: () => void;
+}>) {
   return (
     <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-500">
@@ -169,6 +320,16 @@ function InvitationRow({ invitation }: Readonly<{ invitation: Invitation }>) {
         {invitationStatus[invitation.status]}
       </span>
       <RoleBadge role={invitation.role} />
+      {canRevoke && (
+        <button
+          className="rounded-lg px-2.5 py-2 text-xs font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
+          disabled={isBusy}
+          onClick={onRevoke}
+          type="button"
+        >
+          Revocar
+        </button>
+      )}
     </div>
   );
 }
@@ -221,4 +382,18 @@ function formatDate(value: string): string {
     month: 'short',
     year: 'numeric',
   }).format(new Date(value));
+}
+
+function errorMessage(error: unknown): string | undefined {
+  if (!error) return undefined;
+  if (error instanceof ApiRequestError) return error.message;
+  return 'No pudimos completar la acción. Inténtalo nuevamente.';
+}
+
+function firstError(...errors: unknown[]): string | undefined {
+  for (const error of errors) {
+    const message = errorMessage(error);
+    if (message) return message;
+  }
+  return undefined;
 }

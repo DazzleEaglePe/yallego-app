@@ -1,4 +1,9 @@
-import type { Invitation, Member } from '@yallego/contracts';
+import type {
+  Invitation,
+  InviteMemberInput,
+  Member,
+  UpdateMemberRoleInput,
+} from '@yallego/contracts';
 
 import { authenticatedRequest } from '@/shared/lib/api-client';
 
@@ -8,4 +13,32 @@ export function fetchMembers(accessToken: string): Promise<Member[]> {
 
 export function fetchInvitations(accessToken: string): Promise<Invitation[]> {
   return authenticatedRequest('/members/invitations', accessToken);
+}
+
+export function inviteMember(accessToken: string, input: InviteMemberInput): Promise<Invitation> {
+  return authenticatedRequest('/members/invitations', accessToken, {
+    body: JSON.stringify(input),
+    method: 'POST',
+  });
+}
+
+export function updateMemberRole(
+  accessToken: string,
+  memberId: string,
+  input: UpdateMemberRoleInput,
+): Promise<Member> {
+  return authenticatedRequest(`/members/${memberId}`, accessToken, {
+    body: JSON.stringify(input),
+    method: 'PATCH',
+  });
+}
+
+export function removeMember(accessToken: string, memberId: string): Promise<void> {
+  return authenticatedRequest(`/members/${memberId}`, accessToken, { method: 'DELETE' });
+}
+
+export function revokeInvitation(accessToken: string, invitationId: string): Promise<void> {
+  return authenticatedRequest(`/members/invitations/${invitationId}`, accessToken, {
+    method: 'DELETE',
+  });
 }
