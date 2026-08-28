@@ -13,7 +13,7 @@ const navigation = [
   { icon: 'receipt', label: 'Transacciones', href: '/transacciones' },
   { icon: 'device', label: 'Dispositivos', href: null },
   { icon: 'wallet', label: 'Billeteras', href: null },
-  { icon: 'team', label: 'Equipo', href: null },
+  { icon: 'team', label: 'Equipo', href: '/equipo' },
   { icon: 'plug', label: 'Integraciones', href: null },
 ] satisfies { icon: DashboardIconName; label: string; href: string | null }[];
 
@@ -23,6 +23,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   const { logout, session } = useAuthSession();
   const tenant = session?.tenants[0];
   const initials = getInitials(session?.user.full_name);
+  const page = getPageMeta(pathname);
 
   async function handleLogout() {
     try {
@@ -131,11 +132,11 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
 
           <div className="hidden items-center gap-3 lg:flex">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
-              <DashboardIcon className="h-4.5 w-4.5" name="home" />
+              <DashboardIcon className="h-4.5 w-4.5" name={page.icon} />
             </span>
             <span>
-              <span className="block text-sm font-semibold text-neutral-900">Resumen general</span>
-              <span className="block text-xs text-neutral-500">Inicio</span>
+              <span className="block text-sm font-semibold text-neutral-900">{page.title}</span>
+              <span className="block text-xs text-neutral-500">{page.section}</span>
             </span>
           </div>
 
@@ -158,7 +159,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
             <span className="block truncate text-sm font-semibold text-neutral-900">
               {tenant?.business_name ?? 'Mi negocio'}
             </span>
-            <span className="block text-xs text-neutral-500">Administrador</span>
+            <span className="block text-xs text-neutral-500">{roleLabel(tenant?.role)}</span>
           </span>
           <button
             aria-label="Cerrar sesión"
@@ -175,34 +176,54 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           aria-label="Navegación móvil"
           className="flex gap-2 overflow-x-auto border-b border-neutral-200 bg-white px-4 py-2 lg:hidden"
         >
-          {navigation.slice(0, 4).map((item, index) =>
-            index === 0 ? (
-              <Link
-                aria-current="page"
-                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700"
-                href="/inicio"
-                key={item.label}
-              >
-                <DashboardIcon className="h-4 w-4" name={item.icon} />
-                {item.label}
-              </Link>
-            ) : (
-              <span
-                aria-disabled="true"
-                className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-neutral-500"
-                key={item.label}
-              >
-                <DashboardIcon className="h-4 w-4" name={item.icon} />
-                {item.label}
-              </span>
-            ),
-          )}
+          {navigation
+            .filter((item) => item.href !== null)
+            .map((item) => {
+              const isActive = item.href !== null && pathname?.startsWith(item.href);
+              return item.href !== null ? (
+                <Link
+                  aria-current={isActive ? 'page' : undefined}
+                  className={
+                    isActive
+                      ? 'inline-flex shrink-0 items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700'
+                      : 'inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-neutral-500'
+                  }
+                  href={item.href}
+                  key={item.label}
+                >
+                  <DashboardIcon className="h-4 w-4" name={item.icon} />
+                  {item.label}
+                </Link>
+              ) : null;
+            })}
         </nav>
 
         <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
+}
+
+function getPageMeta(pathname: string | null): {
+  icon: DashboardIconName;
+  section: string;
+  title: string;
+} {
+  if (pathname?.startsWith('/transacciones')) {
+    return { icon: 'receipt', section: 'Cobros', title: 'Transacciones' };
+  }
+  if (pathname?.startsWith('/equipo')) {
+    return { icon: 'team', section: 'Accesos', title: 'Equipo' };
+  }
+  return { icon: 'home', section: 'Inicio', title: 'Resumen general' };
+}
+
+function roleLabel(role: string | undefined): string {
+  if (role === 'OWNER') return 'Propietario';
+  if (role === 'ADMIN') return 'Administrador';
+  if (role === 'OPERATOR') return 'Operador';
+  if (role === 'VIEWER') return 'Solo lectura';
+  return 'Cuenta principal';
 }
 
 function getInitials(fullName?: string): string {
