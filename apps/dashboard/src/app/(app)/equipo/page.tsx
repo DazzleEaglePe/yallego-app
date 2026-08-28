@@ -3,7 +3,7 @@
 import { can, type AssignableRole, type Invitation, type Member } from '@yallego/contracts';
 import { useState } from 'react';
 
-import { useAuthSession } from '@/features/auth/auth-session';
+import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { ApiRequestError } from '@/features/auth/api';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 import { ConfirmTeamActionDialog } from '@/features/team/components/ConfirmTeamActionDialog';
@@ -24,7 +24,7 @@ type PendingAction =
 
 export default function TeamPage() {
   const { session } = useAuthSession();
-  const role = session?.tenants[0]?.role ?? 'VIEWER';
+  const role = getActiveTenant(session)?.role ?? 'VIEWER';
   const canManageMembers = can(role, 'members:manage');
   const canAssignRoles = can(role, 'members:assign-role');
   const members = useTeamMembers();

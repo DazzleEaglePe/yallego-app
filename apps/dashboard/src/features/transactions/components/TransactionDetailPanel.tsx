@@ -3,7 +3,7 @@
 import { can } from '@yallego/contracts';
 import type { TransactionSummaryItem } from '@yallego/contracts';
 
-import { useAuthSession } from '@/features/auth/auth-session';
+import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 import { formatCurrency, formatDateTime } from '@/shared/lib/format';
 
@@ -25,7 +25,7 @@ export function TransactionDetailPanel({
   isBusy,
 }: Readonly<TransactionDetailPanelProps>) {
   const { session } = useAuthSession();
-  const role = session?.tenants[0]?.role;
+  const role = getActiveTenant(session)?.role;
   const canReview = role ? can(role, 'transactions:review') : false;
 
   return (

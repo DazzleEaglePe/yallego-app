@@ -117,7 +117,7 @@
 - [x] Implementar la vista de equipo con listado de miembros e invitaciones _(Codex)_
 - [x] Implementar envío de invitaciones, cambio de rol, revocación y remoción desde el panel _(Codex)_
 - [ ] Exponer la transferencia de propiedad en el panel como acción sensible
-- [ ] Implementar el selector de tenant activo
+- [x] Implementar el selector de tenant activo _(Codex)_ — conserva el negocio seleccionado durante la renovación de sesión y limpia la caché del panel al cambiar
 - [ ] Implementar la ocultación de acciones no permitidas según el rol
 
 ### Criterios de aceptación

@@ -13,8 +13,11 @@ import {
 
 import { apiRequest } from './api';
 
+const ACTIVE_TENANT_STORAGE_KEY = 'yallego.activeTenantId';
+
 export interface AuthSession {
   accessToken: string;
+  activeTenantId: string;
   expiresAt: number;
   tenants: Array<{
     business_name: string;
@@ -31,6 +34,7 @@ export interface AuthSession {
 
 interface SessionResponse {
   access_token: string;
+  active_tenant_id: string;
   expires_in: number;
   tenants: AuthSession['tenants'];
   user: AuthSession['user'];
@@ -41,6 +45,13 @@ interface AuthSessionContextValue {
   logout: () => Promise<void>;
   session: AuthSession | null;
   status: 'authenticated' | 'loading' | 'unauthenticated';
+  switchTenant: (tenantId: string) => Promise<void>;
+}
+
+interface SwitchTenantResponse {
+  access_token: string;
+  active_tenant_id: string;
+  expires_in: number;
 }
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
@@ -52,6 +63,7 @@ export function AuthSessionProvider({ children }: Readonly<{ children: ReactNode
 
   const applySession = useCallback((response: SessionResponse) => {
     setSession(toSession(response));
+    rememberTenantId(response.active_tenant_id);
     setStatus('authenticated');
   }, []);
 
@@ -62,16 +74,16 @@ export function AuthSessionProvider({ children }: Readonly<{ children: ReactNode
 
   const refresh = useCallback(async () => {
     const response = await apiRequest<SessionResponse>('/auth/refresh', {
-      body: '{}',
+      body: JSON.stringify({ tenant_id: session?.activeTenantId ?? readStoredTenantId() }),
       method: 'POST',
     });
     applySession(response);
-  }, [applySession]);
+  }, [applySession, session?.activeTenantId]);
 
   useEffect(() => {
     let active = true;
     initialRefreshRequest ??= apiRequest<SessionResponse>('/auth/refresh', {
-      body: '{}',
+      body: JSON.stringify({ tenant_id: readStoredTenantId() }),
       method: 'POST',
     });
 
@@ -117,13 +129,39 @@ export function AuthSessionProvider({ children }: Readonly<{ children: ReactNode
       // La sesión local debe cerrarse incluso si el servidor no está disponible.
     } finally {
       clearSession();
+      forgetTenantId();
       initialRefreshRequest = undefined;
     }
   }, [clearSession]);
 
+  const switchTenant = useCallback(
+    async (tenantId: string) => {
+      if (!session || tenantId === session.activeTenantId) return;
+
+      const response = await apiRequest<SwitchTenantResponse>('/auth/switch-tenant', {
+        body: JSON.stringify({ tenant_id: tenantId }),
+        headers: { authorization: `Bearer ${session.accessToken}` },
+        method: 'POST',
+      });
+
+      setSession((current) =>
+        current
+          ? {
+              ...current,
+              accessToken: response.access_token,
+              activeTenantId: response.active_tenant_id,
+              expiresAt: Date.now() + response.expires_in * 1_000,
+            }
+          : current,
+      );
+      rememberTenantId(response.active_tenant_id);
+    },
+    [session],
+  );
+
   const value = useMemo(
-    () => ({ login, logout, session, status }),
-    [login, logout, session, status],
+    () => ({ login, logout, session, status, switchTenant }),
+    [login, logout, session, status, switchTenant],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
@@ -138,8 +176,37 @@ export function useAuthSession(): AuthSessionContextValue {
 function toSession(response: SessionResponse): AuthSession {
   return {
     accessToken: response.access_token,
+    activeTenantId: response.active_tenant_id,
     expiresAt: Date.now() + response.expires_in * 1_000,
     tenants: response.tenants,
     user: response.user,
   };
+}
+
+export function getActiveTenant(session: AuthSession | null) {
+  return session?.tenants.find(({ id }) => id === session.activeTenantId);
+}
+
+function readStoredTenantId(): string | undefined {
+  try {
+    return window.localStorage.getItem(ACTIVE_TENANT_STORAGE_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function rememberTenantId(tenantId: string): void {
+  try {
+    window.localStorage.setItem(ACTIVE_TENANT_STORAGE_KEY, tenantId);
+  } catch {
+    // El almacenamiento puede estar deshabilitado; la sesión actual sigue siendo válida.
+  }
+}
+
+function forgetTenantId(): void {
+  try {
+    window.localStorage.removeItem(ACTIVE_TENANT_STORAGE_KEY);
+  } catch {
+    // No hay estado local que limpiar cuando el navegador bloquea el almacenamiento.
+  }
 }

@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { useAuthSession } from '@/features/auth/auth-session';
+import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { TenantSwitcher } from '@/features/dashboard/TenantSwitcher';
 import { BrandMark } from '@/shared/components/BrandMark';
 
 const navigation = [
@@ -21,7 +22,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   const router = useRouter();
   const pathname = usePathname();
   const { logout, session } = useAuthSession();
-  const tenant = session?.tenants[0];
+  const tenant = getActiveTenant(session);
   const initials = getInitials(session?.user.full_name);
   const page = getPageMeta(pathname);
 
@@ -38,6 +39,9 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
       <aside className="hidden h-screen flex-col border-r border-white/5 bg-neutral-950 px-4 py-5 lg:sticky lg:top-0 lg:flex">
         <div className="px-2">
           <BrandMark inverse />
+          <div className="mt-7">
+            <TenantSwitcher variant="dark" />
+          </div>
         </div>
 
         <nav aria-label="Navegación principal" className="mt-10">
@@ -128,6 +132,10 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
         <header className="flex h-[72px] items-center justify-between gap-3 border-b border-neutral-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
           <div className="lg:hidden">
             <BrandMark compact />
+          </div>
+
+          <div className="min-w-0 flex-1 sm:hidden">
+            <TenantSwitcher />
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">
