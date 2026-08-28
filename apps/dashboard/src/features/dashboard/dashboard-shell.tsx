@@ -3,26 +3,21 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { can } from '@yallego/contracts';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { getVisibleNavigation } from '@/features/dashboard/dashboard-navigation';
 import { TenantSwitcher } from '@/features/dashboard/TenantSwitcher';
 import { BrandMark } from '@/shared/components/BrandMark';
-
-const navigation = [
-  { icon: 'home', label: 'Inicio', href: '/inicio' },
-  { icon: 'receipt', label: 'Transacciones', href: '/transacciones' },
-  { icon: 'device', label: 'Dispositivos', href: null },
-  { icon: 'wallet', label: 'Billeteras', href: null },
-  { icon: 'team', label: 'Equipo', href: '/equipo' },
-  { icon: 'plug', label: 'Integraciones', href: null },
-] satisfies { icon: DashboardIconName; label: string; href: string | null }[];
 
 export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
   const pathname = usePathname();
   const { logout, session } = useAuthSession();
   const tenant = getActiveTenant(session);
+  const navigation = getVisibleNavigation(tenant?.role);
+  const canManageDevices = tenant !== undefined && can(tenant.role, 'devices:manage');
   const initials = getInitials(session?.user.full_name);
   const page = getPageMeta(pathname);
 
@@ -90,18 +85,20 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
         </nav>
 
         <div className="mt-auto">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold text-white">Configuración inicial</p>
-              <span className="text-xs font-semibold text-brand-300">33%</span>
+          {canManageDevices && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-white">Configuración inicial</p>
+                <span className="text-xs font-semibold text-brand-300">33%</span>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full w-1/3 rounded-full bg-brand-400" />
+              </div>
+              <p className="mt-3 text-xs leading-5 text-neutral-400">
+                Vincula un Android para comenzar a validar cobros.
+              </p>
             </div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-1/3 rounded-full bg-brand-400" />
-            </div>
-            <p className="mt-3 text-xs leading-5 text-neutral-400">
-              Vincula un Android para comenzar a validar cobros.
-            </p>
-          </div>
+          )}
 
           <div className="mt-4 flex items-center gap-3 border-t border-white/10 px-2 pt-4">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500 text-sm font-bold text-white">

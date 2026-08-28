@@ -118,13 +118,13 @@
 - [x] Implementar envío de invitaciones, cambio de rol, revocación y remoción desde el panel _(Codex)_
 - [ ] Exponer la transferencia de propiedad en el panel como acción sensible
 - [x] Implementar el selector de tenant activo _(Codex)_ — conserva el negocio seleccionado durante la renovación de sesión y limpia la caché del panel al cambiar
-- [ ] Implementar la ocultación de acciones no permitidas según el rol
+- [x] Implementar la ocultación de acciones no permitidas según el rol _(Codex)_ — navegación y configuración inicial derivadas de la matriz compartida de permisos
 
 ### Criterios de aceptación
 
 - [x] Un usuario de un tenant no puede acceder a recursos de otro ni conociendo el identificador _(Claude)_
 - [x] La respuesta ante acceso cruzado es de recurso inexistente, no de acceso denegado _(Claude)_
-- [ ] Un operador no visualiza las secciones de configuración
+- [x] Un operador no visualiza las secciones de configuración _(Codex)_
 - [x] La transferencia de propiedad deja exactamente un propietario _(Claude)_
 
 ---
