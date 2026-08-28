@@ -2,9 +2,11 @@ import {
   Catch,
   HttpException,
   HttpStatus,
+  Logger,
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { ApiErrorCode, ApiErrorResponse } from '@yallego/contracts';
 import type { Response } from 'express';
 
@@ -31,11 +33,21 @@ const statusToMessage: Partial<Record<number, string>> = {
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(ApiExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     const isHttpException = exception instanceof HttpException;
     const status = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const requestId = String(response.locals.requestId ?? 'unknown');
+
+    // El cliente recibe un mensaje genérico para 5xx; el detalle real solo
+    // queda en el registro del servidor (nunca se expone en la respuesta).
+    if (status >= 500) {
+      const detail = exception instanceof Error ? exception.stack : String(exception);
+      this.logger.error(`[${requestId}] Unhandled exception: ${detail}`);
+      Sentry.captureException(exception, { extra: { requestId } });
+    }
     const code =
       exception instanceof ApiHttpException
         ? exception.code

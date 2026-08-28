@@ -1,6 +1,29 @@
 import { PrismaClient } from '@prisma/client';
+import {
+  BIM_DEFAULT_PATTERNS,
+  PLIN_BBVA_DEFAULT_PATTERNS,
+  PLIN_INTERBANK_DEFAULT_PATTERNS,
+  YAPE_DEFAULT_PATTERNS,
+  type ParserRules,
+} from '@yallego/parsers';
 
 const prisma = new PrismaClient();
+
+/**
+ * Solo las cuatro billeteras con parser implementado en el Sprint 4
+ * (docs/10_PLAN_DESARROLLO.md). Los patrones de Plin y BIM son inferidos, no
+ * verificados contra una notificación real — ver el comentario en cada
+ * `*.parser.ts` de `packages/parsers`. Corregirlos aquí no requiere
+ * redespliegue del backend en producción, solo una nueva versión activada
+ * desde la administración de parsers (pendiente: bloqueada en la
+ * autenticación de plataforma, todavía no implementada).
+ */
+const parserPatternsByWalletCode: Record<string, ParserRules[]> = {
+  YAPE: YAPE_DEFAULT_PATTERNS,
+  PLIN_BBVA: PLIN_BBVA_DEFAULT_PATTERNS,
+  PLIN_INTERBANK: PLIN_INTERBANK_DEFAULT_PATTERNS,
+  BIM: BIM_DEFAULT_PATTERNS,
+};
 
 const plans = [
   {
@@ -100,10 +123,26 @@ async function seed(): Promise<void> {
   }
 
   for (const [code, displayName, provider, issuer, androidPackage] of wallets) {
-    await prisma.wallet.upsert({
+    const wallet = await prisma.wallet.upsert({
       where: { code },
       create: { code, displayName, provider, issuer, androidPackage },
       update: { displayName, provider, issuer, androidPackage },
+    });
+
+    const rules = parserPatternsByWalletCode[code];
+    if (!rules) continue; // sin parser implementado todavía (v0.2)
+
+    await prisma.parserPattern.upsert({
+      where: { walletId_version: { walletId: wallet.id, version: 1 } },
+      create: {
+        walletId: wallet.id,
+        version: 1,
+        rules: rules as unknown as object,
+        isActive: true,
+        activatedAt: new Date(),
+        notes: 'Versión inicial de semilla.',
+      },
+      update: { rules: rules as unknown as object },
     });
   }
 }

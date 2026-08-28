@@ -34,6 +34,9 @@ integrationDescribe('Authentication API', () => {
     });
     process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = databaseUrl;
+    // Redis es real y compartida entre corridas: sin un prefijo único, jobs
+    // huérfanos de una corrida anterior (o de otro archivo) contaminarían esta.
+    process.env.BULLMQ_PREFIX = `test-${suffix}`;
     process.env.JWT_PRIVATE_KEY = Buffer.from(privateKey).toString('base64');
     process.env.JWT_PUBLIC_KEY = Buffer.from(publicKey).toString('base64');
 
@@ -51,17 +54,21 @@ integrationDescribe('Authentication API', () => {
   }, 30_000);
 
   afterAll(async () => {
-    const users = await prisma.user.findMany({
-      where: { email: { in: [primaryEmail, lockedEmail] } },
-      include: { memberships: true },
+    // `memberships` y `audit_events` tienen Row Level Security: sin
+    // `withoutTenantScope` esta limpieza no vería ninguna fila y dejaría
+    // negocios huérfanos.
+    await prisma.withoutTenantScope(async (tx) => {
+      const users = await tx.user.findMany({
+        where: { email: { in: [primaryEmail, lockedEmail] } },
+        include: { memberships: true },
+      });
+      const userIds = users.map(({ id }) => id);
+      const tenantIds = users.flatMap(({ memberships }) =>
+        memberships.map(({ tenantId }) => tenantId),
+      );
+      await tx.tenant.deleteMany({ where: { id: { in: tenantIds } } });
+      await tx.user.deleteMany({ where: { id: { in: userIds } } });
     });
-    const userIds = users.map(({ id }) => id);
-    const tenantIds = users.flatMap(({ memberships }) =>
-      memberships.map(({ tenantId }) => tenantId),
-    );
-    await prisma.auditEvent.deleteMany({ where: { actorUserId: { in: userIds } } });
-    await prisma.tenant.deleteMany({ where: { id: { in: tenantIds } } });
-    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await app.close();
   });
 

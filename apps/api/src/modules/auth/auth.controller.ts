@@ -19,6 +19,7 @@ import {
   refreshSchema,
   registerSchema,
   resetPasswordSchema,
+  switchTenantSchema,
   verifyEmailSchema,
   type ChangePasswordInput,
   type ForgotPasswordInput,
@@ -26,6 +27,7 @@ import {
   type RefreshInput,
   type RegisterInput,
   type ResetPasswordInput,
+  type SwitchTenantInput,
   type VerifyEmailInput,
 } from '@yallego/contracts';
 import type { Request, Response } from 'express';
@@ -131,6 +133,16 @@ export class AuthController {
   @UseGuards(AccessTokenGuard)
   getProfile(@CurrentSession() session: AccessTokenPayload) {
     return this.authService.getProfile(session);
+  }
+
+  @Post('switch-tenant')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AccessTokenGuard)
+  switchTenant(
+    @CurrentSession() session: AccessTokenPayload,
+    @Body(new ZodValidationPipe(switchTenantSchema)) input: SwitchTenantInput,
+  ) {
+    return this.authService.switchTenant(session, input);
   }
 
   private setRefreshCookie(response: Response, session: SessionResult): void {
