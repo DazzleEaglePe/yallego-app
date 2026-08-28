@@ -29,6 +29,10 @@ Plataforma SaaS multi-tenant que captura las notificaciones de billeteras digita
 | 10  | [Plan de Desarrollo](./10_PLAN_DESARROLLO.md)                          | 8 sprints con listas de verificación y criterios de aceptación                           |
 | 11  | [Estructura del Proyecto](./11_ESTRUCTURA_PROYECTO.md)                 | Monorepo, configuración, convenciones, entorno local, despliegue                         |
 
+> La especificación [OpenAPI 3.1](./openapi.yaml) y la [documentación para
+> integradores](./api-publica/README.md) de la API pública (Transacciones,
+> Webhooks, Dispositivos) complementan al contrato en prosa del punto 06.
+
 ---
 
 ## Arquitectura en una vista

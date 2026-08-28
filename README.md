@@ -16,9 +16,19 @@ Este repositorio es un monorepo de `pnpm` y Turborepo. Contiene el backend NestJ
 corepack enable
 corepack pnpm install
 cp .env.example .env
-# Copia en .env las tres líneas generadas por:
-./tools/scripts/generate-jwt-keys.sh
+# Añade las claves al final; dotenv se queda con la última aparición de cada
+# variable, así que no hace falta editar las líneas vacías de arriba.
+./tools/scripts/generate-jwt-keys.sh >> .env
 corepack pnpm docker:up
+corepack pnpm db:migrate
+corepack pnpm db:seed
+
+# `apps/api` y `apps/dashboard` arrancan con el directorio de cada paquete
+# como working directory (tanto `turbo run dev` como `pnpm --filter`), así
+# que necesitan ver el `.env` de la raíz ahí también.
+ln -s ../../.env apps/api/.env
+ln -s ../../.env apps/dashboard/.env
+
 corepack pnpm dev:stack
 ```
 

@@ -81,36 +81,36 @@
 
 ### Aislamiento
 
-- [ ] Implementar el guard que resuelve el tenant desde la credencial
-- [ ] Implementar el mecanismo que establece el contexto de tenant en cada transacción de base de datos
-- [ ] Activar Row Level Security en todas las tablas correspondientes
-- [ ] Definir las políticas de aislamiento
-- [ ] Implementar pruebas que verifiquen la imposibilidad de acceso cruzado
-- [ ] Implementar el cambio de tenant activo en la sesión
+- [x] Implementar el guard que resuelve el tenant desde la credencial _(Claude)_
+- [x] Implementar el mecanismo que establece el contexto de tenant en cada transacción de base de datos _(Claude)_
+- [x] Activar Row Level Security en todas las tablas correspondientes _(Claude)_
+- [x] Definir las políticas de aislamiento _(Claude)_
+- [x] Implementar pruebas que verifiquen la imposibilidad de acceso cruzado _(Claude)_
+- [x] Implementar el cambio de tenant activo en la sesión _(Claude)_
 
 ### Roles y permisos
 
-- [ ] Implementar el guard de autorización por rol
-- [ ] Implementar el decorador de declaración de rol requerido por endpoint
-- [ ] Aplicar la matriz de permisos definida
-- [ ] Implementar las invariantes: un solo propietario, no autodegradación, no autoremoción
+- [x] Implementar el guard de autorización por rol _(Claude)_
+- [x] Implementar el decorador de declaración de rol requerido por endpoint _(Claude)_
+- [x] Aplicar la matriz de permisos definida _(Claude)_
+- [x] Implementar las invariantes: un solo propietario, no autodegradación, no autoremoción _(Claude)_
 
 ### Gestión de equipo
 
-- [ ] Implementar listado de miembros
-- [ ] Implementar envío de invitación con token
-- [ ] Implementar aceptación de invitación para usuario nuevo y existente
-- [ ] Implementar revocación de invitación
-- [ ] Implementar cambio de rol
-- [ ] Implementar remoción de miembro
-- [ ] Implementar transferencia de propiedad de forma atómica
+- [x] Implementar listado de miembros _(Claude)_
+- [x] Implementar envío de invitación con token _(Claude)_
+- [x] Implementar aceptación de invitación para usuario nuevo y existente _(Claude)_
+- [x] Implementar revocación de invitación _(Claude)_
+- [x] Implementar cambio de rol _(Claude)_
+- [x] Implementar remoción de miembro _(Claude)_
+- [x] Implementar transferencia de propiedad de forma atómica _(Claude)_
 
 ### Administración de plataforma
 
-- [ ] Implementar autenticación independiente para administradores
-- [ ] Implementar segundo factor obligatorio
-- [ ] Implementar listado y búsqueda de tenants
-- [ ] Implementar activación y suspensión de tenants
+- [x] Implementar autenticación independiente para administradores _(Claude)_ — `PlatformAdmin` propio, sin relación con `User`; sin ruta de autorregistro, se aprovisiona con `scripts/create-platform-admin.ts` fuera de banda
+- [x] Implementar segundo factor obligatorio _(Claude)_ — TOTP (RFC 6238) implementado a mano con `node:crypto`, sin dependencia nueva; verificado contra el vector de prueba oficial de la RFC
+- [x] Implementar listado y búsqueda de tenants _(Claude)_ — `GET /platform/v1/tenants`
+- [x] Implementar activación y suspensión de tenants _(Claude)_ — `PATCH /platform/v1/tenants/{id}/status`; verificado que una suspensión bloquea de inmediato el acceso del propio tenant al panel
 
 ### Panel
 
@@ -120,10 +120,10 @@
 
 ### Criterios de aceptación
 
-- [ ] Un usuario de un tenant no puede acceder a recursos de otro ni conociendo el identificador
-- [ ] La respuesta ante acceso cruzado es de recurso inexistente, no de acceso denegado
+- [x] Un usuario de un tenant no puede acceder a recursos de otro ni conociendo el identificador _(Claude)_
+- [x] La respuesta ante acceso cruzado es de recurso inexistente, no de acceso denegado _(Claude)_
 - [ ] Un operador no visualiza las secciones de configuración
-- [ ] La transferencia de propiedad deja exactamente un propietario
+- [x] La transferencia de propiedad deja exactamente un propietario _(Claude)_
 
 ---
 
@@ -133,47 +133,50 @@
 
 ### Backend
 
-- [ ] Implementar generación de código de vinculación con vigencia y un solo uso
-- [ ] Implementar el endpoint de vinculación
-- [ ] Implementar emisión y verificación del token de dispositivo
-- [ ] Implementar el endpoint de señal de vida
-- [ ] Implementar el endpoint de configuración remota
-- [ ] Implementar la detección de dispositivos sin reporte mediante tarea programada
-- [ ] Implementar validación del límite de dispositivos según plan
-- [ ] Implementar revocación de dispositivo
+- [x] Implementar generación de código de vinculación con vigencia y un solo uso _(Claude)_
+- [x] Implementar el endpoint de vinculación _(Claude)_
+- [x] Implementar emisión y verificación del token de dispositivo _(Claude)_
+- [x] Implementar el endpoint de señal de vida _(Claude)_
+- [x] Implementar el endpoint de configuración remota _(Claude)_
+- [x] Implementar la detección de dispositivos sin reporte mediante tarea programada _(Claude)_
+- [x] Implementar validación del límite de dispositivos según plan _(Claude)_
+- [x] Implementar revocación de dispositivo _(Claude)_
+- [x] Implementar catálogo y activación de billeteras por tenant — prerrequisito no listado en este plan, necesario para calcular `monitored_packages` al vincular _(Claude)_
+
+> ⚠️ Los ítems de Android marcados _(Claude)_ en esta sección están escritos siguiendo la arquitectura definida, pero no se compilaron: este entorno no tiene Android SDK/Gradle. Verificar en Android Studio antes de confiar en ellos (ver `apps/android/README.md`).
 
 ### Aplicación Android — estructura
 
-- [ ] Inicializar el proyecto con la arquitectura definida
-- [ ] Configurar inyección de dependencias
-- [ ] Configurar cliente HTTP con interceptor de autenticación
-- [ ] Configurar base de datos local
-- [ ] Configurar almacenamiento cifrado para el token
-- [ ] Configurar el tema visual a partir de los tokens de diseño
+- [x] Inicializar el proyecto con la arquitectura definida _(Claude)_
+- [x] Configurar inyección de dependencias _(Claude)_
+- [x] Configurar cliente HTTP con interceptor de autenticación _(Claude)_
+- [x] Configurar base de datos local _(Claude)_
+- [x] Configurar almacenamiento cifrado para el token _(Claude)_
+- [x] Configurar el tema visual a partir de los tokens de diseño _(Claude)_
 
 ### Aplicación Android — vinculación
 
-- [ ] Implementar pantalla de bienvenida
-- [ ] Implementar ingreso manual de código
-- [ ] Implementar lectura de código QR
-- [ ] Implementar confirmación con el nombre del negocio
-- [ ] Implementar persistencia segura del token
+- [x] Implementar pantalla de bienvenida _(Claude)_
+- [x] Implementar ingreso manual de código _(Claude)_
+- [x] Implementar lectura de código QR _(Claude)_
+- [x] Implementar confirmación con el nombre del negocio _(Claude)_
+- [x] Implementar persistencia segura del token _(Claude)_
 
 ### Aplicación Android — permisos
 
-- [ ] Implementar pantalla de solicitud de acceso a notificaciones
-- [ ] Implementar apertura directa de los ajustes correspondientes
-- [ ] Implementar detección automática del estado del permiso
-- [ ] Implementar solicitud de exclusión de optimización de batería
-- [ ] Implementar detección de fabricante e instrucciones específicas
-- [ ] Implementar la lista de verificación final
+- [x] Implementar pantalla de solicitud de acceso a notificaciones _(Claude)_
+- [x] Implementar apertura directa de los ajustes correspondientes _(Claude)_
+- [x] Implementar detección automática del estado del permiso _(Claude)_
+- [x] Implementar solicitud de exclusión de optimización de batería _(Claude)_
+- [x] Implementar detección de fabricante e instrucciones específicas _(Claude)_
+- [x] Implementar la lista de verificación final _(Claude)_
 
 ### Aplicación Android — servicio
 
-- [ ] Implementar el servicio en primer plano con notificación persistente
-- [ ] Implementar el trabajador de señal de vida
-- [ ] Implementar el receptor de arranque del dispositivo
-- [ ] Implementar la pantalla de estado operativo
+- [x] Implementar el servicio en primer plano con notificación persistente _(Claude)_
+- [x] Implementar el trabajador de señal de vida _(Claude)_
+- [x] Implementar el receptor de arranque del dispositivo _(Claude)_
+- [x] Implementar la pantalla de estado operativo _(Claude)_
 
 ### Verificación de paquetes
 
@@ -188,7 +191,7 @@
 - [ ] El asistente de permisos se completa sin asistencia técnica
 - [ ] El panel refleja el estado del dispositivo en tiempo real
 - [ ] El servicio sobrevive al reinicio del dispositivo
-- [ ] La ausencia de señal por más de quince minutos marca el dispositivo como desconectado
+- [x] La ausencia de señal por más de quince minutos marca el dispositivo como desconectado _(Claude)_
 
 ---
 
@@ -196,68 +199,70 @@
 
 **Objetivo:** convertir una notificación real de billetera en una transacción persistida.
 
+> Backend y app Android ya cubren la ruta completa de captura e ingesta. La app fue compilada e instalada sobre un Xiaomi real conservando su vinculación; Yape quedó activado y su paquete remoto fue verificado. Falta ejecutar el cobro real final para certificar la conversión completa a transacción. Los patrones de Plin y BIM siguen basados en muestras inferidas.
+
 ### Aplicación Android — captura
 
-- [ ] Implementar el servicio de escucha de notificaciones
-- [ ] Implementar el filtrado por paquetes monitoreados
-- [ ] Implementar la extracción de título, cuerpo y marca temporal
-- [ ] Implementar la inserción inmediata en la cola local
-- [ ] Implementar el trabajador de sincronización con envío por lotes
-- [ ] Implementar el reintento con espera creciente
-- [ ] Implementar la eliminación de la cola solo tras confirmación del servidor
-- [ ] Implementar el indicador de elementos pendientes
-- [ ] Implementar la alerta ante pérdida del permiso
+- [x] Implementar el servicio de escucha de notificaciones _(Codex)_
+- [x] Implementar el filtrado por paquetes monitoreados _(Codex)_
+- [x] Implementar la extracción de título, cuerpo y marca temporal _(Codex)_
+- [x] Implementar la inserción inmediata en la cola local _(Codex)_
+- [x] Implementar el trabajador de sincronización con envío por lotes _(Codex)_
+- [x] Implementar el reintento con espera creciente _(Codex)_
+- [x] Implementar la eliminación de la cola solo tras confirmación del servidor _(Codex)_
+- [x] Implementar el indicador de elementos pendientes _(Codex)_
+- [x] Implementar la alerta ante pérdida del permiso _(Codex)_
 
 ### Backend — ingesta
 
-- [ ] Implementar el endpoint de ingesta con autenticación por token de dispositivo
-- [ ] Implementar la aceptación de lotes
-- [ ] Implementar el cálculo de huella para deduplicación
-- [ ] Implementar la persistencia íntegra de la notificación cruda
-- [ ] Implementar la validación del límite de transacciones del plan
-- [ ] Implementar el encolado del trabajo de parsing
-- [ ] Implementar la respuesta diferenciada para elementos duplicados
+- [x] Implementar el endpoint de ingesta con autenticación por token de dispositivo _(Claude)_
+- [x] Implementar la aceptación de lotes _(Claude)_
+- [x] Implementar el cálculo de huella para deduplicación _(Claude)_
+- [x] Implementar la persistencia íntegra de la notificación cruda _(Claude)_
+- [x] Implementar la validación del límite de transacciones del plan _(Claude)_
+- [x] Implementar el encolado del trabajo de parsing _(Claude)_
+- [x] Implementar la respuesta diferenciada para elementos duplicados _(Claude)_
 
 ### Backend — parsing
 
-- [ ] Definir el contrato del parser en el dominio
-- [ ] Implementar el registro de parsers con selección por paquete
-- [ ] Implementar el cargador de patrones desde base de datos con caché
-- [ ] Implementar el parser de Yape
-- [ ] Implementar el parser de Plin BBVA
-- [ ] Implementar el parser de Plin Interbank
-- [ ] Implementar el parser de BIM
-- [ ] Implementar el modelo normalizado de salida
-- [ ] Implementar el manejo de notificaciones sin coincidencia
-- [ ] Implementar el trabajador que consume la cola de parsing
-- [ ] Implementar la creación de la transacción a partir del resultado
-- [ ] Implementar el cifrado del nombre del remitente
-- [ ] Implementar la emisión del evento de dominio
+- [x] Definir el contrato del parser en el dominio _(Claude)_
+- [x] Implementar el registro de parsers con selección por paquete _(Claude)_
+- [x] Implementar el cargador de patrones desde base de datos con caché _(Claude)_
+- [x] Implementar el parser de Yape _(Claude + Codex — compatible con el formato documentado y con `Confirmación de Pago` observado en un dispositivo real; regresión anonimizada incluida)_
+- [x] Implementar el parser de Plin BBVA _(Claude — patrón inferido, no verificado contra una notificación real; ver `packages/parsers`)_
+- [x] Implementar el parser de Plin Interbank _(Claude — patrón inferido, no verificado contra una notificación real; ver `packages/parsers`)_
+- [x] Implementar el parser de BIM _(Claude — patrón inferido, no verificado contra una notificación real; ver `packages/parsers`)_
+- [x] Implementar el modelo normalizado de salida _(Claude)_
+- [x] Implementar el manejo de notificaciones sin coincidencia _(Claude)_
+- [x] Implementar el trabajador que consume la cola de parsing _(Claude)_
+- [x] Implementar la creación de la transacción a partir del resultado _(Claude)_
+- [x] Implementar el cifrado del nombre del remitente _(Claude)_
+- [x] Implementar la emisión del evento de dominio _(Claude)_
 
 ### Pruebas de parsers
 
-- [ ] Recolectar muestras reales de cada billetera
-- [ ] Anonimizar las muestras conservando la estructura
-- [ ] Construir la suite de pruebas por parser
-- [ ] Verificar cobertura mínima del ochenta por ciento en el módulo
-- [ ] Incluir casos límite: montos con separador de miles, nombres con caracteres especiales, ausencia de código de seguridad
+- [ ] Recolectar muestras reales de cada billetera _(Yape completado el 2026-08-27; faltan Plin BBVA, Plin Interbank y BIM)_
+- [ ] Anonimizar las muestras conservando la estructura _(Yape completado en `packages/parsers/fixtures/yape/samples.json`; faltan las demás billeteras)_
+- [x] Construir la suite de pruebas por parser _(Claude + Codex — 26 pruebas; incluye una muestra real anonimizada de Yape)_
+- [x] Verificar cobertura mínima del ochenta por ciento en el módulo _(Claude — 100%)_
+- [x] Incluir casos límite: montos con separador de miles, nombres con caracteres especiales, ausencia de código de seguridad _(Claude)_
 
 ### Administración de parsers
 
-- [ ] Implementar el listado de versiones por billetera
-- [ ] Implementar la creación de versión
-- [ ] Implementar la prueba de una versión contra muestras almacenadas
-- [ ] Implementar la activación de versión
-- [ ] Implementar la consulta de notificaciones sin coincidencia
+- [x] Implementar el listado de versiones por billetera _(Claude)_ — incluye la tasa de coincidencia por versión (RF-WAL-009)
+- [x] Implementar la creación de versión _(Claude)_
+- [x] Implementar la prueba de una versión contra muestras almacenadas _(Claude)_ — corre el mismo `Parser` de producción para esa billetera, contra notificaciones reales (`raw_notification_ids`, típicamente `UNMATCHED`) y/o muestras manuales; no persiste nada
+- [x] Implementar la activación de versión _(Claude)_ — exactamente una activa por billetera (RF-WAL-004); invalida el caché de 60s del cargador de patrones de inmediato, verificado con una ingesta real sin redespliegue (RF-WAL-006)
+- [x] Implementar la consulta de notificaciones sin coincidencia _(Claude)_ — más `POST /platform/v1/notifications/reprocess` (RF-ADM-008/RF-WAL-010, SHOULD, no estaba en este checklist) y `GET/POST /platform/v1/wallets` para el catálogo (RF-WAL-001/008)
 
 ### Criterios de aceptación
 
-- [ ] Un cobro real por Yape produce una transacción con monto, remitente y código correctos
+- [x] Un cobro real por Yape produce una transacción con monto, remitente y código correctos _(Codex — captura real `Confirmación de Pago`, parser v19, S/ 1.00 y evento `transaction.created`; la variante observada no incluye código de seguridad)_
 - [ ] Un cobro real por Plin produce una transacción correcta
-- [ ] Sin conectividad, la notificación se conserva y se envía al restablecerse
-- [ ] Una notificación duplicada no genera una segunda transacción
-- [ ] Una notificación sin parser coincidente queda registrada para revisión
-- [ ] Modificar los patrones desde la base de datos altera el resultado sin redespliegue
+- [x] Sin conectividad, la notificación se conserva y se envía al restablecerse _(Codex — verificado en Xiaomi real: cinco intentos fallidos con API detenida y confirmación del lote tras levantar el backend)_
+- [x] Una notificación duplicada no genera una segunda transacción _(Claude)_
+- [x] Una notificación sin parser coincidente queda registrada para revisión _(Claude)_
+- [x] Modificar los patrones desde la base de datos altera el resultado sin redespliegue _(Claude)_
 
 ---
 
@@ -265,43 +270,45 @@
 
 **Objetivo:** el negocio visualiza sus cobros en el momento en que ocurren.
 
+> ⚠️ Backend probado de punta a punta con datos reales: ingesta → parsing → transacción → WebSocket con un cliente Socket.IO real conectándose, autenticándose y recibiendo el evento. El panel (Next.js) compila y pasa lint/typecheck, y quedó conectado al backend real, pero no pude verlo renderizado — este entorno no tiene la extensión de Chrome disponible en este momento. Exportación implementada síncrona, no asíncrona (ver nota puntual abajo).
+
 ### Backend
 
-- [ ] Implementar el listado de transacciones con paginación por cursor
-- [ ] Implementar los filtros: rango de fechas, billetera, dispositivo, estado, monto
-- [ ] Implementar la búsqueda por nombre de remitente
-- [ ] Implementar el detalle de transacción
-- [ ] Implementar la confirmación de transacción
-- [ ] Implementar la disputa de transacción
-- [ ] Implementar el resumen agregado por período
-- [ ] Implementar la exportación asíncrona a archivo separado por comas
-- [ ] Implementar el gateway de tiempo real con autenticación
-- [ ] Implementar el adaptador de distribución entre instancias
-- [ ] Implementar la emisión de eventos al canal del tenant
+- [x] Implementar el listado de transacciones con paginación por cursor _(Claude)_
+- [x] Implementar los filtros: rango de fechas, billetera, dispositivo, estado, monto _(Claude)_
+- [x] Implementar la búsqueda por nombre de remitente _(Claude)_
+- [x] Implementar el detalle de transacción _(Claude)_
+- [x] Implementar la confirmación de transacción _(Claude)_
+- [x] Implementar la disputa de transacción _(Claude)_
+- [x] Implementar el resumen agregado por período _(Claude)_
+- [x] Implementar la exportación asíncrona a archivo separado por comas _(Claude — implementada síncrona, no asíncrona: no hay infraestructura de almacenamiento de objetos todavía y el contrato no especifica la respuesta del flujo async; sirve el CSV directo en la respuesta)_
+- [x] Implementar el gateway de tiempo real con autenticación _(Claude)_
+- [x] Implementar el adaptador de distribución entre instancias _(Claude — @socket.io/redis-adapter conectado; no probado con múltiples instancias reales, solo con una)_
+- [x] Implementar la emisión de eventos al canal del tenant _(Claude)_
 
 ### Panel
 
-- [ ] Implementar la vista de transacciones con listado
-- [ ] Implementar el componente de tarjeta de transacción
-- [ ] Implementar la barra de filtros
-- [ ] Implementar la búsqueda incremental
-- [ ] Implementar el panel de detalle
-- [ ] Implementar las acciones de confirmación y disputa
-- [ ] Implementar el cliente de tiempo real con reconexión automática
-- [ ] Implementar la actualización de la vista ante evento entrante
-- [ ] Implementar el indicador de conexión activa
-- [ ] Implementar la vista de resumen con métricas del período
-- [ ] Implementar la exportación desde la interfaz
-- [ ] Implementar los cuatro estados en cada vista
+- [x] Implementar la vista de transacciones con listado _(Claude — código escrito y verificado por API real hasta el borde del navegador; sin extensión de Chrome disponible en este entorno no pude tomar una captura real, ver docs/10 nota de Sprint 5)_
+- [x] Implementar el componente de tarjeta de transacción _(Claude)_
+- [x] Implementar la barra de filtros _(Claude)_
+- [x] Implementar la búsqueda incremental _(Claude)_
+- [x] Implementar el panel de detalle _(Claude)_
+- [x] Implementar las acciones de confirmación y disputa _(Claude)_
+- [x] Implementar el cliente de tiempo real con reconexión automática _(Claude)_
+- [x] Implementar la actualización de la vista ante evento entrante _(Claude)_
+- [x] Implementar el indicador de conexión activa _(Claude)_
+- [x] Implementar la vista de resumen con métricas del período _(Claude)_
+- [x] Implementar la exportación desde la interfaz _(Claude)_
+- [x] Implementar los cuatro estados en cada vista _(Claude)_
 
 ### Criterios de aceptación
 
 - [ ] Un cobro real aparece en el panel en menos de dos segundos sin recargar
 - [ ] El código de seguridad es legible a distancia de brazo en un teléfono
-- [ ] Los filtros producen resultados correctos y componibles
-- [ ] La confirmación registra el usuario y la marca temporal
+- [x] Los filtros producen resultados correctos y componibles _(Claude)_
+- [x] La confirmación registra el usuario y la marca temporal _(Claude)_
 - [ ] La reconexión tras pérdida de red resincroniza el estado
-- [ ] La exportación genera un archivo con los registros filtrados
+- [x] La exportación genera un archivo con los registros filtrados _(Claude)_
 
 ---
 
@@ -311,60 +318,60 @@
 
 ### Claves de API
 
-- [ ] Implementar la generación con alcances
-- [ ] Implementar el almacenamiento por huella
-- [ ] Implementar la verificación con caché
-- [ ] Implementar la revocación
-- [ ] Implementar el registro de último uso
-- [ ] Implementar el guard de autenticación por clave
-- [ ] Implementar el guard de verificación de alcances
-- [ ] Implementar la limitación de tasa por clave según plan
+- [x] Implementar la generación con alcances _(Claude)_
+- [x] Implementar el almacenamiento por huella _(Claude)_
+- [x] Implementar la verificación con caché _(Claude)_
+- [x] Implementar la revocación _(Claude)_
+- [x] Implementar el registro de último uso _(Claude)_
+- [x] Implementar el guard de autenticación por clave _(Claude)_
+- [x] Implementar el guard de verificación de alcances _(Claude)_
+- [x] Implementar la limitación de tasa por clave según plan _(Claude)_ — ventana fija de 1 minuto en Redis por clave, según `plan.limits.rate_limit_per_minute`
 
 ### Webhooks — configuración
 
-- [ ] Implementar el registro de endpoint con validación de dirección
-- [ ] Implementar la prevención de solicitudes a redes internas
-- [ ] Implementar la generación y cifrado del secreto
-- [ ] Implementar la suscripción a eventos
-- [ ] Implementar la modificación y eliminación
-- [ ] Implementar la rotación de secreto con ventana de transición
-- [ ] Implementar el envío de evento de prueba
-- [ ] Implementar la validación del límite según plan
+- [x] Implementar el registro de endpoint con validación de dirección _(Claude)_
+- [x] Implementar la prevención de solicitudes a redes internas _(Claude)_ — resolución DNS + rangos privados IPv4/IPv6, re-verificado en cada intento de entrega (protege contra DNS rebinding)
+- [x] Implementar la generación y cifrado del secreto _(Claude)_
+- [x] Implementar la suscripción a eventos _(Claude)_
+- [x] Implementar la modificación y eliminación _(Claude)_
+- [x] Implementar la rotación de secreto con ventana de transición _(Claude)_ — 24h, valor propio ya que los docs no fijan uno
+- [x] Implementar el envío de evento de prueba _(Claude)_
+- [x] Implementar la validación del límite según plan _(Claude)_
 
 ### Webhooks — entrega
 
-- [ ] Implementar la cola de entregas
-- [ ] Implementar el trabajador de despacho
-- [ ] Implementar la construcción del payload versionado
-- [ ] Implementar el cálculo de la firma
-- [ ] Implementar el cliente HTTP con tiempo límite estricto
-- [ ] Implementar la política de reintentos con espera creciente
-- [ ] Implementar el registro de cada intento
-- [ ] Implementar el manejo diferenciado por código de respuesta
-- [ ] Implementar la desactivación automática tras fallos sostenidos
-- [ ] Implementar el reintento manual
-- [ ] Implementar la notificación al tenant ante desactivación
+- [x] Implementar la cola de entregas _(Claude)_
+- [x] Implementar el trabajador de despacho _(Claude)_
+- [x] Implementar la construcción del payload versionado _(Claude)_
+- [x] Implementar el cálculo de la firma _(Claude)_
+- [x] Implementar el cliente HTTP con tiempo límite estricto _(Claude)_
+- [x] Implementar la política de reintentos con espera creciente _(Claude)_ — tabla exacta de docs/04 §5.2, verificada con pruebas unitarias; el calendario completo (hasta 12h) no se ejerció en tiempo real en e2e, solo la lógica de cada paso
+- [x] Implementar el registro de cada intento _(Claude)_
+- [x] Implementar el manejo diferenciado por código de respuesta _(Claude)_ — 2xx entregado, 410 deshabilita el endpoint de inmediato, el resto reintenta según la política
+- [x] Implementar la desactivación automática tras fallos sostenidos _(Claude)_ — umbral propio de 5 entregas ABANDONADAS consecutivas; los docs no fijan uno
+- [x] Implementar el reintento manual _(Claude)_
+- [x] Implementar la notificación al tenant ante desactivación _(Claude)_ — reutiliza `MailerService`
 
 ### API pública
 
-- [ ] Exponer los endpoints de consulta de transacciones
-- [ ] Exponer los endpoints de gestión de webhooks
-- [ ] Exponer los endpoints de estado de dispositivos
-- [ ] Implementar el formato uniforme de error
-- [ ] Implementar las cabeceras de limitación de tasa
-- [ ] Restringir el acceso al canal de tiempo real según plan
-- [ ] Generar la especificación de la interfaz
+- [x] Exponer los endpoints de consulta de transacciones _(Claude)_
+- [x] Exponer los endpoints de gestión de webhooks _(Claude)_
+- [x] Exponer los endpoints de estado de dispositivos _(Claude)_ — solo lectura (`devices:read`); la gestión (emparejar, revocar) sigue exclusiva del panel
+- [x] Implementar el formato uniforme de error _(Claude)_
+- [x] Implementar las cabeceras de limitación de tasa _(Claude)_ — `X-RateLimit-Limit/Remaining/Reset` en cada respuesta autenticada por clave, `Retry-After` al superar el límite
+- [x] Restringir el acceso al canal de tiempo real según plan _(Claude)_ — solo clientes de API key (`websocket_api` + alcance `realtime:subscribe`); el panel conserva acceso sin importar el plan
+- [x] Generar la especificación de la interfaz _(Claude)_ — `docs/openapi.yaml` (OpenAPI 3.1), escrita a mano a partir de los contratos Zod (no autogenerada, porque el proyecto valida con Zod y no con `class-validator`); cubre solo la superficie `/v1` invocable con clave de API (transacciones, webhooks, dispositivos de solo lectura)
 
 ### Documentación
 
-- [ ] Crear el sitio de documentación
-- [ ] Redactar la guía de inicio rápido
-- [ ] Documentar la autenticación
-- [ ] Documentar cada endpoint con ejemplos
-- [ ] Documentar el catálogo de eventos
-- [ ] Documentar la verificación de firma con ejemplos en varios lenguajes
-- [ ] Documentar la política de reintentos
-- [ ] Documentar los límites de tasa
+- [ ] Crear el sitio de documentación — pendiente de Sprint 8 (despliegue); el contenido ya existe como Markdown en `docs/api-publica/`
+- [x] Redactar la guía de inicio rápido _(Claude)_ — `docs/api-publica/01-inicio-rapido.md`
+- [x] Documentar la autenticación _(Claude)_ — `docs/api-publica/02-autenticacion.md`
+- [x] Documentar cada endpoint con ejemplos _(Claude)_ — `docs/api-publica/03-transacciones.md`, `04-webhooks.md`, `05-dispositivos.md`, más `docs/openapi.yaml`
+- [x] Documentar el catálogo de eventos _(Claude)_ — `docs/api-publica/06-eventos.md`
+- [x] Documentar la verificación de firma con ejemplos en varios lenguajes _(Claude)_ — `docs/api-publica/07-verificacion-firma.md` (Node.js, Python, PHP)
+- [x] Documentar la política de reintentos _(Claude)_ — `docs/api-publica/08-reintentos.md`
+- [x] Documentar los límites de tasa _(Claude)_ — `docs/api-publica/09-limites-tasa.md`
 
 ### Panel
 
@@ -375,13 +382,13 @@
 
 ### Criterios de aceptación
 
-- [ ] Un integrador consume la API con una clave y obtiene transacciones
-- [ ] Una clave sin el alcance requerido recibe una respuesta de acceso denegado
-- [ ] Un cobro real dispara la entrega al endpoint configurado en menos de tres segundos
-- [ ] La firma se verifica correctamente siguiendo la documentación
-- [ ] Un endpoint caído genera reintentos según la política definida
-- [ ] Al restablecerse el endpoint, la entrega pendiente se completa
-- [ ] Superar el límite de tasa produce la respuesta correspondiente con cabeceras informativas
+- [x] Un integrador consume la API con una clave y obtiene transacciones _(Claude)_
+- [x] Una clave sin el alcance requerido recibe una respuesta de acceso denegado _(Claude)_
+- [x] Un cobro real dispara la entrega al endpoint configurado en menos de tres segundos _(Claude)_ — verificado con e2e real (ingesta → parsing → evento → entrega HTTPS firmada) usando un receptor local con certificado autofirmado, ya que el guard de SSRF real rechaza `localhost`
+- [x] La firma se verifica correctamente siguiendo la documentación _(Claude)_
+- [x] Un endpoint caído genera reintentos según la política definida _(Claude)_ — el calendario de espera está probado exhaustivamente a nivel unitario; no se ejerció en tiempo real un calendario completo de 8 intentos (tomaría hasta 12h)
+- [x] Al restablecerse el endpoint, la entrega pendiente se completa _(Claude)_ — verificado forzando un fallo y disparando el reintento manual (mismo código que usa el reintento automático)
+- [x] Superar el límite de tasa produce la respuesta correspondiente con cabeceras informativas _(Claude)_
 
 ---
 
@@ -391,38 +398,38 @@
 
 ### Planes y límites
 
-- [ ] Implementar la consulta del plan vigente con sus límites
-- [ ] Implementar el servicio de verificación de límites
-- [ ] Aplicar la verificación en cada punto correspondiente
-- [ ] Implementar los contadores de uso por período
-- [ ] Implementar el incremento de contadores ante cada evento contabilizable
-- [ ] Implementar el cierre y apertura de período mediante tarea programada
-- [ ] Implementar las notificaciones al alcanzar umbrales de consumo
-- [ ] Implementar la respuesta uniforme ante límite alcanzado
+- [x] Implementar la consulta del plan vigente con sus límites _(Claude)_ — `GET /v1/subscription`, incluye uso del período y plan pendiente si hay un downgrade agendado
+- [x] Implementar el servicio de verificación de límites _(Claude)_ — `PlanLimitsService`, punto único; reemplazó seis implementaciones duplicadas
+- [x] Aplicar la verificación en cada punto correspondiente _(Claude)_ — claves de API, dispositivos, usuarios, billeteras, webhooks, transacciones (ingesta)
+- [x] Implementar los contadores de uso por período _(Claude)_ — `UsagePeriod` vía `UsageCounterService`
+- [x] Implementar el incremento de contadores ante cada evento contabilizable _(Claude)_ — transacción creada, llamada autenticada por clave de API, intento de entrega de webhook
+- [x] Implementar el cierre y apertura de período mediante tarea programada _(Claude)_ — `SubscriptionPeriodScheduler`, diario
+- [x] Implementar las notificaciones al alcanzar umbrales de consumo _(Claude)_ — 80% y 100% (RF-TXN-016), un solo aviso por umbral por período
+- [x] Implementar la respuesta uniforme ante límite alcanzado _(Claude)_
 
 ### Cambio de plan
 
-- [ ] Implementar la solicitud de cambio
-- [ ] Implementar la aplicación inmediata al mejorar de plan
-- [ ] Implementar la aplicación diferida al reducir de plan
-- [ ] Implementar el registro histórico de cambios
-- [ ] Implementar la confirmación de pago manual desde administración
-- [ ] Implementar la activación tras confirmación
-- [ ] Implementar la notificación al tenant
+- [x] Implementar la solicitud de cambio _(Claude)_ — `POST /v1/subscription/change`, calcula monto y referencia de pago, no toca la suscripción todavía (docs/06 §11)
+- [x] Implementar la aplicación inmediata al mejorar de plan _(Claude)_ — `PlanChangeApplicationService`, probado directamente
+- [x] Implementar la aplicación diferida al reducir de plan _(Claude)_ — vía `pendingPlanId`, se aplica en el cierre de período
+- [x] Implementar el registro histórico de cambios _(Claude)_ — `GET /v1/subscription/history`
+- [x] Implementar la confirmación de pago manual desde administración _(Claude)_ — `POST /platform/v1/payments` (ver "Administración de plataforma" más abajo)
+- [x] Implementar la activación tras confirmación _(Claude)_
+- [x] Implementar la notificación al tenant _(Claude)_
 
 ### Retención
 
-- [ ] Implementar la tarea de eliminación por vencimiento de retención
-- [ ] Implementar el archivado de notificaciones crudas antiguas
-- [ ] Implementar la limpieza de tokens vencidos
+- [x] Implementar la tarea de eliminación por vencimiento de retención _(Claude)_ — `RetentionScheduler`: `transactions` y `webhook_deliveries` según `retention_days` del plan de cada tenant
+- [x] Implementar el archivado de notificaciones crudas antiguas _(Claude)_ — solo marca `archivedAt` a los 90 días (docs/05 §7); mover a almacenamiento de objetos y eliminar de la tabla queda pendiente, este proyecto no integra un proveedor todavía — borrar sin ese paso sería pérdida de datos real
+- [x] Implementar la limpieza de tokens vencidos _(Claude)_ — refresh tokens (30 días de gracia) y de un solo uso
 
 ### Auditoría
 
-- [ ] Implementar el servicio de registro de eventos
-- [ ] Instrumentar todas las acciones definidas como auditables
-- [ ] Implementar la restricción de modificación a nivel de motor
-- [ ] Implementar la consulta con filtros
-- [ ] Implementar la exportación
+- [x] Implementar el servicio de registro de eventos _(Claude)_ — ya existía desde Sprint 2, ahora también consultable y exportable
+- [x] Instrumentar todas las acciones definidas como auditables _(Claude)_ — verificado contra el catálogo de docs/07_SEGURIDAD_AUTH.md §12.1; encontró y corrigió dos huecos reales: el reintento manual de una entrega de webhook y pausar/reanudar un dispositivo no dejaban registro. Única excepción real: "solicitud de eliminación" de tenant no tiene evento porque ese flujo (`Tenant.deletionRequestedAt`) todavía no está implementado — no hay nada que auditar todavía
+- [x] Implementar la restricción de modificación a nivel de motor _(Claude)_ — `REVOKE UPDATE, DELETE` sobre `audit_events` para el rol de la aplicación; verificado con psql y con una prueba e2e
+- [x] Implementar la consulta con filtros _(Claude)_ — `GET /v1/audit`: `from`, `to`, `action`, `actor_user_id`, `resource_type`, cursor
+- [x] Implementar la exportación _(Claude)_ — `POST /v1/audit/export`, CSV
 
 ### Panel
 
@@ -434,19 +441,19 @@
 
 ### Administración de plataforma
 
-- [ ] Implementar el registro de pagos manuales
-- [ ] Implementar la aplicación de cambio de plan
-- [ ] Implementar la concesión de planes de cortesía
-- [ ] Implementar el panel de métricas globales
+- [x] Implementar el registro de pagos manuales _(Claude)_ — `POST /platform/v1/payments`, independiente de un cambio de plan (cubre también la renovación del mismo plan)
+- [x] Implementar la aplicación de cambio de plan _(Claude)_ — `POST /platform/v1/tenants/{id}/subscription`; en el camino encontré que `subscription_changes.performed_by` tenía una FK a `User`, no admitía un administrador de plataforma como actor — se agregó `performed_by_platform_admin_id` (migración `subscription_change_platform_admin_actor`)
+- [x] Implementar la concesión de planes de cortesía _(Claude)_ — `POST /platform/v1/tenants/{id}/courtesy-plan`, sin pago asociado, motivo obligatorio y marcado en el historial
+- [x] Implementar el panel de métricas globales _(Claude)_ — `GET /platform/v1/metrics`: tenants activos/suspendidos, volumen de transacciones, tasa de parsing, salud de webhooks (RF-ADM-009)
 
 ### Criterios de aceptación
 
-- [ ] Alcanzar el límite de transacciones detiene la ingesta con mensaje claro
-- [ ] Los elementos rechazados por límite permanecen en la cola del dispositivo
-- [ ] Al mejorar de plan, los nuevos límites aplican de inmediato
-- [ ] Toda acción sensible aparece en el registro de auditoría
-- [ ] El registro de auditoría no admite modificación por ninguna vía
-- [ ] Los datos vencidos se eliminan según la retención del plan
+- [x] Alcanzar el límite de transacciones detiene la ingesta con mensaje claro _(Claude)_ — verificado con e2e real: 5 transacciones aceptadas contra un límite de 5, la 6ª rechazada con 422
+- [ ] Los elementos rechazados por límite permanecen en la cola del dispositivo — depende de la app Android (conservar en cola local ante un 422), no verificable desde el backend
+- [x] Al mejorar de plan, los nuevos límites aplican de inmediato _(Claude)_
+- [x] Toda acción sensible aparece en el registro de auditoría _(Claude)_ — mismo alcance que el punto de "Auditoría" arriba
+- [x] El registro de auditoría no admite modificación por ninguna vía _(Claude)_
+- [x] Los datos vencidos se eliminan según la retención del plan _(Claude)_
 
 ---
 
@@ -456,15 +463,15 @@
 
 ### Observabilidad
 
-- [ ] Implementar registro estructurado con identificador de correlación
-- [ ] Implementar la exposición de métricas de aplicación
-- [ ] Instrumentar trazas en los flujos críticos
-- [ ] Implementar el endpoint de verificación de salud
-- [ ] Configurar la recolección de registros
-- [ ] Configurar los tableros de monitoreo
-- [ ] Configurar las alertas definidas
-- [ ] Integrar el seguimiento de errores no controlados
-- [ ] Publicar la página de estado del servicio
+- [x] Implementar registro estructurado con identificador de correlación _(Claude)_ — `nestjs-pino` (JSON en producción, legible en desarrollo); `pino-http` es ahora el único generador del id de correlación (antes había dos independientes, ver `RequestIdMiddleware`); cada línea incluye `tenantId`/`actorType`/actor cuando el guard correspondiente ya lo resolvió (`LogContextInterceptor`)
+- [x] Implementar la exposición de métricas de aplicación _(Claude)_ — `GET /metrics` (formato Prometheus, `prom-client`): HTTP por ruta/estado, ingesta, resultados de parsing por billetera, entregas de webhook, profundidad de cola, más las métricas por defecto del proceso
+- [x] Instrumentar trazas en los flujos críticos _(Claude)_ — OpenTelemetry (`NodeSDK` + instrumentación automática de HTTP/Express/ioredis, spans manuales en ingesta/parsing/entrega de webhooks); sin `OTEL_EXPORTER_OTLP_ENDPOINT` configurado no hay colector real desplegado todavía, así que hoy no se envían a ningún lado — la instrumentación queda lista para cuando exista uno
+- [x] Implementar el endpoint de verificación de salud _(Claude)_ — se separó en `GET /health` (liveness, sin dependencias) y `GET /health/ready` (RNF-OBS-008: valida conectividad real con Postgres y Redis vía `@nestjs/terminus`)
+- [ ] Configurar la recolección de registros — requiere un destino real (Loki, CloudWatch, etc.); no hay uno desplegado todavía
+- [ ] Configurar los tableros de monitoreo — requiere una instancia real de Grafana o similar
+- [x] Configurar las alertas definidas _(Claude)_ — cubre las 3 alertas de los RNF: tasa de parsing por billetera bajo 95% y profundidad de la cola de webhooks (`ParsingSuccessAlertScheduler`/`WebhookQueueDepthAlertScheduler`, ambas por correo a administradores de plataforma, con deduplicación por Redis) y dispositivo sin heartbeat (ya existía, `DeviceOfflineScheduler`). No incluye reglas de Alertmanager/infra — son alertas a nivel de aplicación
+- [x] Integrar el seguimiento de errores no controlados _(Claude)_ — `@sentry/nestjs`, captura excepciones 5xx y `uncaughtException`/`unhandledRejection`; sin `SENTRY_DSN` configurado (no hay cuenta real) queda en no-op seguro
+- [ ] Publicar la página de estado del servicio — servicio externo (p. ej. Statuspage), no aplica sin una cuenta real
 
 ### Seguridad
 
