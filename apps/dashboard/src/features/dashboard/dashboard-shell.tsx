@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { useAuthSession } from '@/features/auth/auth-session';
@@ -9,16 +9,17 @@ import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dash
 import { BrandMark } from '@/shared/components/BrandMark';
 
 const navigation = [
-  { icon: 'home', label: 'Inicio' },
-  { icon: 'receipt', label: 'Transacciones' },
-  { icon: 'device', label: 'Dispositivos' },
-  { icon: 'wallet', label: 'Billeteras' },
-  { icon: 'team', label: 'Equipo' },
-  { icon: 'plug', label: 'Integraciones' },
-] satisfies { icon: DashboardIconName; label: string }[];
+  { icon: 'home', label: 'Inicio', href: '/inicio' },
+  { icon: 'receipt', label: 'Transacciones', href: '/transacciones' },
+  { icon: 'device', label: 'Dispositivos', href: null },
+  { icon: 'wallet', label: 'Billeteras', href: null },
+  { icon: 'team', label: 'Equipo', href: null },
+  { icon: 'plug', label: 'Integraciones', href: null },
+] satisfies { icon: DashboardIconName; label: string; href: string | null }[];
 
 export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
+  const pathname = usePathname();
   const { logout, session } = useAuthSession();
   const tenant = session?.tenants[0];
   const initials = getInitials(session?.user.full_name);
@@ -43,12 +44,13 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
             Mi negocio
           </p>
           <div className="mt-3 space-y-1">
-            {navigation.map((item, index) => {
+            {navigation.map((item) => {
+              const isActive = item.href !== null && pathname?.startsWith(item.href);
               const content = (
                 <>
                   <DashboardIcon className="h-5 w-5 shrink-0" name={item.icon} />
                   <span>{item.label}</span>
-                  {index !== 0 && (
+                  {item.href === null && (
                     <span className="ml-auto rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
                       Pronto
                     </span>
@@ -56,11 +58,15 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                 </>
               );
 
-              return index === 0 ? (
+              return item.href !== null ? (
                 <Link
-                  aria-current="page"
-                  className="flex items-center gap-3 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(36,119,239,0.22)] transition hover:bg-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-neutral-950"
-                  href="/inicio"
+                  aria-current={isActive ? 'page' : undefined}
+                  className={
+                    isActive
+                      ? 'flex items-center gap-3 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(36,119,239,0.22)] transition hover:bg-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-neutral-950'
+                      : 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-neutral-950'
+                  }
+                  href={item.href}
                   key={item.label}
                 >
                   {content}

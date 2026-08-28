@@ -1,6 +1,6 @@
 'use client';
 
-import type { LoginInput } from '@yallego/contracts';
+import type { LoginInput, MembershipRole } from '@yallego/contracts';
 import {
   createContext,
   type ReactNode,
@@ -19,7 +19,7 @@ export interface AuthSession {
   tenants: Array<{
     business_name: string;
     id: string;
-    role: string;
+    role: MembershipRole;
     slug: string;
   }>;
   user: {

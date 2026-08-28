@@ -2,20 +2,28 @@ import type { ReactNode, SVGProps } from 'react';
 
 export type DashboardIconName =
   | 'activity'
+  | 'alert-circle'
   | 'arrow-up-right'
   | 'bell'
   | 'calendar'
   | 'check'
   | 'chevron-right'
   | 'device'
+  | 'download'
   | 'home'
+  | 'inbox'
   | 'logout'
   | 'plug'
   | 'receipt'
+  | 'refresh'
+  | 'search'
   | 'shield'
   | 'team'
   | 'ticket'
-  | 'wallet';
+  | 'wallet'
+  | 'wifi'
+  | 'wifi-off'
+  | 'x';
 
 interface DashboardIconProps extends SVGProps<SVGSVGElement> {
   name: DashboardIconName;
@@ -115,4 +123,48 @@ const iconPaths: Record<DashboardIconName, ReactNode> = {
       <path d="M16 14h2" />
     </>
   ),
+  'alert-circle': (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5M12 16h.01" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </>
+  ),
+  inbox: (
+    <>
+      <path d="M3 11h4l2 3h6l2-3h4" />
+      <path d="M5.5 5h13l2 6v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-7l2-6Z" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15.3 6.4L3 16m0 5v-5h5" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </>
+  ),
+  wifi: (
+    <>
+      <path d="M5 13a11 11 0 0 1 14 0M8.5 16.5a6 6 0 0 1 7 0" />
+      <path d="M12 20h.01" />
+    </>
+  ),
+  'wifi-off': (
+    <>
+      <path d="M3 3l18 18" />
+      <path d="M5 13a11 11 0 0 1 5.3-3M18.9 12.9A11 11 0 0 0 16 10.7" />
+      <path d="M8.5 16.5a6 6 0 0 1 4-1.7M12 20h.01" />
+    </>
+  ),
+  x: <path d="M18 6 6 18M6 6l12 12" />,
 };
