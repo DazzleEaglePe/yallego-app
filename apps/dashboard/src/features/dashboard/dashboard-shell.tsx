@@ -223,6 +223,9 @@ function getPageMeta(pathname: string | null): {
   if (pathname?.startsWith('/integraciones')) {
     return { icon: 'plug', section: 'Desarrolladores', title: 'Integraciones' };
   }
+  if (pathname?.startsWith('/membresia')) {
+    return { icon: 'ticket', section: 'Cuenta', title: 'Membresía' };
+  }
   return { icon: 'home', section: 'Inicio', title: 'Resumen general' };
 }
 

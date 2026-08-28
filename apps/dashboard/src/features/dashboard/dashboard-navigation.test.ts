@@ -13,8 +13,20 @@ describe('getVisibleNavigation', () => {
     },
   );
 
-  it.each(['OWNER', 'ADMIN'] as const)('muestra las secciones de configuración para %s', (role) => {
-    expect(getVisibleNavigation(role).map((item) => item.label)).toEqual([
+  it('muestra toda la configuración y la membresía al propietario', () => {
+    expect(getVisibleNavigation('OWNER').map((item) => item.label)).toEqual([
+      'Inicio',
+      'Transacciones',
+      'Dispositivos',
+      'Billeteras',
+      'Equipo',
+      'Integraciones',
+      'Membresía',
+    ]);
+  });
+
+  it('oculta la membresía al administrador', () => {
+    expect(getVisibleNavigation('ADMIN').map((item) => item.label)).toEqual([
       'Inicio',
       'Transacciones',
       'Dispositivos',

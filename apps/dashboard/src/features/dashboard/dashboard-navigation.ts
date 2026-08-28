@@ -21,6 +21,12 @@ export const dashboardNavigation = [
     href: '/integraciones/claves-api',
     permission: 'api-keys:manage',
   },
+  {
+    icon: 'ticket',
+    label: 'Membresía',
+    href: '/membresia',
+    permission: 'subscription:manage',
+  },
 ] satisfies DashboardNavigationItem[];
 
 export function getVisibleNavigation(role: MembershipRole | undefined): DashboardNavigationItem[] {

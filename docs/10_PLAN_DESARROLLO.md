@@ -435,7 +435,7 @@
 
 ### Panel
 
-- [ ] Implementar la vista de membresía con consumo
+- [x] Implementar la vista de membresía con consumo _(Codex)_ — plan y ciclo vigentes, próxima renovación, cambio programado, consumo del período con umbrales y capacidades incluidas; acceso exclusivo del propietario
 - [ ] Implementar la comparación de planes
 - [ ] Implementar el flujo de solicitud de cambio
 - [ ] Implementar los avisos de consumo
