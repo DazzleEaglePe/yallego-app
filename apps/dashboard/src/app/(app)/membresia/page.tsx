@@ -1,14 +1,16 @@
 'use client';
 
-import { can, type PlanLimits } from '@yallego/contracts';
+import { can } from '@yallego/contracts';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
+import { PlanComparisonSection } from '@/features/subscription/components/PlanComparisonSection';
 import { useSubscription } from '@/features/subscription/hooks/use-subscription';
 import {
   billingCycleLabels,
+  planLimitLabel,
   subscriptionPrice,
   usagePercentage,
   usageTone,
@@ -35,6 +37,7 @@ export default function MembershipPage() {
   const data = subscription.data;
   const transactionLimit = data.plan.limits.transactions_per_month;
   const transactionUsage = data.usage.transactions_count;
+  const hasUnlimitedTransactions = transactionLimit < 0;
   const percentage = usagePercentage(transactionUsage, transactionLimit);
   const tone = usageTone(percentage);
   const price = formatMoney(subscriptionPrice(data), data.plan.currency);
@@ -132,7 +135,9 @@ export default function MembershipPage() {
               Seguimiento actualizado de la actividad incluida en tu plan.
             </p>
           </div>
-          <span className={usageBadgeClass[tone]}>{percentage}% utilizado</span>
+          <span className={usageBadgeClass[tone]}>
+            {hasUnlimitedTransactions ? 'Uso ilimitado' : `${percentage}% utilizado`}
+          </span>
         </div>
 
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
@@ -144,13 +149,20 @@ export default function MembershipPage() {
             <p className="text-right text-sm font-semibold text-neutral-950">
               {formatNumber(transactionUsage)}{' '}
               <span className="font-normal text-neutral-400">
-                / {formatNumber(transactionLimit)}
+                / {planLimitLabel(transactionLimit)}
               </span>
             </p>
           </div>
           <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-neutral-200">
             <div
-              aria-label={`${percentage}% del límite mensual utilizado`}
+              aria-label={
+                hasUnlimitedTransactions
+                  ? `${formatNumber(transactionUsage)} cobros procesados sin límite mensual`
+                  : `${percentage}% del límite mensual utilizado`
+              }
+              aria-valuemax={hasUnlimitedTransactions ? undefined : 100}
+              aria-valuemin={hasUnlimitedTransactions ? undefined : 0}
+              aria-valuenow={hasUnlimitedTransactions ? undefined : percentage}
               className={`h-full rounded-full transition-all ${usageBarClass[tone]}`}
               role="progressbar"
               style={{ width: `${percentage}%` }}
@@ -196,6 +208,8 @@ export default function MembershipPage() {
           <FeaturePill enabled label={`Soporte ${data.plan.limits.support.toLowerCase()}`} />
         </div>
       </section>
+
+      <PlanComparisonSection currentCycle={data.billing_cycle} currentPlanCode={data.plan.code} />
     </div>
   );
 }
@@ -218,7 +232,7 @@ function PlanLimit({
   label,
   suffix = '',
   value,
-}: Readonly<{ label: string; suffix?: string; value: PlanLimits[keyof PlanLimits] }>) {
+}: Readonly<{ label: string; suffix?: string; value: number }>) {
   return (
     <div className="flex items-center gap-3">
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-success-50 text-success-600">
@@ -227,8 +241,7 @@ function PlanLimit({
       <span>
         <span className="block text-xs text-neutral-400">{label}</span>
         <strong className="mt-0.5 block text-sm font-semibold text-neutral-800">
-          {typeof value === 'number' ? formatNumber(value) : String(value)}
-          {suffix}
+          {planLimitLabel(value, suffix)}
         </strong>
       </span>
     </div>

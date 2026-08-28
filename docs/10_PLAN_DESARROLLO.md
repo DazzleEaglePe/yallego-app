@@ -436,7 +436,7 @@
 ### Panel
 
 - [x] Implementar la vista de membresía con consumo _(Codex)_ — plan y ciclo vigentes, próxima renovación, cambio programado, consumo del período con umbrales y capacidades incluidas; acceso exclusivo del propietario
-- [ ] Implementar la comparación de planes
+- [x] Implementar la comparación de planes _(Codex)_ — catálogo responsive con plan actual destacado, selector mensual/semestral/anual, precios y límites comparables, incluyendo capacidades ilimitadas y ciclos no disponibles
 - [ ] Implementar el flujo de solicitud de cambio
 - [ ] Implementar los avisos de consumo
 - [ ] Implementar la vista de auditoría

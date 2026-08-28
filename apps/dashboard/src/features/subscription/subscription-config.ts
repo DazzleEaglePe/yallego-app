@@ -1,4 +1,4 @@
-import type { BillingCycle, SubscriptionSummary } from '@yallego/contracts';
+import type { BillingCycle, PlanSummary, SubscriptionSummary } from '@yallego/contracts';
 
 export const billingCycleLabels: Record<BillingCycle, string> = {
   ANNUAL: 'Anual',
@@ -27,4 +27,15 @@ export function subscriptionPrice(subscription: SubscriptionSummary): string {
         : plan.price_monthly;
 
   return price ?? plan.price_monthly;
+}
+
+export function planPriceForCycle(plan: PlanSummary, cycle: BillingCycle): string | null {
+  if (cycle === 'ANNUAL') return plan.price_annual;
+  if (cycle === 'SEMIANNUAL') return plan.price_semiannual;
+  return plan.price_monthly;
+}
+
+export function planLimitLabel(value: number, suffix = ''): string {
+  if (value < 0) return 'Ilimitado';
+  return `${new Intl.NumberFormat('es-PE').format(value)}${suffix}`;
 }

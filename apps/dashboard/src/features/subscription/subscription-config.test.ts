@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { SubscriptionSummary } from '@yallego/contracts';
 
-import { subscriptionPrice, usagePercentage, usageTone } from './subscription-config';
+import {
+  planLimitLabel,
+  planPriceForCycle,
+  subscriptionPrice,
+  usagePercentage,
+  usageTone,
+} from './subscription-config';
 
 describe('usagePercentage', () => {
   it('calcula el avance y limita la barra visual al cien por ciento', () => {
@@ -34,5 +40,18 @@ describe('subscriptionPrice', () => {
     expect(subscriptionPrice(subscription)).toBe('300.00');
     expect(subscriptionPrice({ ...subscription, billing_cycle: 'SEMIANNUAL' })).toBe('170.00');
     expect(subscriptionPrice({ ...subscription, billing_cycle: 'MONTHLY' })).toBe('30.00');
+  });
+
+  it('expone los ciclos no disponibles sin inventar un precio', () => {
+    expect(planPriceForCycle(subscription.plan, 'ANNUAL')).toBe('300.00');
+    expect(planPriceForCycle({ ...subscription.plan, price_annual: null }, 'ANNUAL')).toBeNull();
+  });
+});
+
+describe('planLimitLabel', () => {
+  it('presenta límites numéricos e ilimitados', () => {
+    expect(planLimitLabel(15_000)).toBe('15,000');
+    expect(planLimitLabel(90, ' días')).toBe('90 días');
+    expect(planLimitLabel(-1)).toBe('Ilimitado');
   });
 });
