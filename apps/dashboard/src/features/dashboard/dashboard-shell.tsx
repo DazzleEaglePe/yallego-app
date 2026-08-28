@@ -220,6 +220,9 @@ function getPageMeta(pathname: string | null): {
   if (pathname?.startsWith('/equipo')) {
     return { icon: 'team', section: 'Accesos', title: 'Equipo' };
   }
+  if (pathname?.startsWith('/integraciones')) {
+    return { icon: 'plug', section: 'Desarrolladores', title: 'Integraciones' };
+  }
   return { icon: 'home', section: 'Inicio', title: 'Resumen general' };
 }
 

@@ -377,7 +377,7 @@
 
 ### Panel
 
-- [ ] Implementar la vista de claves de API
+- [x] Implementar la vista de claves de API _(Codex)_ — creación con alcances y vencimiento, secreto visible una sola vez, listado y revocación
 - [ ] Implementar la vista de webhooks
 - [ ] Implementar el historial de entregas con detalle expandible
 - [ ] Implementar el reintento manual desde la interfaz

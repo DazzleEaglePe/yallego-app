@@ -15,7 +15,12 @@ export const dashboardNavigation = [
   { icon: 'device', label: 'Dispositivos', href: null, permission: 'devices:manage' },
   { icon: 'wallet', label: 'Billeteras', href: null, permission: 'wallets:manage' },
   { icon: 'team', label: 'Equipo', href: '/equipo', permission: 'members:manage' },
-  { icon: 'plug', label: 'Integraciones', href: null, permission: 'webhooks:manage' },
+  {
+    icon: 'plug',
+    label: 'Integraciones',
+    href: '/integraciones/claves-api',
+    permission: 'api-keys:manage',
+  },
 ] satisfies DashboardNavigationItem[];
 
 export function getVisibleNavigation(role: MembershipRole | undefined): DashboardNavigationItem[] {
