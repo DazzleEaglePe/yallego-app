@@ -251,7 +251,11 @@ export class AuthService {
     return this.startSession(user, metadata);
   }
 
-  async refresh(refreshToken: string, metadata: RequestMetadata): Promise<SessionResult> {
+  async refresh(
+    refreshToken: string,
+    metadata: RequestMetadata,
+    activeTenantId?: string,
+  ): Promise<SessionResult> {
     const tokenHash = this.tokenService.hashOpaqueToken(refreshToken);
     const current = await this.prisma.withoutTenantScope((tx) =>
       tx.refreshToken.findUnique({
@@ -284,7 +288,9 @@ export class AuthService {
       throw this.invalidSessionError();
     }
 
-    const membership = current.user.memberships[0];
+    const membership =
+      current.user.memberships.find(({ tenantId }) => tenantId === activeTenantId) ??
+      current.user.memberships[0];
     if (!membership) throw this.invalidSessionError();
     const nextRawToken = this.tokenService.createOpaqueToken('rt');
     const nextHash = this.tokenService.hashOpaqueToken(nextRawToken);
@@ -326,7 +332,7 @@ export class AuthService {
       throw error;
     }
 
-    return this.mapSession(current.user, nextRawToken, access);
+    return this.mapSession(current.user, nextRawToken, access, membership.tenantId);
   }
 
   async logout(refreshToken: string | undefined, metadata: RequestMetadata): Promise<void> {
@@ -477,7 +483,7 @@ export class AuthService {
   async switchTenant(
     session: AccessTokenPayload,
     input: SwitchTenantInput,
-  ): Promise<{ access_token: string; expires_in: number }> {
+  ): Promise<{ access_token: string; active_tenant_id: string; expires_in: number }> {
     const membership = await this.prisma.withoutTenantScope((tx) =>
       tx.membership.findUnique({
         where: { tenantId_userId: { tenantId: input.tenant_id, userId: session.sub } },
@@ -496,7 +502,11 @@ export class AuthService {
       userId: session.sub,
     });
 
-    return { access_token: access.token, expires_in: access.expiresIn };
+    return {
+      access_token: access.token,
+      active_tenant_id: membership.tenantId,
+      expires_in: access.expiresIn,
+    };
   }
 
   async getProfile(session: AccessTokenPayload): Promise<{
@@ -540,7 +550,7 @@ export class AuthService {
       },
     });
 
-    return this.mapSession(user, refreshToken, access);
+    return this.mapSession(user, refreshToken, access, membership.tenantId);
   }
 
   /** Público por la misma razón que `startSession`. */
@@ -548,10 +558,12 @@ export class AuthService {
     user: UserWithMemberships,
     refreshToken: string,
     access: { expiresIn: number; token: string },
+    activeTenantId: string,
   ): SessionResult {
     return {
       accessToken: access.token,
       accessTokenExpiresIn: access.expiresIn,
+      activeTenantId,
       refreshToken,
       refreshTokenExpiresIn: this.tokenService.getRefreshTokenTtlSeconds(),
       user: { id: user.id, email: user.email, fullName: user.fullName },

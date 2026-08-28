@@ -96,12 +96,24 @@ integrationDescribe('Authentication API', () => {
     expect(verificationToken).toMatch(/^ev_/);
     await agent.post('/v1/auth/verify-email').send({ token: verificationToken }).expect(200);
 
+    const secondaryTenant = await prisma.withoutTenantScope(async (tx) => {
+      const user = await tx.user.findUniqueOrThrow({ where: { email: primaryEmail } });
+      return tx.tenant.create({
+        data: {
+          businessName: `Segundo Negocio ${suffix}`,
+          slug: `segundo-negocio-${suffix}`,
+          memberships: { create: { role: 'OWNER', userId: user.id } },
+        },
+      });
+    });
+
     const login = await agent.post('/v1/auth/login').send({
       email: primaryEmail,
       password: originalPassword,
     });
     expect(login.status).toBe(200);
     expect(login.body.access_token).toEqual(expect.any(String));
+    expect(login.body.active_tenant_id).toBe(login.body.tenants[0].id);
     expect(login.body).not.toHaveProperty('refresh_token');
     const firstCookie = firstResponseCookie(login.headers['set-cookie']);
     expect(firstCookie).toContain('yallego_refresh=rt_');
@@ -115,8 +127,19 @@ integrationDescribe('Authentication API', () => {
     expect(profile.body.user.email).toBe(primaryEmail);
     expect(profile.body.tenants[0].role).toBe('OWNER');
 
-    const refreshed = await agent.post('/v1/auth/refresh').send({}).expect(200);
+    const switched = await agent
+      .post('/v1/auth/switch-tenant')
+      .set('Authorization', `Bearer ${login.body.access_token}`)
+      .send({ tenant_id: secondaryTenant.id })
+      .expect(200);
+    expect(switched.body.active_tenant_id).toBe(secondaryTenant.id);
+
+    const refreshed = await agent
+      .post('/v1/auth/refresh')
+      .send({ tenant_id: secondaryTenant.id })
+      .expect(200);
     expect(refreshed.body.access_token).not.toBe(login.body.access_token);
+    expect(refreshed.body.active_tenant_id).toBe(secondaryTenant.id);
     const secondCookie = firstResponseCookie(refreshed.headers['set-cookie']);
     expect(secondCookie).not.toBe(firstCookie);
 

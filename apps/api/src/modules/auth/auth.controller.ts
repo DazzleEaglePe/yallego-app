@@ -86,7 +86,11 @@ export class AuthController {
     if (!refreshToken) {
       throw new ApiHttpException(401, 'UNAUTHENTICATED', 'La sesión no es válida o expiró.');
     }
-    const session = await this.authService.refresh(refreshToken, requestMetadata(request));
+    const session = await this.authService.refresh(
+      refreshToken,
+      requestMetadata(request),
+      input.tenant_id,
+    );
     this.setRefreshCookie(response, session);
     return sessionResponse(session);
   }
@@ -172,6 +176,7 @@ function requestMetadata(request: Request): RequestMetadata {
 function sessionResponse(session: SessionResult) {
   return {
     access_token: session.accessToken,
+    active_tenant_id: session.activeTenantId,
     expires_in: session.accessTokenExpiresIn,
     user: {
       id: session.user.id,
