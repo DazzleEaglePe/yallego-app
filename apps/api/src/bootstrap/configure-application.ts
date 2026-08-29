@@ -4,7 +4,11 @@ import helmet from 'helmet';
 
 import { ApiExceptionFilter } from '../shared/filters/api-exception.filter';
 
-export function configureApplication(app: INestApplication, dashboardUrl: string): void {
+export function configureApplication(
+  app: INestApplication,
+  dashboardUrl: string,
+  additionalCorsOrigins: string[] = [],
+): void {
   // docs/06_API_CONTRACT.md §1.1 define superficies con base propia:
   // `/v1` (pública y panel), `/internal/v1` (dispositivos) y `/platform/v1`
   // (administración). El prefijo global cubre la primera; las demás declaran
@@ -22,7 +26,7 @@ export function configureApplication(app: INestApplication, dashboardUrl: string
   app.use(helmet());
   app.enableCors({
     credentials: true,
-    origin: dashboardUrl,
+    origin: [...new Set([dashboardUrl, ...additionalCorsOrigins])],
   });
   app.useGlobalFilters(new ApiExceptionFilter());
   app.enableShutdownHooks();

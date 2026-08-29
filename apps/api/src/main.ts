@@ -22,7 +22,11 @@ async function bootstrap(): Promise<void> {
   initSentry(config);
   app.useLogger(app.get(Logger));
 
-  configureApplication(app, config.get('DASHBOARD_URL', { infer: true }));
+  configureApplication(
+    app,
+    config.get('DASHBOARD_URL', { infer: true }),
+    config.get('CORS_ALLOWED_ORIGINS', { infer: true }),
+  );
 
   const redisIoAdapter = new RedisIoAdapter(app, app.get<Redis>(REDIS_CLIENT));
   await redisIoAdapter.connectToRedis();

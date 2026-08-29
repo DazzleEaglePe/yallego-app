@@ -20,3 +20,19 @@ describe('production logging configuration', () => {
     );
   });
 });
+
+describe('CORS configuration', () => {
+  it('parses and validates additional allowed origins', () => {
+    expect(
+      validateEnvironment({
+        CORS_ALLOWED_ORIGINS: 'http://localhost:3010, https://preview.yallego.app',
+      }).CORS_ALLOWED_ORIGINS,
+    ).toEqual(['http://localhost:3010', 'https://preview.yallego.app']);
+  });
+
+  it('rejects malformed origins', () => {
+    expect(() => validateEnvironment({ CORS_ALLOWED_ORIGINS: 'not-a-url' })).toThrow(
+      'Configuración inválida',
+    );
+  });
+});

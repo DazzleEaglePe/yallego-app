@@ -3,6 +3,16 @@ import { z } from 'zod';
 const emptyToUndefined = (value: unknown): unknown => (value === '' ? undefined : value);
 const optionalUrl = z.preprocess(emptyToUndefined, z.url().optional());
 const optionalString = z.preprocess(emptyToUndefined, z.string().optional());
+const optionalUrlList = z.preprocess(
+  (value) =>
+    typeof value === 'string'
+      ? value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : value,
+  z.array(z.url()).optional(),
+);
 
 export const envSchema = z
   .object({
@@ -35,6 +45,10 @@ export const envSchema = z
     STORAGE_ACCESS_KEY: optionalString,
     STORAGE_SECRET_KEY: optionalString,
     DASHBOARD_URL: z.url().default('http://localhost:3000'),
+    // Orígenes adicionales del panel, separados por coma. `DASHBOARD_URL`
+    // siempre se incluye; esta lista cubre previews y puertos locales alternos
+    // sin abrir CORS indiscriminadamente.
+    CORS_ALLOWED_ORIGINS: optionalUrlList,
     // docs/07_SEGURIDAD_AUTH.md §11: lista blanca de IPs/CIDR separadas por
     // coma para /platform/v1. Vacía o ausente = bloquea todo el acceso: es
     // la superficie de mayor privilegio, el valor por omisión es cerrado.
