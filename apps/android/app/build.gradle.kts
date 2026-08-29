@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.net.URI
 
 plugins {
     alias(libs.plugins.android.application)
@@ -20,6 +21,19 @@ val localProperties = Properties().apply {
 
 fun localProperty(key: String, default: String): String =
     (localProperties.getProperty(key) ?: System.getenv(key))?.takeIf { it.isNotBlank() } ?: default
+
+fun requireHttpsBaseUrl(value: String): String {
+    val uri = runCatching { URI(value) }.getOrNull()
+    require(uri?.scheme.equals("https", ignoreCase = true) && !uri?.host.isNullOrBlank()) {
+        "API_BASE_URL_RELEASE must be an absolute HTTPS URL"
+    }
+    require(value.endsWith('/')) { "API_BASE_URL_RELEASE must end with /" }
+    return value
+}
+
+val releaseApiBaseUrl = requireHttpsBaseUrl(
+    localProperty("API_BASE_URL_RELEASE", "https://api.yallego.app/"),
+)
 
 android {
     namespace = "app.yallego.capture"
@@ -51,7 +65,7 @@ android {
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"${localProperty("API_BASE_URL_RELEASE", "https://api.yallego.app/")}\"",
+                "\"$releaseApiBaseUrl\"",
             )
         }
     }
