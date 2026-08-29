@@ -2,6 +2,7 @@ import { generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 
 import type { INestApplication } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { io, type Socket } from 'socket.io-client';
@@ -12,6 +13,10 @@ import { configureApplication } from '../src/bootstrap/configure-application';
 import { EncryptionService } from '../src/infrastructure/crypto/encryption.service';
 import { MailerService } from '../src/infrastructure/mailer/mailer.service';
 import { PrismaService } from '../src/infrastructure/database/prisma.service';
+import {
+  TRANSACTION_CREATED_EVENT,
+  TransactionCreatedEvent,
+} from '../src/shared/events/transaction-created.event';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const integrationDescribe = databaseUrl ? describe : describe.skip;
@@ -19,9 +24,11 @@ const integrationDescribe = databaseUrl ? describe : describe.skip;
 integrationDescribe('Transactions and realtime gateway', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let eventEmitter: EventEmitter2;
   let baseUrl: string;
   const suffix = randomUUID().slice(0, 8);
   const ownerEmail = `dueno-txn-${suffix}@negocio.pe`;
+  const secondOwnerEmail = `dueno-realtime-b-${suffix}@negocio.pe`;
   const password = 'clave-super-segura-1';
   const mailer = {
     sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
@@ -31,7 +38,9 @@ integrationDescribe('Transactions and realtime gateway', () => {
     sendDeviceRecoveredEmail: vi.fn().mockResolvedValue(undefined),
   };
   let ownerToken: string;
+  let secondOwnerToken: string;
   let tenantId: string;
+  let secondTenantId: string;
   let deviceId: string;
   let deviceToken: string;
   let yapeWalletId: string;
@@ -62,6 +71,7 @@ integrationDescribe('Transactions and realtime gateway', () => {
     const address = app.getHttpServer().address() as AddressInfo;
     baseUrl = `http://127.0.0.1:${address.port}`;
     prisma = app.get(PrismaService);
+    eventEmitter = app.get(EventEmitter2);
     const cipher = app.get(EncryptionService);
 
     await request(app.getHttpServer())
@@ -83,6 +93,26 @@ integrationDescribe('Transactions and realtime gateway', () => {
       .expect(200);
     ownerToken = login.body.access_token as string;
     tenantId = login.body.tenants[0].id as string;
+
+    await request(app.getHttpServer()).post('/v1/auth/register').send({
+      email: secondOwnerEmail,
+      password,
+      full_name: 'Dueño de aislamiento realtime',
+      business_name: `Bodega Realtime B ${suffix}`,
+    });
+    const secondVerification = mailer.sendVerificationEmail.mock.calls.find(
+      ([input]) => input.email === secondOwnerEmail,
+    )?.[0].token as string;
+    await request(app.getHttpServer())
+      .post('/v1/auth/verify-email')
+      .send({ token: secondVerification })
+      .expect(200);
+    const secondLogin = await request(app.getHttpServer())
+      .post('/v1/auth/login')
+      .send({ email: secondOwnerEmail, password })
+      .expect(200);
+    secondOwnerToken = secondLogin.body.access_token as string;
+    secondTenantId = secondLogin.body.tenants[0].id as string;
 
     // El plan FREE admite una sola billetera; se sube a NEGOCIO para activar
     // YAPE y Plin BBVA en esta prueba.
@@ -186,8 +216,8 @@ integrationDescribe('Transactions and realtime gateway', () => {
 
   afterAll(async () => {
     await prisma.withoutTenantScope(async (tx) => {
-      await tx.tenant.delete({ where: { id: tenantId } });
-      await tx.user.deleteMany({ where: { email: ownerEmail } });
+      await tx.tenant.deleteMany({ where: { id: { in: [tenantId, secondTenantId] } } });
+      await tx.user.deleteMany({ where: { email: { in: [ownerEmail, secondOwnerEmail] } } });
     });
     await app.close();
   });
@@ -357,6 +387,64 @@ integrationDescribe('Transactions and realtime gateway', () => {
     socket.disconnect();
   }, 15_000);
 
+  it('fans out to concurrent clients without leaking events across tenants', async () => {
+    const primaryConnections = await Promise.all(
+      Array.from({ length: 20 }, () => connectSocket(baseUrl, ownerToken)),
+    );
+    const isolatedConnections = await Promise.all(
+      Array.from({ length: 10 }, () => connectSocket(baseUrl, secondOwnerToken)),
+    );
+    const allConnections = [...primaryConnections, ...isolatedConnections];
+
+    try {
+      expect(new Set(allConnections.map(({ sessionId }) => sessionId)).size).toBe(30);
+      expect(primaryConnections.every(({ tenant }) => tenant === tenantId)).toBe(true);
+      expect(isolatedConnections.every(({ tenant }) => tenant === secondTenantId)).toBe(true);
+
+      const expectedTransactionId = transactionIds[1]!;
+      const deliveries = primaryConnections.map(
+        ({ socket }) =>
+          new Promise<{ id: string }>((resolve, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error('timed out waiting for concurrent realtime event')),
+              5_000,
+            );
+            socket.once('transaction.created', (event: { id: string }) => {
+              clearTimeout(timeout);
+              resolve(event);
+            });
+          }),
+      );
+      let leaked = false;
+      for (const { socket } of isolatedConnections) {
+        socket.once('transaction.created', () => {
+          leaked = true;
+        });
+      }
+
+      eventEmitter.emit(
+        TRANSACTION_CREATED_EVENT,
+        new TransactionCreatedEvent(
+          tenantId,
+          expectedTransactionId,
+          'YAPE',
+          deviceId,
+          42,
+          'PEN',
+          new Date(),
+        ),
+      );
+
+      const received = await Promise.all(deliveries);
+      expect(received).toHaveLength(20);
+      expect(received.every(({ id }) => id === expectedTransactionId)).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      expect(leaked).toBe(false);
+    } finally {
+      for (const { socket } of allConnections) socket.disconnect();
+    }
+  }, 15_000);
+
   it('rejects a WebSocket connection without a valid token', async () => {
     const socket: Socket = io(baseUrl, {
       path: '/v1/realtime',
@@ -373,3 +461,32 @@ integrationDescribe('Transactions and realtime gateway', () => {
     socket.disconnect();
   }, 10_000);
 });
+
+async function connectSocket(
+  baseUrl: string,
+  token: string,
+): Promise<{ sessionId: string; socket: Socket; tenant: string }> {
+  const socket: Socket = io(baseUrl, {
+    path: '/v1/realtime',
+    transports: ['websocket'],
+    auth: { token },
+    forceNew: true,
+    reconnection: false,
+  });
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      socket.disconnect();
+      reject(new Error('timed out waiting for concurrent socket connection'));
+    }, 5_000);
+    socket.once('connected', (event: { session_id: string; tenant_id: string }) => {
+      clearTimeout(timeout);
+      resolve({ sessionId: event.session_id, socket, tenant: event.tenant_id });
+    });
+    socket.once('connect_error', (error) => {
+      clearTimeout(timeout);
+      socket.disconnect();
+      reject(error);
+    });
+  });
+}

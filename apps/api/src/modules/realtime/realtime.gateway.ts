@@ -63,7 +63,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     try {
       const payload = this.tokenService.verifyAccessToken(token);
-      this.join(socket, payload.tid);
+      await this.join(socket, payload.tid);
     } catch {
       this.reject(socket, 'UNAUTHENTICATED', 'La sesión no es válida o expiró.');
     }
@@ -84,15 +84,18 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       this.reject(socket, 'FORBIDDEN', 'Esta clave no tiene el alcance "realtime:subscribe".');
       return;
     }
-    this.join(socket, verified.tenantId);
+    await this.join(socket, verified.tenantId);
   }
 
-  private join(socket: Socket, tenantId: string): void {
+  private async join(socket: Socket, tenantId: string): Promise<void> {
     const sessionId = randomUUID();
     const data: AuthenticatedSocketData = { tenantId, sessionId };
     socket.data = data;
 
-    void socket.join(tenantRoom(tenantId));
+    // El evento `connected` confirma que la suscripción ya está activa. Esto
+    // evita perder el primer cobro con adaptadores asíncronos (por ejemplo,
+    // Redis) cuando muchas conexiones se abren al mismo tiempo.
+    await socket.join(tenantRoom(tenantId));
     socket.emit('connected', { tenant_id: tenantId, session_id: sessionId });
   }
 

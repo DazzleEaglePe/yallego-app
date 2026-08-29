@@ -491,7 +491,7 @@
 
 - [x] Ejecutar pruebas de carga sobre el endpoint de ingesta _(Codex)_ — runner local reproducible con fixture y limpieza automáticos: 10 solicitudes/10 s, 5 notificaciones por lote, 0 errores, p95 53.66 ms; umbral p95 500 ms y error máximo 1%
 - [x] Ejecutar pruebas de carga sobre la API de consulta _(Codex)_ — 40 consultas/10 s, 0 errores, p95 31.25 ms; la tasa base de 4 req/s deja margen para bootstrap e ingesta dentro del límite global de 60 req/min; umbral p95 300 ms y error máximo 1%
-- [ ] Verificar el comportamiento del canal de tiempo real con múltiples conexiones
+- [x] Verificar el comportamiento del canal de tiempo real con múltiples conexiones _(Codex)_ — prueba e2e con 30 WebSockets concurrentes y dos tenants: los 20 clientes del tenant objetivo recibieron exactamente el evento, los 10 del tenant aislado no recibieron ninguno y cada conexión obtuvo una sesión única; `connected` ahora espera la suscripción efectiva a la sala para evitar perder el primer evento con el adaptador Redis
 - [ ] Revisar los planes de ejecución de las consultas principales
 - [ ] Ajustar índices según los hallazgos
 - [ ] Verificar el consumo de batería de la aplicación en uso prolongado
