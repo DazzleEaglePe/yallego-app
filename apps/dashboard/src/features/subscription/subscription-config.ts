@@ -39,3 +39,11 @@ export function planLimitLabel(value: number, suffix = ''): string {
   if (value < 0) return 'Ilimitado';
   return `${new Intl.NumberFormat('es-PE').format(value)}${suffix}`;
 }
+
+export function canRequestPlanChange(
+  plan: PlanSummary,
+  currentPlanCode: string,
+  cycle: BillingCycle,
+): boolean {
+  return plan.code !== currentPlanCode && planPriceForCycle(plan, cycle) !== null;
+}

@@ -1,10 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import type { ChangeSubscriptionInput } from '@yallego/contracts';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { useAuthSession } from '@/features/auth/auth-session';
 
-import { fetchPlans, fetchSubscription } from '../api/subscription';
+import { fetchPlans, fetchSubscription, requestSubscriptionChange } from '../api/subscription';
 
 export const subscriptionQueryKey = ['subscription'] as const;
 export const plansQueryKey = ['plans'] as const;
@@ -29,5 +30,14 @@ export function usePlans() {
     queryFn: () => fetchPlans(accessToken!),
     enabled: Boolean(accessToken),
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useRequestSubscriptionChange() {
+  const { session } = useAuthSession();
+  const accessToken = session?.accessToken ?? '';
+
+  return useMutation({
+    mutationFn: (input: ChangeSubscriptionInput) => requestSubscriptionChange(accessToken, input),
   });
 }

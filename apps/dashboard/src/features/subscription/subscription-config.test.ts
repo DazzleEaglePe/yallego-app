@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { SubscriptionSummary } from '@yallego/contracts';
 
 import {
+  canRequestPlanChange,
   planLimitLabel,
   planPriceForCycle,
   subscriptionPrice,
@@ -53,5 +54,20 @@ describe('planLimitLabel', () => {
     expect(planLimitLabel(15_000)).toBe('15,000');
     expect(planLimitLabel(90, ' días')).toBe('90 días');
     expect(planLimitLabel(-1)).toBe('Ilimitado');
+  });
+});
+
+describe('canRequestPlanChange', () => {
+  const plan = {
+    code: 'NEGOCIO',
+    price_annual: '290.00',
+    price_monthly: '29.00',
+    price_semiannual: '156.00',
+  } as SubscriptionSummary['plan'];
+
+  it('evita solicitar el plan vigente o un ciclo no disponible', () => {
+    expect(canRequestPlanChange(plan, 'NEGOCIO', 'MONTHLY')).toBe(false);
+    expect(canRequestPlanChange(plan, 'FREE', 'ANNUAL')).toBe(true);
+    expect(canRequestPlanChange({ ...plan, price_annual: null }, 'FREE', 'ANNUAL')).toBe(false);
   });
 });
