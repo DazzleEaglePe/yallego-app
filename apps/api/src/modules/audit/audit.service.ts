@@ -95,10 +95,27 @@ export class AuditService {
           'El cursor de paginación no es válido.',
         );
       }
-      where.OR = [
-        { createdAt: { lt: cursor.createdAt } },
-        { createdAt: cursor.createdAt, id: { lt: cursor.id } },
-      ];
+      const currentCreatedAt =
+        typeof where.createdAt === 'object' &&
+        where.createdAt !== null &&
+        !(where.createdAt instanceof Date)
+          ? where.createdAt
+          : {};
+      const currentUpperBound = currentCreatedAt.lte;
+
+      // La cota explícita permite iniciar el recorrido en el cursor incluso
+      // en páginas profundas; NOT conserva el desempate estricto por UUID.
+      where.createdAt = {
+        ...currentCreatedAt,
+        lte:
+          currentUpperBound instanceof Date && currentUpperBound < cursor.createdAt
+            ? currentUpperBound
+            : cursor.createdAt,
+      };
+      where.NOT = {
+        createdAt: cursor.createdAt,
+        id: { gte: cursor.id },
+      };
     }
 
     return where;

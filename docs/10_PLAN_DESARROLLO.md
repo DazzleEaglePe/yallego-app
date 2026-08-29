@@ -492,8 +492,8 @@
 - [x] Ejecutar pruebas de carga sobre el endpoint de ingesta _(Codex)_ — runner local reproducible con fixture y limpieza automáticos: 10 solicitudes/10 s, 5 notificaciones por lote, 0 errores, p95 53.66 ms; umbral p95 500 ms y error máximo 1%
 - [x] Ejecutar pruebas de carga sobre la API de consulta _(Codex)_ — 40 consultas/10 s, 0 errores, p95 31.25 ms; la tasa base de 4 req/s deja margen para bootstrap e ingesta dentro del límite global de 60 req/min; umbral p95 300 ms y error máximo 1%
 - [x] Verificar el comportamiento del canal de tiempo real con múltiples conexiones _(Codex)_ — prueba e2e con 30 WebSockets concurrentes y dos tenants: los 20 clientes del tenant objetivo recibieron exactamente el evento, los 10 del tenant aislado no recibieron ninguno y cada conexión obtuvo una sesión única; `connected` ahora espera la suscripción efectiva a la sala para evitar perder el primer evento con el adaptador Redis
-- [ ] Revisar los planes de ejecución de las consultas principales
-- [ ] Ajustar índices según los hallazgos
+- [x] Revisar los planes de ejecución de las consultas principales _(Codex)_ — `EXPLAIN (ANALYZE, BUFFERS)` con 100 000 transacciones y 100 000 eventos de auditoría dentro de una transacción reversible: listados recientes en 0.1–0.2 ms; el resumen de 14 días usa correctamente escaneo secuencial al devolver ~81% de la tabla; se detectó que el predicado `OR` de un cursor profundo descartaba 69 119 entradas antes de producir la página
+- [x] Ajustar índices según los hallazgos _(Codex)_ — índices compuestos alineados con el orden estable `(tenant_id, fecha DESC, id DESC)` y con auditoría por tenant/acción; la cota indexable del cursor redujo la página profunda de transacciones de 7.02 ms a 0.03 ms y auditoría de 4.70 ms a 0.04 ms en 100 000 filas, leyendo 51 entradas en lugar de recorrer 69 170; migración, RLS y paginación con fechas empatadas verificadas
 - [ ] Verificar el consumo de batería de la aplicación en uso prolongado
 
 ### Despliegue

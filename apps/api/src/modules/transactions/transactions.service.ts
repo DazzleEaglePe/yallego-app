@@ -346,10 +346,28 @@ export class TransactionsService {
           'El cursor de paginación no es válido.',
         );
       }
-      where.OR = [
-        { occurredAt: { lt: cursor.occurredAt } },
-        { occurredAt: cursor.occurredAt, id: { lt: cursor.id } },
-      ];
+      const currentOccurredAt =
+        typeof where.occurredAt === 'object' &&
+        where.occurredAt !== null &&
+        !(where.occurredAt instanceof Date)
+          ? where.occurredAt
+          : {};
+      const currentUpperBound = currentOccurredAt.lte;
+
+      // Mantiene una cota de fecha indexable. La forma equivalente con OR
+      // obliga a PostgreSQL a recorrer desde el inicio del índice hasta un
+      // cursor profundo antes de poder devolver la página siguiente.
+      where.occurredAt = {
+        ...currentOccurredAt,
+        lte:
+          currentUpperBound instanceof Date && currentUpperBound < cursor.occurredAt
+            ? currentUpperBound
+            : cursor.occurredAt,
+      };
+      where.NOT = {
+        occurredAt: cursor.occurredAt,
+        id: { gte: cursor.id },
+      };
     }
 
     return where;

@@ -260,6 +260,14 @@ integrationDescribe('Transactions and realtime gateway', () => {
   });
 
   it('paginates by cursor without gaps or duplicates', async () => {
+    const tiedOccurredAt = new Date();
+    await prisma.withoutTenantScope((tx) =>
+      tx.transaction.updateMany({
+        where: { id: { in: transactionIds.slice(0, 2) } },
+        data: { occurredAt: tiedOccurredAt },
+      }),
+    );
+
     const seen = new Set<string>();
     let cursor: string | undefined;
     let pages = 0;
@@ -275,6 +283,7 @@ integrationDescribe('Transactions and realtime gateway', () => {
     } while (cursor && pages < 10);
 
     expect(seen.size).toBeGreaterThanOrEqual(4);
+    expect(transactionIds.slice(0, 2).every((id) => seen.has(id))).toBe(true);
   });
 
   it('confirms a captured transaction and rejects confirming it twice', async () => {

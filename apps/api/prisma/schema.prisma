@@ -377,7 +377,7 @@ model Transaction {
   rawNotification RawNotification @relation(fields: [rawNotificationId], references: [id])
   confirmer       User?           @relation("TransactionConfirmer", fields: [confirmedBy], references: [id], onDelete: SetNull)
 
-  @@index([tenantId, occurredAt(sort: Desc)])
+  @@index([tenantId, occurredAt(sort: Desc), id(sort: Desc)])
   @@index([tenantId, walletId, occurredAt(sort: Desc)])
   @@index([tenantId, amount])
   @@index([tenantId, status])
@@ -600,8 +600,8 @@ model AuditEvent {
   actorApiKey        ApiKey?         @relation(fields: [actorApiKeyId], references: [id], onDelete: SetNull)
   actorPlatformAdmin PlatformAdmin?  @relation(fields: [actorPlatformAdminId], references: [id], onDelete: SetNull)
 
-  @@index([tenantId, createdAt(sort: Desc)])
-  @@index([action, createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, action, createdAt(sort: Desc), id(sort: Desc)])
   @@map("audit_events")
 }
 
