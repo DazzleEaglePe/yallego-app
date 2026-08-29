@@ -11,6 +11,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:validate": "prisma validate",
+    "load:test": "tsx --env-file=../../.env scripts/load-test.ts",
     "platform:create-admin": "tsx scripts/create-platform-admin.ts",
     "lint": "eslint .",
     "test": "vitest run",
