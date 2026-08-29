@@ -47,3 +47,14 @@ export function canRequestPlanChange(
 ): boolean {
   return plan.code !== currentPlanCode && planPriceForCycle(plan, cycle) !== null;
 }
+
+export function subscriptionUsageAlert(
+  current: number,
+  limit: number,
+): 'critical' | 'warning' | null {
+  if (limit <= 0) return null;
+  const ratio = current / limit;
+  if (ratio >= 1) return 'critical';
+  if (ratio >= 0.8) return 'warning';
+  return null;
+}

@@ -10,14 +10,14 @@ import { fetchPlans, fetchSubscription, requestSubscriptionChange } from '../api
 export const subscriptionQueryKey = ['subscription'] as const;
 export const plansQueryKey = ['plans'] as const;
 
-export function useSubscription() {
+export function useSubscription(enabled = true) {
   const { session } = useAuthSession();
   const accessToken = session?.accessToken ?? null;
 
   return useQuery({
     queryKey: subscriptionQueryKey,
     queryFn: () => fetchSubscription(accessToken!),
-    enabled: Boolean(accessToken),
+    enabled: enabled && Boolean(accessToken),
   });
 }
 

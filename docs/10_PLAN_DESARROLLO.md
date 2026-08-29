@@ -438,7 +438,7 @@
 - [x] Implementar la vista de membresía con consumo _(Codex)_ — plan y ciclo vigentes, próxima renovación, cambio programado, consumo del período con umbrales y capacidades incluidas; acceso exclusivo del propietario
 - [x] Implementar la comparación de planes _(Codex)_ — catálogo responsive con plan actual destacado, selector mensual/semestral/anual, precios y límites comparables, incluyendo capacidades ilimitadas y ciclos no disponibles
 - [x] Implementar el flujo de solicitud de cambio _(Codex)_ — selección de plan y ciclo, confirmación de monto, solicitud `PENDING_PAYMENT` y comprobante con referencia de transferencia copiable; deja explícito que la activación ocurre tras confirmar el pago
-- [ ] Implementar los avisos de consumo
+- [x] Implementar los avisos de consumo _(Codex)_ — advertencia descartable al 80% por tenant/período y aviso crítico persistente al 100%, visibles globalmente para el propietario con acceso directo a Membresía
 - [ ] Implementar la vista de auditoría
 
 ### Administración de plataforma

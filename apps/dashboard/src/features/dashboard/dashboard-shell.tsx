@@ -9,6 +9,7 @@ import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
 import { getVisibleNavigation } from '@/features/dashboard/dashboard-navigation';
 import { TenantSwitcher } from '@/features/dashboard/TenantSwitcher';
+import { SubscriptionUsageNotice } from '@/features/subscription/components/SubscriptionUsageNotice';
 import { BrandMark } from '@/shared/components/BrandMark';
 
 export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
@@ -18,6 +19,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   const tenant = getActiveTenant(session);
   const navigation = getVisibleNavigation(tenant?.role);
   const canManageDevices = tenant !== undefined && can(tenant.role, 'devices:manage');
+  const canManageSubscription = tenant !== undefined && can(tenant.role, 'subscription:manage');
   const initials = getInitials(session?.user.full_name);
   const page = getPageMeta(pathname);
 
@@ -203,7 +205,10 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
             })}
         </nav>
 
-        <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
+          <SubscriptionUsageNotice enabled={canManageSubscription} tenantId={tenant?.id} />
+          {children}
+        </main>
       </div>
     </div>
   );

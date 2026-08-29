@@ -7,6 +7,7 @@ import {
   planLimitLabel,
   planPriceForCycle,
   subscriptionPrice,
+  subscriptionUsageAlert,
   usagePercentage,
   usageTone,
 } from './subscription-config';
@@ -69,5 +70,14 @@ describe('canRequestPlanChange', () => {
     expect(canRequestPlanChange(plan, 'NEGOCIO', 'MONTHLY')).toBe(false);
     expect(canRequestPlanChange(plan, 'FREE', 'ANNUAL')).toBe(true);
     expect(canRequestPlanChange({ ...plan, price_annual: null }, 'FREE', 'ANNUAL')).toBe(false);
+  });
+});
+
+describe('subscriptionUsageAlert', () => {
+  it('activa los avisos del panel a partir de 80% y 100%', () => {
+    expect(subscriptionUsageAlert(79, 100)).toBeNull();
+    expect(subscriptionUsageAlert(80, 100)).toBe('warning');
+    expect(subscriptionUsageAlert(100, 100)).toBe('critical');
+    expect(subscriptionUsageAlert(20, -1)).toBeNull();
   });
 });
