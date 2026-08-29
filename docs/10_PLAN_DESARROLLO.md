@@ -481,10 +481,10 @@
 - [x] Verificar la política de seguridad de contenido _(Codex)_ — CSP estricta del dashboard con nonce criptográfico por solicitud, `strict-dynamic`, conexión limitada al API/WebSocket configurados y directivas restrictivas para objetos, formularios y ancestros; prueba unitaria, renderizado local sin violaciones y build de producción correctos
 - [x] Ejecutar auditoría de dependencias _(Codex)_ — `pnpm audit` sin vulnerabilidades conocidas en todo el workspace y 179 dependencias Maven resueltas del build Android contrastadas con OSV sin hallazgos
 - [x] Ejecutar análisis estático _(Codex)_ — ESLint y TypeScript correctos en los siete paquetes del monorepo; Android Lint Release correcto y única deprecación encontrada (`LocalLifecycleOwner`) actualizada a `androidx.lifecycle.compose`
-- [ ] Verificar ausencia de secretos en el historial
-- [ ] Ejecutar la suite de pruebas de aislamiento entre tenants
-- [ ] Revisar la configuración de red de la aplicación Android
-- [ ] Aplicar ofuscación en la compilación de publicación
+- [x] Verificar ausencia de secretos en el historial _(Codex)_ — Gitleaks v8.30.1 revisó los 33 commits; los únicos hallazgos iniciales eran valores sintéticos publicados como ejemplos de la API, fijados por huella exacta en `.gitleaksignore`; el escaneo completo posterior terminó sin filtraciones
+- [x] Ejecutar la suite de pruebas de aislamiento entre tenants _(Codex)_ — 5/5 pruebas e2e sobre PostgreSQL/Redis: invitaciones, membresías, acceso cruzado oculto como `404`, restricciones del propietario y transferencia atómica con un único owner
+- [x] Revisar la configuración de red de la aplicación Android _(Codex)_ — release declara explícitamente tráfico en claro deshabilitado, confía solo en certificados del sistema y rechaza durante el build una `API_BASE_URL_RELEASE` que no sea HTTPS absoluta; debug conserva HTTP únicamente para emulador/loopback
+- [x] Aplicar ofuscación en la compilación de publicación _(Codex)_ — R8 optimizado y reducción de recursos activos; `assembleRelease` completó correctamente y produjo el APK reducido junto con su archivo de mapping
 - [ ] Revisar manualmente las superficies de mayor riesgo
 
 ### Rendimiento
