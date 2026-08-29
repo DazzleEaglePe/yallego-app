@@ -498,7 +498,7 @@
 
 ### Despliegue
 
-- [ ] Preparar las imágenes de contenedor
+- [x] Preparar las imágenes de contenedor _(Codex)_ — imágenes multi-stage independientes para API y dashboard, contexto protegido por `.dockerignore`, Node 22, dependencias de producción/Next standalone, procesos no root con `dumb-init` y healthchecks; builds reales y smoke test contra PostgreSQL/Redis locales correctos (`/v1/health` y `/login` en 200, ambos contenedores `healthy`)
 - [ ] Configurar el proxy inverso con certificados
 - [ ] Configurar el entorno de preproducción
 - [ ] Configurar el entorno de producción

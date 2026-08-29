@@ -31,7 +31,10 @@
     "db:validate": "pnpm --filter @yallego/api db:validate",
     "docker:up": "docker compose -f tools/docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f tools/docker/docker-compose.yml down",
-    "docker:logs": "docker compose -f tools/docker/docker-compose.yml logs -f"
+    "docker:logs": "docker compose -f tools/docker/docker-compose.yml logs -f",
+    "docker:build:api": "docker build -f apps/api/Dockerfile -t yallego-api:local .",
+    "docker:build:dashboard": "docker build -f apps/dashboard/Dockerfile -t yallego-dashboard:local .",
+    "docker:build": "pnpm docker:build:api && pnpm docker:build:dashboard"
   },
   "devDependencies": {
     "@commitlint/cli": "20.2.0",
