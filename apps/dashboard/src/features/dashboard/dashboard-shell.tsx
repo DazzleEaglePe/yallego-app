@@ -231,6 +231,9 @@ function getPageMeta(pathname: string | null): {
   if (pathname?.startsWith('/membresia')) {
     return { icon: 'ticket', section: 'Cuenta', title: 'Membresía' };
   }
+  if (pathname?.startsWith('/auditoria')) {
+    return { icon: 'shield', section: 'Seguridad', title: 'Auditoría' };
+  }
   return { icon: 'home', section: 'Inicio', title: 'Resumen general' };
 }
 

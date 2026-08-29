@@ -22,6 +22,7 @@ describe('getVisibleNavigation', () => {
       'Equipo',
       'Integraciones',
       'Membresía',
+      'Auditoría',
     ]);
   });
 
@@ -33,6 +34,7 @@ describe('getVisibleNavigation', () => {
       'Billeteras',
       'Equipo',
       'Integraciones',
+      'Auditoría',
     ]);
   });
 });

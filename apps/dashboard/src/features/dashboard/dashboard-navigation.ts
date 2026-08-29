@@ -27,6 +27,12 @@ export const dashboardNavigation = [
     href: '/membresia',
     permission: 'subscription:manage',
   },
+  {
+    icon: 'shield',
+    label: 'Auditoría',
+    href: '/auditoria',
+    permission: 'audit:view',
+  },
 ] satisfies DashboardNavigationItem[];
 
 export function getVisibleNavigation(role: MembershipRole | undefined): DashboardNavigationItem[] {
