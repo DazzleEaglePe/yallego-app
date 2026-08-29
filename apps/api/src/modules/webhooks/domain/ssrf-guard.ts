@@ -1,4 +1,42 @@
-import { isIP } from 'node:net';
+import { BlockList, isIP } from 'node:net';
+
+const nonPublicAddresses = new BlockList();
+
+for (const [network, prefix] of [
+  ['0.0.0.0', 8],
+  ['10.0.0.0', 8],
+  ['100.64.0.0', 10],
+  ['127.0.0.0', 8],
+  ['169.254.0.0', 16],
+  ['172.16.0.0', 12],
+  ['192.0.0.0', 24],
+  ['192.0.2.0', 24],
+  ['192.88.99.0', 24],
+  ['192.168.0.0', 16],
+  ['198.18.0.0', 15],
+  ['198.51.100.0', 24],
+  ['203.0.113.0', 24],
+  ['224.0.0.0', 4],
+  ['240.0.0.0', 4],
+] as const) {
+  nonPublicAddresses.addSubnet(network, prefix, 'ipv4');
+}
+
+for (const [network, prefix] of [
+  ['::', 96],
+  ['64:ff9b:1::', 48],
+  ['100::', 64],
+  ['2001::', 23],
+  ['2001:db8::', 32],
+  ['2002::', 16],
+  ['3fff::', 20],
+  ['5f00::', 16],
+  ['fc00::', 7],
+  ['fe80::', 10],
+  ['ff00::', 8],
+] as const) {
+  nonPublicAddresses.addSubnet(network, prefix, 'ipv6');
+}
 
 /**
  * docs/10_PLAN_DESARROLLO.md, Sprint 6: "prevención de solicitudes a redes
@@ -7,31 +45,7 @@ import { isIP } from 'node:net';
  */
 export function isPrivateOrReservedIp(ip: string): boolean {
   const version = isIP(ip);
-  if (version === 4) return isPrivateIPv4(ip);
-  if (version === 6) return isPrivateIPv6(ip);
+  if (version === 4) return nonPublicAddresses.check(ip, 'ipv4');
+  if (version === 6) return nonPublicAddresses.check(ip, 'ipv6');
   return true; // no es una IP reconocible: se rechaza por seguridad
-}
-
-function isPrivateIPv4(ip: string): boolean {
-  const octets = ip.split('.').map(Number);
-  if (octets.length !== 4 || octets.some((n) => Number.isNaN(n))) return true;
-  const [a, b] = octets as [number, number, number, number];
-
-  if (a === 127) return true; // loopback
-  if (a === 10) return true; // privada
-  if (a === 172 && b >= 16 && b <= 31) return true; // privada
-  if (a === 192 && b === 168) return true; // privada
-  if (a === 169 && b === 254) return true; // link-local, incluye metadata de nube
-  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
-  if (a === 0) return true;
-  return false;
-}
-
-function isPrivateIPv6(ip: string): boolean {
-  const normalized = ip.toLowerCase();
-  if (normalized === '::1') return true; // loopback
-  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true; // unique local (fc00::/7)
-  if (normalized.startsWith('fe80')) return true; // link-local
-  if (normalized.startsWith('::ffff:')) return isPrivateIPv4(normalized.slice(7)); // IPv4-mapped
-  return false;
 }

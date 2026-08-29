@@ -485,7 +485,7 @@
 - [x] Ejecutar la suite de pruebas de aislamiento entre tenants _(Codex)_ — 5/5 pruebas e2e sobre PostgreSQL/Redis: invitaciones, membresías, acceso cruzado oculto como `404`, restricciones del propietario y transferencia atómica con un único owner
 - [x] Revisar la configuración de red de la aplicación Android _(Codex)_ — release declara explícitamente tráfico en claro deshabilitado, confía solo en certificados del sistema y rechaza durante el build una `API_BASE_URL_RELEASE` que no sea HTTPS absoluta; debug conserva HTTP únicamente para emulador/loopback
 - [x] Aplicar ofuscación en la compilación de publicación _(Codex)_ — R8 optimizado y reducción de recursos activos; `assembleRelease` completó correctamente y produjo el APK reducido junto con su archivo de mapping
-- [ ] Revisar manualmente las superficies de mayor riesgo
+- [x] Revisar manualmente las superficies de mayor riesgo _(Codex)_ — revisados autenticación y rotación de sesiones, ingesta autenticada por dispositivo, administración protegida por credencial/TOTP y allowlist de IP, aislamiento tenant y entrega de webhooks; se amplió el guard SSRF para rechazar rangos IPv4/IPv6 no públicos, multicast, documentación, benchmark y representaciones IPv4-mapped; 8 pruebas SSRF y 35 e2e críticas correctas
 
 ### Rendimiento
 
