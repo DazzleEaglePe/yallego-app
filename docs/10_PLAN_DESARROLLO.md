@@ -479,8 +479,8 @@
 
 - [x] Aplicar las cabeceras de seguridad _(Codex)_ — API protegida con Helmet; dashboard con `nosniff`, denegación de framing, políticas de referencia/permisos, aislamiento de origen, desactivación de DNS prefetch y HSTS; verificado sobre respuestas HTTP reales
 - [x] Verificar la política de seguridad de contenido _(Codex)_ — CSP estricta del dashboard con nonce criptográfico por solicitud, `strict-dynamic`, conexión limitada al API/WebSocket configurados y directivas restrictivas para objetos, formularios y ancestros; prueba unitaria, renderizado local sin violaciones y build de producción correctos
-- [ ] Ejecutar auditoría de dependencias
-- [ ] Ejecutar análisis estático
+- [x] Ejecutar auditoría de dependencias _(Codex)_ — `pnpm audit` sin vulnerabilidades conocidas en todo el workspace y 179 dependencias Maven resueltas del build Android contrastadas con OSV sin hallazgos
+- [x] Ejecutar análisis estático _(Codex)_ — ESLint y TypeScript correctos en los siete paquetes del monorepo; Android Lint Release correcto y única deprecación encontrada (`LocalLifecycleOwner`) actualizada a `androidx.lifecycle.compose`
 - [ ] Verificar ausencia de secretos en el historial
 - [ ] Ejecutar la suite de pruebas de aislamiento entre tenants
 - [ ] Revisar la configuración de red de la aplicación Android
