@@ -17,13 +17,17 @@ import app.yallego.capture.data.local.secure.DeviceCredentialsStore
 import app.yallego.capture.data.remote.api.InternalApi
 import app.yallego.capture.data.remote.dto.IngestNotificationItemDto
 import app.yallego.capture.data.remote.dto.IngestNotificationsRequestDto
+import app.yallego.capture.data.remote.dto.IngestNotificationsResponseDto
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import retrofit2.Response
 import timber.log.Timber
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.TimeUnit
+
+private const val MAX_ERROR_LENGTH = 500
 
 /** Envía la cola persistente y solo elimina elementos confirmados por el API. */
 @HiltWorker
@@ -52,27 +56,9 @@ class NotificationSyncWorker @AssistedInject constructor(
                 return retry(batch, "Respuesta de ingesta inválida", error)
             }
 
-            val body = response.body()
-            if (!response.isSuccessful || body == null) {
-                val message = "Ingesta HTTP ${response.code()}"
-                queueDao.recordFailure(batch.map { it.clientRef }, message)
-                Timber.w("%s; se conserva la cola", message)
+            if (handleIngestResponse(queueDao, batch, response) == BatchSyncResult.RETRY) {
                 return Result.retry()
             }
-
-            val confirmed = body.accepted.map { it.clientRef }.toSet()
-            if (confirmed.isNotEmpty()) queueDao.deleteConfirmed(confirmed.toList())
-
-            val unconfirmed = batch.map { it.clientRef }.filterNot(confirmed::contains)
-            if (unconfirmed.isNotEmpty()) {
-                val rejectedReasons = body.rejected.associate { it.clientRef to it.reason }
-                val message = unconfirmed.joinToString { ref -> rejectedReasons[ref] ?: "Sin confirmación" }
-                queueDao.recordFailure(unconfirmed, message.take(MAX_ERROR_LENGTH))
-                Timber.w("El API no confirmó %d notificaciones", unconfirmed.size)
-                return Result.retry()
-            }
-
-            Timber.i("Lote confirmado por el servidor: %d notificaciones", confirmed.size)
         }
 
         return if (queueDao.countPending() == 0) Result.success() else Result.retry()
@@ -104,7 +90,6 @@ class NotificationSyncWorker @AssistedInject constructor(
         private const val UNIQUE_WORK_NAME = "yallego_notification_sync"
         private const val MAX_BATCH_SIZE = 50
         private const val MAX_BATCHES_PER_RUN = 20
-        private const val MAX_ERROR_LENGTH = 500
 
         fun schedule(context: Context) {
             val constraints = Constraints.Builder()
@@ -121,4 +106,45 @@ class NotificationSyncWorker @AssistedInject constructor(
             )
         }
     }
+}
+
+internal enum class BatchSyncResult {
+    CONFIRMED,
+    RETRY,
+}
+
+/**
+ * Aplica la confirmación del API a la cola local.
+ *
+ * Una respuesta HTTP no exitosa, incluido el 422 por límite del plan, nunca
+ * confirma ni elimina elementos: registra el intento y conserva todo el lote
+ * para que WorkManager pueda reintentarlo cuando el límite vuelva a permitirlo.
+ */
+internal suspend fun handleIngestResponse(
+    queueDao: NotificationQueueDao,
+    batch: List<QueuedNotificationEntity>,
+    response: Response<IngestNotificationsResponseDto>,
+): BatchSyncResult {
+    val body = response.body()
+    if (!response.isSuccessful || body == null) {
+        val message = "Ingesta HTTP ${response.code()}"
+        queueDao.recordFailure(batch.map { it.clientRef }, message)
+        Timber.w("%s; se conserva la cola", message)
+        return BatchSyncResult.RETRY
+    }
+
+    val confirmed = body.accepted.map { it.clientRef }.toSet()
+    if (confirmed.isNotEmpty()) queueDao.deleteConfirmed(confirmed.toList())
+
+    val unconfirmed = batch.map { it.clientRef }.filterNot(confirmed::contains)
+    if (unconfirmed.isNotEmpty()) {
+        val rejectedReasons = body.rejected.associate { it.clientRef to it.reason }
+        val message = unconfirmed.joinToString { ref -> rejectedReasons[ref] ?: "Sin confirmación" }
+        queueDao.recordFailure(unconfirmed, message.take(MAX_ERROR_LENGTH))
+        Timber.w("El API no confirmó %d notificaciones", unconfirmed.size)
+        return BatchSyncResult.RETRY
+    }
+
+    Timber.i("Lote confirmado por el servidor: %d notificaciones", confirmed.size)
+    return BatchSyncResult.CONFIRMED
 }

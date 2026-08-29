@@ -451,7 +451,7 @@
 ### Criterios de aceptación
 
 - [x] Alcanzar el límite de transacciones detiene la ingesta con mensaje claro _(Claude)_ — verificado con e2e real: 5 transacciones aceptadas contra un límite de 5, la 6ª rechazada con 422
-- [ ] Los elementos rechazados por límite permanecen en la cola del dispositivo — depende de la app Android (conservar en cola local ante un 422), no verificable desde el backend
+- [x] Los elementos rechazados por límite permanecen en la cola del dispositivo _(Codex)_ — verificado con una prueba Android de regresión: ante `422 PLAN_LIMIT_EXCEEDED` el worker retorna reintento, incrementa el contador de intentos y conserva el elemento en Room sin ejecutar su eliminación
 - [x] Al mejorar de plan, los nuevos límites aplican de inmediato _(Claude)_
 - [x] Toda acción sensible aparece en el registro de auditoría _(Claude)_ — mismo alcance que el punto de "Auditoría" arriba
 - [x] El registro de auditoría no admite modificación por ninguna vía _(Claude)_
