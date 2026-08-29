@@ -1,0 +1,24 @@
+# Synthetic credentials intentionally published as API documentation examples.
+# Fingerprints are pinned so new findings in these files are not suppressed.
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/01-inicio-rapido.md:curl-auth-header:105
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/01-inicio-rapido.md:curl-auth-header:41
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/01-inicio-rapido.md:curl-auth-header:71
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/01-inicio-rapido.md:generic-api-key:24
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/01-inicio-rapido.md:generic-api-key:25
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/01-inicio-rapido.md:generic-api-key:85
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/03-transacciones.md:curl-auth-header:119
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/03-transacciones.md:curl-auth-header:28
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/03-transacciones.md:curl-auth-header:77
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/03-transacciones.md:curl-auth-header:96
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/04-webhooks.md:curl-auth-header:10
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/04-webhooks.md:curl-auth-header:124
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/04-webhooks.md:curl-auth-header:57
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/04-webhooks.md:curl-auth-header:81
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/04-webhooks.md:curl-auth-header:89
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/04-webhooks.md:generic-api-key:24
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/05-dispositivos.md:curl-auth-header:12
+043bd5cef39c096a4b2f7a1821b8066fe6cbc5aa:docs/api-publica/08-reintentos.md:curl-auth-header:64
+558e148e94b628b314506b4a855e39427daf3f0b:docs/06_API_CONTRACT.md:generic-api-key:406
+558e148e94b628b314506b4a855e39427daf3f0b:docs/06_API_CONTRACT.md:generic-api-key:407
+558e148e94b628b314506b4a855e39427daf3f0b:docs/06_API_CONTRACT.md:generic-api-key:454
+558e148e94b628b314506b4a855e39427daf3f0b:docs/06_API_CONTRACT.md:generic-api-key:621
