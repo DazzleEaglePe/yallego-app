@@ -499,7 +499,7 @@
 ### Despliegue
 
 - [x] Preparar las imágenes de contenedor _(Codex)_ — imágenes multi-stage independientes para API y dashboard, contexto protegido por `.dockerignore`, Node 22, dependencias de producción/Next standalone, procesos no root con `dumb-init` y healthchecks; builds reales y smoke test contra PostgreSQL/Redis locales correctos (`/v1/health` y `/login` en 200, ambos contenedores `healthy`)
-- [ ] Configurar el proxy inverso con certificados
+- [x] Configurar el proxy inverso con certificados _(Codex)_ — imagen Nginx inmutable y parametrizable por dominio; solo publica `80/443`, redirige HTTP a HTTPS, termina TLS 1.2/1.3 con certificado y clave montados de solo lectura, enruta dashboard/API y conserva el upgrade de Socket.IO; smoke test real con certificado efímero correcto (`308`, dashboard/API `200`, WebSocket `101`), sin puertos publicados en API/dashboard y sin exponer `/metrics`
 - [ ] Configurar el entorno de preproducción
 - [ ] Configurar el entorno de producción
 - [ ] Configurar los respaldos automáticos
