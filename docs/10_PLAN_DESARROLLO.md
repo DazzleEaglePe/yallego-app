@@ -477,8 +477,8 @@
 
 ### Seguridad
 
-- [ ] Aplicar las cabeceras de seguridad
-- [ ] Verificar la política de seguridad de contenido
+- [x] Aplicar las cabeceras de seguridad _(Codex)_ — API protegida con Helmet; dashboard con `nosniff`, denegación de framing, políticas de referencia/permisos, aislamiento de origen, desactivación de DNS prefetch y HSTS; verificado sobre respuestas HTTP reales
+- [x] Verificar la política de seguridad de contenido _(Codex)_ — CSP estricta del dashboard con nonce criptográfico por solicitud, `strict-dynamic`, conexión limitada al API/WebSocket configurados y directivas restrictivas para objetos, formularios y ancestros; prueba unitaria, renderizado local sin violaciones y build de producción correctos
 - [ ] Ejecutar auditoría de dependencias
 - [ ] Ejecutar análisis estático
 - [ ] Verificar ausencia de secretos en el historial
