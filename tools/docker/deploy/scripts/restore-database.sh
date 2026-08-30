@@ -28,6 +28,13 @@ compose() {
   docker compose --env-file "$env_file" -f "$compose_file" "$@"
 }
 
+# Falla antes de inspeccionar o modificar la base si el archivo está truncado,
+# no es formato custom o no contiene un catálogo legible.
+if ! compose exec -T postgres pg_restore --list < "$dump_file" >/dev/null; then
+  echo "El archivo no es un respaldo PostgreSQL custom válido: $dump_file" >&2
+  exit 1
+fi
+
 if [ "$force" != "--force" ]; then
   existing="$(compose exec -T postgres psql --username "$POSTGRES_SUPERUSER" --dbname "$POSTGRES_DB" \
     --tuples-only --no-align --command "SELECT count(*) FROM tenants;" 2>/dev/null || echo "0")"

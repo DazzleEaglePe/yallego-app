@@ -29,18 +29,37 @@ mkdir -p "$output_dir"
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 deploy_env="${DEPLOY_ENV:-staging}"
 output_path="$output_dir/yallego-${deploy_env}-${timestamp}.dump"
+partial_path="$(mktemp "${output_path}.partial.XXXXXX")"
+
+cleanup_partial() {
+  [ ! -f "$partial_path" ] || rm -f "$partial_path"
+}
+trap cleanup_partial EXIT HUP INT TERM
 
 echo "Respaldando ${POSTGRES_DB} (proyecto yallego-${deploy_env}) -> ${output_path}"
 
-docker compose --env-file "$env_file" -f "$compose_file" exec -T postgres \
+if ! docker compose --env-file "$env_file" -f "$compose_file" exec -T postgres \
   pg_dump --username "$POSTGRES_SUPERUSER" --dbname "$POSTGRES_DB" --format=custom \
-  > "$output_path"
-
-size="$(wc -c < "$output_path" | tr -d ' ')"
-if [ "$size" -eq 0 ]; then
-  echo "El respaldo quedó vacío — algo falló en pg_dump. Revisar antes de confiar en él." >&2
-  rm -f "$output_path"
+  > "$partial_path"; then
+  echo "pg_dump falló; no se publicará un respaldo parcial." >&2
   exit 1
 fi
+
+size="$(wc -c < "$partial_path" | tr -d ' ')"
+if [ "$size" -eq 0 ]; then
+  echo "El respaldo quedó vacío — algo falló en pg_dump. Revisar antes de confiar en él." >&2
+  exit 1
+fi
+
+# `pg_restore --list` valida la cabecera y el catálogo antes de volver visible
+# el archivo final. El movimiento en el mismo directorio es atómico.
+if ! docker compose --env-file "$env_file" -f "$compose_file" exec -T postgres \
+  pg_restore --list < "$partial_path" >/dev/null; then
+  echo "El archivo generado no es un dump custom válido; se descartará." >&2
+  exit 1
+fi
+
+mv "$partial_path" "$output_path"
+trap - EXIT HUP INT TERM
 
 echo "Respaldo completo: ${output_path} (${size} bytes)"

@@ -9,6 +9,9 @@ que salió mal, una vez el ambiente ya está arriba.
 [`scripts/backup-database.sh`](./scripts/backup-database.sh) genera un
 volcado en formato `custom` de `pg_dump` (comprimido, restaurable
 parcialmente si hace falta) del contenedor `postgres` del ambiente indicado.
+El archivo se escribe primero con un nombre temporal, se valida con
+`pg_restore --list` y solo entonces se publica mediante un movimiento atómico;
+un proceso interrumpido no deja un `.dump` aparentemente válido pero truncado.
 
 ```bash
 ./tools/docker/deploy/scripts/backup-database.sh .env.staging /var/backups/yallego
@@ -33,7 +36,8 @@ contra el escenario que más importa.
 [`scripts/restore-database.sh`](./scripts/restore-database.sh) hace el
 camino inverso. Se niega a ejecutar sobre una base con datos existentes
 salvo que se pase `--force` — un restore accidental sobre un ambiente con
-tráfico real no tiene deshacer.
+tráfico real no tiene deshacer. También valida el catálogo del respaldo antes
+de consultar o modificar la base.
 
 ```bash
 # Ambiente recién provisionado, base vacía: no hace falta --force
