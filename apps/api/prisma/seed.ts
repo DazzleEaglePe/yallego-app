@@ -106,11 +106,11 @@ const plans = [
 
 const wallets = [
   ['YAPE', 'Yape', 'YAPE', 'BCP', 'com.bcp.innovacxion.yapeapp'],
-  ['PLIN_BBVA', 'Plin · BBVA', 'PLIN', 'BBVA', 'com.bbva.nxtapp'],
+  ['PLIN_BBVA', 'Plin · BBVA', 'PLIN', 'BBVA', 'com.bbva.nxt_peru'],
   ['PLIN_INTERBANK', 'Plin · Interbank', 'PLIN', 'INTERBANK', 'pe.com.interbank.mobilebanking'],
   ['PLIN_SCOTIABANK', 'Plin · Scotiabank', 'PLIN', 'SCOTIABANK', 'com.scotiabank.scotiabankperu'],
   ['PLIN_BANBIF', 'Plin · BanBif', 'PLIN', 'BANBIF', 'pe.banbif.mobilebanking'],
-  ['BIM', 'BIM', 'BIM', 'PDP', 'pe.pagoefectivo.bim'],
+  ['BIM', 'BIM', 'BIM', 'PDP', 'com.pdp.bim'],
 ] as const;
 
 async function seed(): Promise<void> {

@@ -80,6 +80,22 @@
     }
   },
   {
+    "name": "real Android payment format with security code (anonymized)",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Confirmación de Pago",
+      "text": "PERSONA DE PRUEBA te envió un pago por S/ 0.1. El cód. de seguridad es: 247",
+      "postedAt": "2026-08-30T07:17:19.581Z"
+    },
+    "expected": {
+      "walletCode": "YAPE",
+      "senderName": "PERSONA DE PRUEBA",
+      "amount": { "value": 0.1, "currency": "PEN" },
+      "securityCode": "247",
+      "approvalCode": null
+    }
+  },
+  {
     "name": "unrelated notification from the same package",
     "notification": {
       "packageName": "com.bcp.innovacxion.yapeapp",

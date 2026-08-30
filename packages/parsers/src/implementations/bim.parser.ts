@@ -11,5 +11,5 @@ export const BIM_DEFAULT_PATTERNS: ParserRules[] = [
 
 export class BimParser extends RegexParser {
   readonly walletCode = 'BIM';
-  protected readonly packageNames = ['pe.pagoefectivo.bim'] as const;
+  protected readonly packageNames = ['com.pdp.bim', 'pe.pagoefectivo.bim'] as const;
 }

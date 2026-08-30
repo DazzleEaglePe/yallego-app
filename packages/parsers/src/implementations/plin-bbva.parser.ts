@@ -17,5 +17,5 @@ export const PLIN_BBVA_DEFAULT_PATTERNS: ParserRules[] = [
 
 export class PlinBbvaParser extends RegexParser {
   readonly walletCode = 'PLIN_BBVA';
-  protected readonly packageNames = ['com.bbva.nxtapp'] as const;
+  protected readonly packageNames = ['com.bbva.nxt_peru', 'com.bbva.nxtapp'] as const;
 }

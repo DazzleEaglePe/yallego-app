@@ -632,7 +632,7 @@ const socket = io('wss://api.yallego.app/v1/realtime', {
   "tenant": { "id": "...", "business_name": "Bodega Santa Rosa" },
   "monitored_packages": [
     "com.bcp.innovacxion.yapeapp",
-    "com.bbva.nxtapp"
+    "com.bbva.nxt_peru"
   ]
 }
 ```
@@ -685,7 +685,7 @@ const socket = io('wss://api.yallego.app/v1/realtime', {
 // 200 OK
 {
   "server_time": "2026-05-14T18:37:12Z",
-  "monitored_packages": ["com.bcp.innovacxion.yapeapp", "com.bbva.nxtapp"],
+  "monitored_packages": ["com.bcp.innovacxion.yapeapp", "com.bbva.nxt_peru"],
   "config_version": 7
 }
 ```

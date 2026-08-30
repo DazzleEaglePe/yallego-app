@@ -17,6 +17,11 @@ export const YAPE_DEFAULT_PATTERNS: ParserRules[] = [
       '^Te Yapearon S/\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?) de (?<sender>.+?)(?:\\s*Código de seguridad:\\s*(?<securityCode>\\d+))?\\.?\\s*$',
     flags: 'i',
   },
+  {
+    pattern:
+      '^(?<sender>.+?)\\s+te envió un pago por S/\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)\\.\\s*El cód\\.\\s*de seguridad es:\\s*(?<securityCode>\\d+)\\.?\\s*$',
+    flags: 'i',
+  },
 ];
 
 export class YapeParser extends RegexParser {

@@ -2,7 +2,7 @@
   {
     "name": "inferred format — pending real sample",
     "notification": {
-      "packageName": "com.bbva.nxtapp",
+      "packageName": "com.bbva.nxt_peru",
       "title": "Plin",
       "text": "Recibiste S/ 50.00 por Plin de MARIA LOPEZ GARCIA",
       "postedAt": "2026-05-14T18:32:07.412Z"
@@ -16,7 +16,7 @@
     }
   },
   {
-    "name": "thousands separator",
+    "name": "thousands separator with legacy package alias",
     "notification": {
       "packageName": "com.bbva.nxtapp",
       "title": "Plin",
@@ -34,7 +34,7 @@
   {
     "name": "unrelated notification",
     "notification": {
-      "packageName": "com.bbva.nxtapp",
+      "packageName": "com.bbva.nxt_peru",
       "title": "BBVA",
       "text": "Tu tarjeta fue usada en un comercio",
       "postedAt": "2026-05-14T18:32:07.412Z"

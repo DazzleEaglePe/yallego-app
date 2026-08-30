@@ -182,10 +182,10 @@
 
 ### Verificación de paquetes
 
-- [ ] Instalar las aplicaciones de billetera en un dispositivo real
-- [ ] Registrar y confirmar los nombres de paquete de cada una
-- [ ] Actualizar los datos semilla con los valores verificados
-- [ ] Documentar el procedimiento para futuras billeteras
+- [x] Instalar las aplicaciones de billetera en un dispositivo real _(Codex — verificadas en Xiaomi M2101K7BL con Android 13: Yape, BBVA, Interbank y BIM)_
+- [x] Registrar y confirmar los nombres de paquete de cada una _(Codex — Yape `com.bcp.innovacxion.yapeapp`, BBVA `com.bbva.nxt_peru`, Interbank `pe.com.interbank.mobilebanking`, BIM `com.pdp.bim`; observados por ADB el 2026-08-30)_
+- [x] Actualizar los datos semilla con los valores verificados _(Codex — BBVA y BIM corregidos; parsers conservan los identificadores históricos como alias compatibles)_
+- [x] Documentar el procedimiento para futuras billeteras _(Codex — ver `docs/procedimiento-billeteras-android.md`)_
 
 ### Criterios de aceptación
 
@@ -201,7 +201,7 @@
 
 **Objetivo:** convertir una notificación real de billetera en una transacción persistida.
 
-> Backend y app Android ya cubren la ruta completa de captura e ingesta. La app fue compilada e instalada sobre un Xiaomi real conservando su vinculación; Yape quedó activado y su paquete remoto fue verificado. Falta ejecutar el cobro real final para certificar la conversión completa a transacción. Los patrones de Plin y BIM siguen basados en muestras inferidas.
+> Backend y app Android cubren la ruta completa de captura e ingesta. El 2026-08-30 se verificó en un Xiaomi real captura → cola persistente → ingesta `202` → parser v22 → transacción: dos cobros Yape de S/ 0.10 se persistieron con su código de seguridad y la cola regresó a cero. Los patrones de Plin y BIM siguen basados en muestras inferidas.
 
 ### Aplicación Android — captura
 
@@ -230,7 +230,7 @@
 - [x] Definir el contrato del parser en el dominio _(Claude)_
 - [x] Implementar el registro de parsers con selección por paquete _(Claude)_
 - [x] Implementar el cargador de patrones desde base de datos con caché _(Claude)_
-- [x] Implementar el parser de Yape _(Claude + Codex — compatible con el formato documentado y con `Confirmación de Pago` observado en un dispositivo real; regresión anonimizada incluida)_
+- [x] Implementar el parser de Yape _(Claude + Codex — parser v22 compatible con formatos documentados y con `Confirmación de Pago` real: remitente al inicio, monto con uno o dos decimales y código de seguridad; regresión anonimizada incluida)_
 - [x] Implementar el parser de Plin BBVA _(Claude — patrón inferido, no verificado contra una notificación real; ver `packages/parsers`)_
 - [x] Implementar el parser de Plin Interbank _(Claude — patrón inferido, no verificado contra una notificación real; ver `packages/parsers`)_
 - [x] Implementar el parser de BIM _(Claude — patrón inferido, no verificado contra una notificación real; ver `packages/parsers`)_
@@ -245,7 +245,7 @@
 
 - [ ] Recolectar muestras reales de cada billetera _(Yape completado el 2026-08-27; faltan Plin BBVA, Plin Interbank y BIM)_
 - [ ] Anonimizar las muestras conservando la estructura _(Yape completado en `packages/parsers/fixtures/yape/samples.json`; faltan las demás billeteras)_
-- [x] Construir la suite de pruebas por parser _(Claude + Codex — 26 pruebas; incluye una muestra real anonimizada de Yape)_
+- [x] Construir la suite de pruebas por parser _(Claude + Codex — 27 pruebas; incluye muestras reales anonimizadas de Yape)_
 - [x] Verificar cobertura mínima del ochenta por ciento en el módulo _(Claude — 100%)_
 - [x] Incluir casos límite: montos con separador de miles, nombres con caracteres especiales, ausencia de código de seguridad _(Claude)_
 
@@ -259,7 +259,7 @@
 
 ### Criterios de aceptación
 
-- [x] Un cobro real por Yape produce una transacción con monto, remitente y código correctos _(Codex — captura real `Confirmación de Pago`, parser v19, S/ 1.00 y evento `transaction.created`; la variante observada no incluye código de seguridad)_
+- [x] Un cobro real por Yape produce una transacción con monto, remitente y código correctos _(Codex — reconfirmado el 2026-08-30: dos `Confirmación de Pago` de S/ 0.10, parser v22, código de seguridad extraído, tres capturas únicas produjeron exactamente tres transacciones y la cola local volvió a cero)_
 - [ ] Un cobro real por Plin produce una transacción correcta
 - [x] Sin conectividad, la notificación se conserva y se envía al restablecerse _(Codex — verificado en Xiaomi real: cinco intentos fallidos con API detenida y confirmación del lote tras levantar el backend)_
 - [x] Una notificación duplicada no genera una segunda transacción _(Claude)_
