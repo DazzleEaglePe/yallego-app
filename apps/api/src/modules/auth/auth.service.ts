@@ -30,6 +30,7 @@ const LOCK_DURATION_MS = 15 * 60 * 1_000;
 const MAX_FAILED_ATTEMPTS = 5;
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1_000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1_000;
+const DEFAULT_WALLET_CODE = 'YAPE';
 
 export type UserWithMemberships = Prisma.UserGetPayload<{
   include: { memberships: { include: { tenant: true } } };
@@ -79,6 +80,20 @@ export class AuthService {
             slug,
           },
         });
+        // Mientras el selector de billeteras sigue fuera del MVP, un negocio
+        // nuevo necesita al menos una fuente activa; de otro modo el Android
+        // recibe monitored_packages=[] y descarta todos los cobros.
+        const defaultWallet = await transaction.wallet.findUnique({
+          where: { code: DEFAULT_WALLET_CODE },
+        });
+        if (defaultWallet?.isActive) {
+          await transaction.tenantWallet.create({
+            data: {
+              tenantId: tenant.id,
+              walletId: defaultWallet.id,
+            },
+          });
+        }
         await transaction.membership.create({
           data: {
             role: MembershipRole.OWNER,
