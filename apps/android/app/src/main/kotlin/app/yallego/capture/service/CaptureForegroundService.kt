@@ -5,10 +5,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.service.notification.NotificationListenerService
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import app.yallego.capture.MainActivity
@@ -38,6 +40,12 @@ class CaptureForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Algunos fabricantes conservan el permiso, pero dejan el listener sin
+        // enlazar después de matar o actualizar el proceso. Al iniciar nuestro
+        // servicio persistente solicitamos el enlace otra vez de forma idempotente.
+        NotificationListenerService.requestRebind(
+            ComponentName(this, CaptureNotificationListener::class.java),
+        )
         HeartbeatWorker.scheduleNow(applicationContext)
         NotificationSyncWorker.schedule(applicationContext)
         return START_STICKY
