@@ -3,8 +3,8 @@
 Documentación para integradores externos que consumen la API de Yallegó con
 una **clave de API** (`Authorization: Bearer yk_live_...`). Si estás
 implementando el panel administrativo o la app Android del propio proyecto,
-usa en cambio [`../06_API_CONTRACT.md`](../06_API_CONTRACT.md) (contrato
-completo, incluye las superficies de panel, dispositivo y plataforma).
+usa en cambio el contrato interno `docs/06_API_CONTRACT.md` del repositorio
+(incluye las superficies de panel, dispositivo y plataforma).
 
 > **Base URL:** `https://api.yallego.app/v1`
 > **Especificación máquina-legible:** [`../openapi.yaml`](../openapi.yaml) (OpenAPI 3.1)

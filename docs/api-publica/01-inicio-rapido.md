@@ -4,7 +4,7 @@ Esta guía te lleva de cero a recibir tu primer evento de webhook, en cuatro pas
 
 ## 1. Crea una clave de API
 
-Desde el panel administrativo (**Configuración → Claves de API**, requiere
+Desde el panel administrativo (**Integraciones → Claves de API**, requiere
 rol ADMIN o superior), o vía la propia API si ya tienes una sesión de panel:
 
 ```bash

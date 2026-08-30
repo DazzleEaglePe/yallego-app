@@ -20,6 +20,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 COPY apps/dashboard apps/dashboard
+COPY docs docs
 COPY packages/config-eslint packages/config-eslint
 COPY packages/config-typescript packages/config-typescript
 COPY packages/contracts packages/contracts
@@ -49,6 +50,7 @@ WORKDIR /app
 
 COPY --from=build --chown=node:node /workspace/apps/dashboard/.next/standalone ./
 COPY --from=build --chown=node:node /workspace/apps/dashboard/.next/static ./apps/dashboard/.next/static
+COPY --from=build --chown=node:node /workspace/docs ./docs
 
 USER node
 

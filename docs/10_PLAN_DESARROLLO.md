@@ -366,7 +366,7 @@
 
 ### Documentación
 
-- [ ] Crear el sitio de documentación — pendiente de Sprint 8 (despliegue); el contenido ya existe como Markdown en `docs/api-publica/`
+- [x] Crear el sitio de documentación _(Codex)_ — ruta pública `/documentacion` en el dashboard, con navegación responsive, renderizado seguro de las nueve guías Markdown y descarga de la especificación OpenAPI 3.1 en `/documentacion/openapi.yaml`; smoke HTTP real correcto para portada, guía y especificación
 - [x] Redactar la guía de inicio rápido _(Claude)_ — `docs/api-publica/01-inicio-rapido.md`
 - [x] Documentar la autenticación _(Claude)_ — `docs/api-publica/02-autenticacion.md`
 - [x] Documentar cada endpoint con ejemplos _(Claude)_ — `docs/api-publica/03-transacciones.md`, `04-webhooks.md`, `05-dispositivos.md`, más `docs/openapi.yaml`
@@ -523,7 +523,7 @@
 - [x] Documentar la arquitectura para nuevos integrantes _(ya cubierto desde el Sprint 1)_ — `docs/04_ARQUITECTURA_SOFTWARE.md` (decisión arquitectónica, componentes, flujos) y `docs/11_ESTRUCTURA_PROYECTO.md` (monorepo, convenciones, entorno local); `docs/README.md` incluye una tabla de orden de lectura recomendado por tarea
 - [x] Documentar el procedimiento de despliegue _(Codex)_ — `docs/12_DESPLIEGUE.md`: prerrequisitos del host, construcción y publicación inmutable de las cuatro imágenes, secretos, DNS/TLS, primer arranque, semilla y administrador inicial, verificaciones funcionales, actualización blue/green, restricciones operativas y evidencia mínima por versión; comandos contrastados con el Compose y las imágenes reales
 - [x] Documentar los procedimientos operativos ante incidentes comunes _(Claude)_ — `docs/runbook-incidentes.md`: webhook deshabilitado, backlog de cola, tasa de parsing bajo umbral, dispositivo sin heartbeat, límite de plan, cuenta bloqueada, IP allowlist de plataforma, falso positivo del guard SSRF, `/health/ready` en `down`
-- [x] Completar la documentación pública de la interfaz _(Claude)_ — `docs/openapi.yaml` (OpenAPI 3.1) y `docs/api-publica/` (inicio rápido, autenticación, cada recurso con ejemplos, catálogo de eventos, verificación de firma en Node/Python/PHP, reintentos, límites de tasa); falta solo publicarla como sitio (Sprint 6, ítem "crear el sitio de documentación", diferido a despliegue)
+- [x] Completar la documentación pública de la interfaz _(Claude/Codex)_ — `docs/openapi.yaml` (OpenAPI 3.1) y `docs/api-publica/` (inicio rápido, autenticación, cada recurso con ejemplos, catálogo de eventos, verificación de firma en Node/Python/PHP, reintentos, límites de tasa), publicados por el dashboard en `/documentacion` sin duplicar la fuente Markdown
 - [ ] Publicar los términos de servicio y la política de privacidad — borradores técnicos en `docs/legal/` _(Claude)_: `terminos-de-servicio.md` y `politica-de-privacidad.md`, basados en lo que el sistema realmente implementa (planes, límites, retención, cifrado, aislamiento por tenant); marcados explícitamente como no publicables hasta revisión legal — varias cláusulas (responsabilidad, jurisdicción, SLA) requieren criterio legal que no me corresponde ejercer
 
 ### Criterios de aceptación

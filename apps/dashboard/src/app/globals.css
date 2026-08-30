@@ -34,3 +34,70 @@ input {
   color: theme('colors.brand.900');
   background: theme('colors.brand.100');
 }
+
+@layer components {
+  .api-doc-content {
+    @apply max-w-4xl text-[15px] leading-7 text-neutral-700;
+  }
+
+  .api-doc-content h1 {
+    @apply mb-5 text-3xl font-bold tracking-tight text-neutral-950 sm:text-4xl;
+  }
+
+  .api-doc-content h2 {
+    @apply mb-3 mt-10 border-t border-neutral-100 pt-8 text-2xl font-bold tracking-tight text-neutral-950;
+  }
+
+  .api-doc-content h3 {
+    @apply mb-2 mt-7 text-lg font-bold text-neutral-950;
+  }
+
+  .api-doc-content p,
+  .api-doc-content ul,
+  .api-doc-content ol,
+  .api-doc-content table,
+  .api-doc-content pre,
+  .api-doc-content blockquote {
+    @apply mb-5;
+  }
+
+  .api-doc-content ul {
+    @apply list-disc pl-6;
+  }
+
+  .api-doc-content ol {
+    @apply list-decimal pl-6;
+  }
+
+  .api-doc-content a {
+    @apply font-semibold text-brand-700 underline decoration-brand-200 underline-offset-4 hover:text-brand-900;
+  }
+
+  .api-doc-content :not(pre) > code {
+    @apply rounded-md bg-neutral-100 px-1.5 py-0.5 font-mono text-[0.88em] text-brand-800;
+  }
+
+  .api-doc-content pre {
+    @apply overflow-x-auto rounded-xl bg-neutral-950 p-5 font-mono text-sm leading-6 text-neutral-100 shadow-inner;
+  }
+
+  .api-doc-content blockquote {
+    @apply rounded-r-xl border-l-4 border-brand-400 bg-brand-50 px-5 py-4 text-neutral-700;
+  }
+
+  .api-doc-content blockquote p {
+    @apply mb-0;
+  }
+
+  .api-doc-content table {
+    @apply block w-full overflow-x-auto rounded-xl border border-neutral-200 text-left;
+  }
+
+  .api-doc-content th {
+    @apply bg-neutral-50 px-4 py-3 font-semibold text-neutral-900;
+  }
+
+  .api-doc-content td {
+    @apply border-t border-neutral-200 px-4 py-3 align-top;
+  }
+}
