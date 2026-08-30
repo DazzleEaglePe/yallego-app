@@ -22,6 +22,7 @@ data class CapturedNotification(
     val title: String?,
     val body: String?,
     val postedAtEpochMs: Long,
+    val sourceKey: String? = null,
 )
 
 @Singleton
@@ -48,7 +49,7 @@ class NotificationCaptureCoordinator @Inject constructor(
             }
 
             val entity = QueuedNotificationEntity(
-                clientRef = UUID.randomUUID().toString(),
+                clientRef = stableClientRef(notification),
                 packageName = notification.packageName.take(255),
                 title = title,
                 body = body,
@@ -63,6 +64,17 @@ class NotificationCaptureCoordinator @Inject constructor(
             }
         }
     }
+}
+
+private fun stableClientRef(notification: CapturedNotification): String {
+    val source = buildString {
+        append(notification.packageName)
+        append('|')
+        append(notification.sourceKey ?: "posted")
+        append('|')
+        append(notification.postedAtEpochMs)
+    }
+    return UUID.nameUUIDFromBytes(source.toByteArray(Charsets.UTF_8)).toString()
 }
 
 internal fun sanitizeNotificationField(value: String?, maxLength: Int): String? =

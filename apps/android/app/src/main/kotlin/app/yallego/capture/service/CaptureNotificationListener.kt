@@ -31,12 +31,16 @@ class CaptureNotificationListener : NotificationListenerService() {
                 title = title,
                 body = body,
                 postedAtEpochMs = sbn.postTime,
+                sourceKey = sbn.key,
             ),
         )
     }
 
     override fun onListenerConnected() {
         Timber.i("Escucha de notificaciones conectada")
+        // MIUI puede desconectar temporalmente el listener aun conservando el
+        // permiso. Al volver, recuperamos las notificaciones que siguen activas.
+        activeNotifications.orEmpty().forEach(::onNotificationPosted)
     }
 
     override fun onListenerDisconnected() {
