@@ -504,7 +504,7 @@
 - [ ] Configurar el entorno de producción
 - [x] Configurar los respaldos automáticos _(Claude/Codex)_ — `tools/docker/deploy/scripts/backup-database.sh` (pg_dump formato `custom`) + ejemplo de cron; probado end-to-end contra el stack de despliegue aislado. Codex añadió publicación atómica tras validar el catálogo y comprobó que una base caída produce error sin dejar archivos residuales. Falta que el servidor real copie los archivos fuera de sí mismo (S3/similar) y aplique retención — ver `tools/docker/deploy/BACKUPS.md`
 - [ ] Ejecutar una prueba de restauración — el mecanismo está construido y validado localmente (`restore-database.sh`: rechazo seguro con datos sin `--force`, rechazo de dump corrupto antes de modificar la base y restauración forzada exacta verificada fila por fila _(Claude/Codex)_); falta el ensayo real en el ambiente productivo, con sus volúmenes y latencia reales
-- [ ] Configurar el despliegue sin interrupción
+- [x] Configurar el despliegue sin interrupción _(Codex)_ — estrategia blue/green temporal para API/dashboard: migración previa, candidatos bajo alias DNS compartidos, espera de healthchecks y dos ventanas del TTL antes de reemplazar instancias canónicas; Nginx refresca el DNS interno de Docker cada 5 s. Dos despliegues completos sobre el stack aislado terminaron correctamente y el monitor final obtuvo `350/350` respuestas `200` consecutivas durante el reemplazo
 - [x] Documentar el procedimiento de reversión _(Claude)_ — `tools/docker/deploy/BACKUPS.md`: rollback por tag de imagen (caso general, seguro por la disciplina de migraciones aditivas de RNF-MAN-006) vs. restauración desde respaldo (caso excepcional, migración destructiva), con pasos completos ante un despliegue con problemas
 
 ### Publicación de la aplicación Android
@@ -530,7 +530,7 @@
 
 - [ ] El sistema opera en producción con los tres tenants de la prueba cerrada
 - [ ] Las alertas se disparan correctamente ante condiciones simuladas
-- [ ] Un despliegue no interrumpe el servicio
+- [x] Un despliegue no interrumpe el servicio _(Codex)_ — smoke blue/green con solicitudes cada 100 ms durante todo el reemplazo: `350` respuestas, `0` fallos; la prueba cubre reemplazo de API/dashboard en un host, no la pérdida total del VPS ni el reemplazo del propio proxy
 - [ ] La restauración de respaldo se completa dentro del objetivo definido
 - [ ] La aplicación está disponible para instalación
 - [ ] La documentación permite integrar sin asistencia

@@ -108,3 +108,23 @@ desconectado de cuándo se despliega.
    cerrado.
 5. Registrar qué falló y por qué en un post-mortem breve — no está
    automatizado, es disciplina de equipo.
+
+## Despliegue sin interrupción
+
+[`scripts/deploy-zero-downtime.sh`](./scripts/deploy-zero-downtime.sh) aplica
+las migraciones y levanta candidatos temporales de API y dashboard. Solo cuando
+ambos están `healthy` los registra bajo los alias internos `api` y `dashboard`,
+espera dos ventanas del TTL DNS de Nginx y reemplaza las instancias canónicas.
+Los candidatos permanecen sirviendo durante el reemplazo y se retiran cuando
+las nuevas instancias canónicas también están saludables.
+
+```bash
+./tools/docker/deploy/scripts/deploy-zero-downtime.sh .env.staging
+```
+
+Si el candidato falla, se elimina y las instancias actuales no se tocan. Si el
+reemplazo canónico ya comenzó y luego falla, el script conserva los candidatos
+saludables para no tumbar el servicio y pide intervención. Esta estrategia
+cubre API y dashboard en un único host; actualizar el propio proxy o el host
+requiere una segunda máquina o un balanceador externo para garantizar cero
+interrupción ante la pérdida total del nodo.
