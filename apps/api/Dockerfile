@@ -38,6 +38,18 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     && deployed_modules="$(dirname "$(dirname "$(realpath /opt/yallego-api/node_modules/@prisma/client)")")" \
     && cp -R "$build_modules/.prisma/." "$deployed_modules/.prisma/"
 
+# Tarea efímera de migración. Se mantiene separada del runtime para que la API
+# final no incluya la CLI ni las dependencias de desarrollo de Prisma.
+FROM build AS migrations
+
+ENV NODE_ENV=production
+
+WORKDIR /workspace/apps/api
+
+USER node
+
+ENTRYPOINT ["node", "node_modules/prisma/build/index.js", "migrate", "deploy", "--schema=prisma/schema.prisma"]
+
 FROM node:22-bookworm-slim AS runtime
 
 ENV NODE_ENV=production

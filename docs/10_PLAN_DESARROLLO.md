@@ -500,31 +500,31 @@
 
 - [x] Preparar las imágenes de contenedor _(Codex)_ — imágenes multi-stage independientes para API y dashboard, contexto protegido por `.dockerignore`, Node 22, dependencias de producción/Next standalone, procesos no root con `dumb-init` y healthchecks; builds reales y smoke test contra PostgreSQL/Redis locales correctos (`/v1/health` y `/login` en 200, ambos contenedores `healthy`)
 - [x] Configurar el proxy inverso con certificados _(Codex)_ — imagen Nginx inmutable y parametrizable por dominio; solo publica `80/443`, redirige HTTP a HTTPS, termina TLS 1.2/1.3 con certificado y clave montados de solo lectura, enruta dashboard/API y conserva el upgrade de Socket.IO; smoke test real con certificado efímero correcto (`308`, dashboard/API `200`, WebSocket `101`), sin puertos publicados en API/dashboard y sin exponer `/metrics`
-- [ ] Configurar el entorno de preproducción
+- [ ] Configurar el entorno de preproducción — base reproducible lista: Compose con redes separadas, datos internos sin puertos públicos, secretos externos, rol de aplicación sin `BYPASSRLS`, migración bloqueante antes de iniciar la API y healthchecks encadenados; stack completo validado localmente con PostgreSQL/Redis nuevos, migración `exit 0`, readiness `200` y TLS. Pendiente aprovisionar VPS, DNS, certificado público y registro de imágenes reales
 - [ ] Configurar el entorno de producción
-- [ ] Configurar los respaldos automáticos
-- [ ] Ejecutar una prueba de restauración
+- [x] Configurar los respaldos automáticos _(Claude)_ — `tools/docker/deploy/scripts/backup-database.sh` (pg_dump formato `custom`) + ejemplo de cron; probado end-to-end contra el stack de despliegue real de forma aislada. Falta que el servidor real copie los archivos fuera de sí mismo (S3/similar) y aplique retención — ver `tools/docker/deploy/BACKUPS.md`
+- [ ] Ejecutar una prueba de restauración — el mecanismo está construido y validado localmente (`restore-database.sh`: restauración sobre base vacía y restauración forzada sobre datos existentes, ambas verificadas fila por fila _(Claude)_); falta el ensayo real en el ambiente productivo, con sus volúmenes y latencia reales
 - [ ] Configurar el despliegue sin interrupción
-- [ ] Documentar el procedimiento de reversión
+- [x] Documentar el procedimiento de reversión _(Claude)_ — `tools/docker/deploy/BACKUPS.md`: rollback por tag de imagen (caso general, seguro por la disciplina de migraciones aditivas de RNF-MAN-006) vs. restauración desde respaldo (caso excepcional, migración destructiva), con pasos completos ante un despliegue con problemas
 
 ### Publicación de la aplicación Android
 
-- [ ] Preparar la ficha de la tienda
+- [x] Preparar la ficha de la tienda _(Claude)_ — `docs/publicacion-android/ficha-de-tienda.md`: nombre, descripciones corta y completa dentro de los límites de caracteres de Google, categoría sugerida; capturas de pantalla quedan fuera (requieren la app corriendo en un dispositivo real)
 - [ ] Preparar las capturas de pantalla
-- [ ] Redactar la política de privacidad
-- [ ] Completar la declaración de seguridad de datos
-- [ ] Justificar el uso del permiso de acceso a notificaciones
+- [ ] Redactar la política de privacidad — borrador técnico listo en `docs/legal/politica-de-privacidad.md` _(Claude)_, con los campos societarios/legales marcados `[COMPLETAR]` explícitamente; falta que un abogado lo revise antes de poder usarlo
+- [x] Completar la declaración de seguridad de datos _(Claude)_ — `docs/publicacion-android/declaracion-seguridad-datos.md`, respuesta por categoría verificada contra el filtrado real en `NotificationCaptureCoordinator.kt`; falta trasladarlo al formulario estructurado de Play Console
+- [x] Justificar el uso del permiso de acceso a notificaciones _(Claude)_ — `docs/publicacion-android/justificacion-permiso-notificaciones.md`: texto para el formulario de declaración de permisos restringidos de Play Console; el video de demostración que Google exige junto al texto queda pendiente (requiere la app corriendo en un dispositivo real)
 - [ ] Publicar en canal de pruebas internas
 - [ ] Publicar en producción
 
 ### Documentación
 
-- [ ] Completar el archivo principal del repositorio
-- [ ] Documentar la arquitectura para nuevos integrantes
+- [x] Completar el archivo principal del repositorio _(Claude)_ — `README.md`: requisitos, primer arranque, tabla de servicios locales (incluye `/health/ready` y `/metrics`), comandos, enlaces a la documentación pública de la API y al runbook de incidentes, convenciones
+- [x] Documentar la arquitectura para nuevos integrantes _(ya cubierto desde el Sprint 1)_ — `docs/04_ARQUITECTURA_SOFTWARE.md` (decisión arquitectónica, componentes, flujos) y `docs/11_ESTRUCTURA_PROYECTO.md` (monorepo, convenciones, entorno local); `docs/README.md` incluye una tabla de orden de lectura recomendado por tarea
 - [ ] Documentar el procedimiento de despliegue
-- [ ] Documentar los procedimientos operativos ante incidentes comunes
-- [ ] Completar la documentación pública de la interfaz
-- [ ] Publicar los términos de servicio y la política de privacidad
+- [x] Documentar los procedimientos operativos ante incidentes comunes _(Claude)_ — `docs/runbook-incidentes.md`: webhook deshabilitado, backlog de cola, tasa de parsing bajo umbral, dispositivo sin heartbeat, límite de plan, cuenta bloqueada, IP allowlist de plataforma, falso positivo del guard SSRF, `/health/ready` en `down`
+- [x] Completar la documentación pública de la interfaz _(Claude)_ — `docs/openapi.yaml` (OpenAPI 3.1) y `docs/api-publica/` (inicio rápido, autenticación, cada recurso con ejemplos, catálogo de eventos, verificación de firma en Node/Python/PHP, reintentos, límites de tasa); falta solo publicarla como sitio (Sprint 6, ítem "crear el sitio de documentación", diferido a despliegue)
+- [ ] Publicar los términos de servicio y la política de privacidad — borradores técnicos en `docs/legal/` _(Claude)_: `terminos-de-servicio.md` y `politica-de-privacidad.md`, basados en lo que el sistema realmente implementa (planes, límites, retención, cifrado, aislamiento por tenant); marcados explícitamente como no publicables hasta revisión legal — varias cláusulas (responsabilidad, jurisdicción, SLA) requieren criterio legal que no me corresponde ejercer
 
 ### Criterios de aceptación
 

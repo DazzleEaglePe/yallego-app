@@ -32,6 +32,18 @@ Plataforma SaaS multi-tenant que captura las notificaciones de billeteras digita
 > La especificación [OpenAPI 3.1](./openapi.yaml) y la [documentación para
 > integradores](./api-publica/README.md) de la API pública (Transacciones,
 > Webhooks, Dispositivos) complementan al contrato en prosa del punto 06.
+> El [runbook de incidentes](./runbook-incidentes.md) cubre qué hacer ante
+> cada alerta que el propio sistema emite en operación, y
+> [respaldos, restauración y reversión](../tools/docker/deploy/BACKUPS.md)
+> cubre qué hacer con los datos y con un despliegue que salió mal.
+> [`docs/legal/`](./legal/) tiene borradores técnicos de términos de
+> servicio y política de privacidad — **no publicables sin revisión
+> legal**, ver la advertencia al inicio de cada archivo.
+> [`docs/publicacion-android/`](./publicacion-android/) tiene el contenido
+> listo para Play Console (ficha de tienda, declaración de seguridad de
+> datos, justificación del permiso de notificaciones) — falta trasladarlo
+> al formulario real y las capturas de pantalla, que requieren la app
+> corriendo en un dispositivo.
 
 ---
 

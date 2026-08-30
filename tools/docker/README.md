@@ -13,12 +13,14 @@ También pueden construirse por separado:
 
 ```bash
 pnpm docker:build:api
+pnpm docker:build:migrations
 pnpm docker:build:dashboard
 pnpm docker:build:proxy
 ```
 
-Las etiquetas locales resultantes son `yallego-api:local` y
-`yallego-dashboard:local` y `yallego-proxy:local`.
+Las etiquetas locales resultantes son `yallego-api:local`,
+`yallego-migrations:local`, `yallego-dashboard:local` y
+`yallego-proxy:local`.
 
 ## Dashboard
 
@@ -112,6 +114,47 @@ recolector debe consultarlo directamente dentro de la red privada. La emisión
 y renovación del certificado (por ejemplo, con Certbot en el VPS) es una
 responsabilidad del entorno; después de renovarlo se recarga Nginx con
 `nginx -s reload` dentro del contenedor.
+
+## Base de preproducción y producción
+
+[`deploy/compose.yml`](./deploy/compose.yml) describe la misma topología para
+ambos ambientes. El nombre del proyecto, dominio, imágenes, credenciales y
+certificados cambian mediante variables; el archivo no contiene secretos.
+
+1. Copiar `deploy/deploy.env.example` fuera del repositorio o a un archivo
+   ignorado, por ejemplo `.env.staging`, y reemplazar todos los valores.
+2. Construir y publicar las cuatro imágenes con un tag inmutable. El dashboard
+   debe haberse construido para el `PUBLIC_URL` correspondiente.
+3. Ejecutar desde la raíz:
+
+```bash
+docker compose \
+  --env-file .env.staging \
+  -f tools/docker/deploy/compose.yml \
+  config --quiet
+
+docker compose \
+  --env-file .env.staging \
+  -f tools/docker/deploy/compose.yml \
+  up -d
+```
+
+Compose espera a PostgreSQL, ejecuta `prisma migrate deploy` una sola vez con
+la imagen `yallego-migrations` y únicamente inicia la API si la migración
+termina correctamente. Después espera los healthchecks de API y dashboard
+antes de abrir el proxy. PostgreSQL y Redis viven en una red marcada como
+`internal`; sus puertos, al igual que `3000/3001`, no se publican en el host.
+
+La creación del rol `yallego_app` también usa una contraseña proporcionada por
+el ambiente. Ese rol no es propietario ni tiene `BYPASSRLS`; las migraciones
+continúan ejecutándose con el rol propietario. Las contraseñas deben ser
+aleatorias y URL-safe porque forman parte de las URLs internas construidas por
+Compose.
+
+Antes de considerar un ambiente operativo todavía se debe aprovisionar el
+servidor, apuntar DNS, emitir el certificado público, cargar secretos en el
+gestor elegido y publicar las imágenes en un registro. La validación local no
+reemplaza esas tareas.
 
 ## Propiedades de ejecución
 
