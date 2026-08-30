@@ -4,12 +4,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { can } from '@yallego/contracts';
+import { useQuery } from '@tanstack/react-query';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
 import { getVisibleNavigation } from '@/features/dashboard/dashboard-navigation';
 import { TenantSwitcher } from '@/features/dashboard/TenantSwitcher';
+import { useDevices } from '@/features/devices/hooks/use-devices';
 import { SubscriptionUsageNotice } from '@/features/subscription/components/SubscriptionUsageNotice';
+import { fetchTransactions } from '@/features/transactions/api/transactions';
 import { BrandMark } from '@/shared/components/BrandMark';
 
 export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
@@ -22,6 +25,22 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   const canManageSubscription = tenant !== undefined && can(tenant.role, 'subscription:manage');
   const initials = getInitials(session?.user.full_name);
   const page = getPageMeta(pathname);
+  const devices = useDevices();
+  const accessToken = session?.accessToken ?? null;
+  const setupTransactions = useQuery({
+    queryKey: ['transactions', 'setup-progress'],
+    queryFn: () => fetchTransactions(accessToken!, { limit: 1 }),
+    enabled: canManageDevices && Boolean(accessToken),
+  });
+  const hasDevice = (devices.data?.length ?? 0) > 0;
+  const hasTransaction = (setupTransactions.data?.data.length ?? 0) > 0;
+  const setupSteps = 1 + Number(hasDevice) + Number(hasTransaction);
+  const setupProgress = Math.round((setupSteps / 3) * 100);
+  const setupMessage = !hasDevice
+    ? 'Vincula un Android para comenzar a validar cobros.'
+    : !hasTransaction
+      ? 'Dispositivo vinculado. Falta recibir el primer cobro.'
+      : 'Configuración completada. Tu negocio ya recibe cobros.';
 
   async function handleLogout() {
     try {
@@ -91,14 +110,15 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold text-white">Configuración inicial</p>
-                <span className="text-xs font-semibold text-brand-300">33%</span>
+                <span className="text-xs font-semibold text-brand-300">{setupProgress}%</span>
               </div>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-1/3 rounded-full bg-brand-400" />
+                <div
+                  className="h-full rounded-full bg-brand-400 transition-[width]"
+                  style={{ width: `${setupProgress}%` }}
+                />
               </div>
-              <p className="mt-3 text-xs leading-5 text-neutral-400">
-                Vincula un Android para comenzar a validar cobros.
-              </p>
+              <p className="mt-3 text-xs leading-5 text-neutral-400">{setupMessage}</p>
             </div>
           )}
 
