@@ -529,7 +529,7 @@
 ### Criterios de aceptación
 
 - [ ] El sistema opera en producción con los tres tenants de la prueba cerrada
-- [ ] Las alertas se disparan correctamente ante condiciones simuladas
+- [x] Las alertas se disparan correctamente ante condiciones simuladas _(Codex)_ — 8 pruebas unitarias reproducen una tasa de parsing bajo 95%, una cola de webhooks por encima del umbral y un dispositivo activo sin heartbeat; verifican destinatarios y contenido del correo, métricas, límites exactos y supresión de reenvíos mediante claves Redis o `offlineNotifiedAt`
 - [x] Un despliegue no interrumpe el servicio _(Codex)_ — smoke blue/green con solicitudes cada 100 ms durante todo el reemplazo: `350` respuestas, `0` fallos; la prueba cubre reemplazo de API/dashboard en un host, no la pérdida total del VPS ni el reemplazo del propio proxy
 - [ ] La restauración de respaldo se completa dentro del objetivo definido
 - [ ] La aplicación está disponible para instalación
