@@ -28,12 +28,15 @@ Plataforma SaaS multi-tenant que captura las notificaciones de billeteras digita
 | 09  | [Sistema de Diseño](./09_DESIGN_SYSTEM.md)                             | Color, tipografía, espaciado, componentes, iconografía, tokens                           |
 | 10  | [Plan de Desarrollo](./10_PLAN_DESARROLLO.md)                          | 8 sprints con listas de verificación y criterios de aceptación                           |
 | 11  | [Estructura del Proyecto](./11_ESTRUCTURA_PROYECTO.md)                 | Monorepo, configuración, convenciones, entorno local, despliegue                         |
+| 12  | [Procedimiento de Despliegue](./12_DESPLIEGUE.md)                      | Imágenes, secretos, DNS/TLS, primer arranque, validación, actualización y operación      |
 
 > La especificación [OpenAPI 3.1](./openapi.yaml) y la [documentación para
 > integradores](./api-publica/README.md) de la API pública (Transacciones,
 > Webhooks, Dispositivos) complementan al contrato en prosa del punto 06.
 > El [runbook de incidentes](./runbook-incidentes.md) cubre qué hacer ante
 > cada alerta que el propio sistema emite en operación, y
+> el [procedimiento de despliegue](./12_DESPLIEGUE.md) cubre la preparación y
+> actualización de cada ambiente. El documento de
 > [respaldos, restauración y reversión](../tools/docker/deploy/BACKUPS.md)
 > cubre qué hacer con los datos y con un despliegue que salió mal.
 > [`docs/legal/`](./legal/) tiene borradores técnicos de términos de

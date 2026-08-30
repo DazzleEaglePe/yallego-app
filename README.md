@@ -34,14 +34,14 @@ corepack pnpm dev:stack
 
 Servicios locales:
 
-| Servicio                    | URL                                      |
-| ---------------------------- | ----------------------------------------- |
-| Panel                        | <http://localhost:3000>                   |
-| API                          | <http://localhost:3001>                   |
-| Estado de la API (liveness)  | <http://localhost:3001/v1/health>         |
-| Estado de la API (DB+Redis)  | <http://localhost:3001/v1/health/ready>   |
-| Métricas (Prometheus)        | <http://localhost:3001/metrics>           |
-| Mailpit                      | <http://localhost:8025>                   |
+| Servicio                    | URL                                     |
+| --------------------------- | --------------------------------------- |
+| Panel                       | <http://localhost:3000>                 |
+| API                         | <http://localhost:3001>                 |
+| Estado de la API (liveness) | <http://localhost:3001/v1/health>       |
+| Estado de la API (DB+Redis) | <http://localhost:3001/v1/health/ready> |
+| Métricas (Prometheus)       | <http://localhost:3001/metrics>         |
+| Mailpit                     | <http://localhost:8025>                 |
 
 ## Comandos
 
@@ -57,7 +57,7 @@ corepack pnpm format:check
 
 La definición funcional y técnica aprobada está en [docs/README.md](./docs/README.md). El trabajo se ordena por los ocho sprints descritos en [docs/10_PLAN_DESARROLLO.md](./docs/10_PLAN_DESARROLLO.md).
 
-Para integrar contra la API pública, ver [docs/api-publica](./docs/api-publica/README.md) y la especificación [OpenAPI](./docs/openapi.yaml). Para operar el sistema, ver el [runbook de incidentes](./docs/runbook-incidentes.md) y el [procedimiento de despliegue](./tools/docker/README.md).
+Para integrar contra la API pública, ver [docs/api-publica](./docs/api-publica/README.md) y la especificación [OpenAPI](./docs/openapi.yaml). Para operar el sistema, ver el [runbook de incidentes](./docs/runbook-incidentes.md), el [procedimiento de despliegue](./docs/12_DESPLIEGUE.md) y la [referencia de contenedores](./tools/docker/README.md).
 
 ## Convenciones
 
