@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+
 import { useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { PairDeviceDialog } from '@/features/devices/components/PairDeviceDialog';
 
 const metrics = [
   {
@@ -39,6 +42,7 @@ const weekDays = ['Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Mar', 'Hoy'];
 
 export default function DashboardHomePage() {
   const { session } = useAuthSession();
+  const [isPairingDialogOpen, setIsPairingDialogOpen] = useState(false);
   const firstName = session?.user.full_name.trim().split(/\s+/)[0] ?? 'equipo';
   const today = new Intl.DateTimeFormat('es-PE', {
     day: 'numeric',
@@ -64,14 +68,15 @@ export default function DashboardHomePage() {
           </p>
         </div>
 
-        <a
+        <button
           className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
-          href="#primer-dispositivo"
+          onClick={() => setIsPairingDialogOpen(true)}
+          type="button"
         >
           <DashboardIcon className="h-4 w-4" name="device" />
           Vincular dispositivo
           <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
-        </a>
+        </button>
       </section>
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen">
@@ -231,6 +236,10 @@ export default function DashboardHomePage() {
           </div>
         </article>
       </section>
+
+      {isPairingDialogOpen && session && (
+        <PairDeviceDialog accessToken={session.accessToken} onClose={() => setIsPairingDialogOpen(false)} />
+      )}
     </div>
   );
 }
