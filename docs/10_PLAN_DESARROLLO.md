@@ -145,6 +145,8 @@
 - [x] Implementar revocación de dispositivo _(Claude)_
 - [x] Implementar catálogo y activación de billeteras por tenant — prerrequisito no listado en este plan, necesario para calcular `monitored_packages` al vincular _(Claude)_
 
+> La activación automática de Yape durante el registro es una compatibilidad temporal para que un tenant nuevo no reciba `monitored_packages=[]`. Debe retirarse cuando el onboarding permita escoger billeteras antes de vincular el primer dispositivo.
+
 > ⚠️ Los ítems de Android marcados _(Claude)_ en esta sección están escritos siguiendo la arquitectura definida, pero no se compilaron: este entorno no tiene Android SDK/Gradle. Verificar en Android Studio antes de confiar en ellos (ver `apps/android/README.md`).
 
 ### Aplicación Android — estructura
@@ -440,6 +442,19 @@
 - [x] Implementar el flujo de solicitud de cambio _(Codex)_ — selección de plan y ciclo, confirmación de monto, solicitud `PENDING_PAYMENT` y comprobante con referencia de transferencia copiable; deja explícito que la activación ocurre tras confirmar el pago
 - [x] Implementar los avisos de consumo _(Codex)_ — advertencia descartable al 80% por tenant/período y aviso crítico persistente al 100%, visibles globalmente para el propietario con acceso directo a Membresía
 - [x] Implementar la vista de auditoría _(Codex)_ — filtros por acción, recurso, período y actor; paginación por cursor, detalle expandible con metadatos, exportación CSV y acceso para propietario/administrador
+
+### Configuración de billeteras del negocio
+
+> La membresía determina el **límite cuantitativo** de billeteras activas; la configuración del negocio determina **cuáles** usa cada tenant. No se debe guardar una `default_wallet_code` como decisión permanente del producto.
+
+- [ ] Habilitar la ruta y vista **Billeteras** del panel para propietarios y administradores
+- [ ] Consumir el catálogo global y mostrar únicamente billeteras disponibles y operativas
+- [ ] Permitir activar, configurar y desactivar billeteras por tenant, respetando el límite `wallets` del plan
+- [ ] Incorporar la selección inicial de billeteras al onboarding, antes de vincular el primer Android
+- [ ] Sincronizar inmediatamente `monitored_packages` con los dispositivos vinculados cuando cambie la selección
+- [ ] Sustituir la activación automática de Yape en `AuthService.register` por la selección persistida del onboarding
+- [ ] Mostrar estados vacíos y errores claros cuando el plan no permita otra billetera o todavía no exista un parser operativo
+- [ ] Cubrir permisos, límites, auditoría y el flujo panel → configuración remota Android con pruebas unitarias y end-to-end
 
 ### Administración de plataforma
 
