@@ -1,44 +1,30 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
 import { PairDeviceDialog } from '@/features/devices/components/PairDeviceDialog';
-
-const metrics = [
-  {
-    detail: 'Sin movimientos todavía',
-    icon: 'wallet',
-    label: 'Cobrado hoy',
-    value: 'S/ 0.00',
-  },
-  {
-    detail: '0 aprobadas · 0 observadas',
-    icon: 'receipt',
-    label: 'Transacciones',
-    value: '0',
-  },
-  {
-    detail: 'Se calculará con tu primer cobro',
-    icon: 'ticket',
-    label: 'Ticket promedio',
-    value: 'S/ 0.00',
-  },
-  {
-    detail: 'Vincula tu primer Android',
-    icon: 'device',
-    label: 'Dispositivos activos',
-    value: '0 de 1',
-  },
-] satisfies {
-  detail: string;
-  icon: DashboardIconName;
-  label: string;
-  value: string;
-}[];
+import { useDevices } from '@/features/devices/hooks/use-devices';
+import { StatusBadge } from '@/features/transactions/components/StatusBadge';
+import { fetchTransactions } from '@/features/transactions/api/transactions';
+import { useRealtimeTransactions } from '@/features/transactions/hooks/use-realtime-transactions';
+import { useTransactionSummary } from '@/features/transactions/hooks/use-transaction-summary';
+import { formatCurrency, formatElapsed } from '@/shared/lib/format';
 
 const weekDays = ['Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Mar', 'Hoy'];
+
+/** América/Lima no observa horario de verano: UTC-5 todo el año. */
+function startOfTodayLima(): string {
+  const today = new Intl.DateTimeFormat('en-CA', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'America/Lima',
+    year: 'numeric',
+  }).format(new Date());
+  return `${today}T05:00:00.000Z`;
+}
 
 export default function DashboardHomePage() {
   const { session } = useAuthSession();
@@ -51,6 +37,53 @@ export default function DashboardHomePage() {
     weekday: 'long',
   }).format(new Date());
   const greeting = getGreeting();
+
+  const devices = useDevices();
+  const summary = useTransactionSummary({ from: startOfTodayLima() });
+  useRealtimeTransactions();
+  const accessToken = session?.accessToken ?? null;
+  const recentTransactions = useQuery({
+    queryKey: ['transactions', 'recent'],
+    queryFn: () => fetchTransactions(accessToken!, { limit: 5 }),
+    enabled: Boolean(accessToken),
+  });
+
+  const deviceList = devices.data ?? [];
+  const activeDevices = deviceList.filter((device) => device.status === 'ACTIVE');
+  const onlineDevice = activeDevices.find((device) => device.connectivity === 'ONLINE');
+  const totals = summary.data?.totals;
+  const recentList = recentTransactions.data?.data ?? [];
+
+  const hasAnyDevice = deviceList.length > 0;
+  const metrics = [
+    {
+      detail: totals && totals.count > 0 ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} hoy` : 'Sin movimientos todavía',
+      icon: 'wallet' as DashboardIconName,
+      label: 'Cobrado hoy',
+      value: totals ? formatCurrency(totals.amount, totals.currency) : 'S/ 0.00',
+    },
+    {
+      detail:
+        totals && totals.count > 0
+          ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} registrado${totals.count === 1 ? '' : 's'} hoy`
+          : 'Sin transacciones todavía',
+      icon: 'receipt' as DashboardIconName,
+      label: 'Transacciones',
+      value: String(totals?.count ?? 0),
+    },
+    {
+      detail: totals && totals.count > 0 ? 'Del período de hoy' : 'Se calculará con tu primer cobro',
+      icon: 'ticket' as DashboardIconName,
+      label: 'Ticket promedio',
+      value: totals && totals.count > 0 ? formatCurrency(totals.average, totals.currency) : 'S/ 0.00',
+    },
+    {
+      detail: hasAnyDevice ? `${activeDevices.length} vinculado${activeDevices.length === 1 ? '' : 's'}` : 'Vincula tu primer Android',
+      icon: 'device' as DashboardIconName,
+      label: 'Dispositivos activos',
+      value: `${activeDevices.length} de ${Math.max(deviceList.length, 1)}`,
+    },
+  ];
 
   return (
     <div className="pb-6">
@@ -130,10 +163,12 @@ export default function DashboardHomePage() {
                     <DashboardIcon className="h-5 w-5" name="activity" />
                   </span>
                   <p className="mt-3 text-sm font-semibold text-neutral-900">
-                    Aún no hay movimientos
+                    {recentList.length > 0 ? 'El gráfico llega en la próxima entrega' : 'Aún no hay movimientos'}
                   </p>
                   <p className="mt-1 text-xs text-neutral-500">
-                    Tu primer cobro aparecerá aquí en tiempo real.
+                    {recentList.length > 0
+                      ? 'Ya hay cobros reales — revisa la lista de la derecha mientras tanto.'
+                      : 'Tu primer cobro aparecerá aquí en tiempo real.'}
                   </p>
                 </div>
               </div>
@@ -172,8 +207,8 @@ export default function DashboardHomePage() {
 
             <ol className="mt-6 space-y-4">
               <SetupStep complete label="Cuenta creada y verificada" number="1" />
-              <SetupStep label="Vincular dispositivo Android" number="2" />
-              <SetupStep label="Recibir el primer cobro" number="3" />
+              <SetupStep complete={hasAnyDevice} label="Vincular dispositivo Android" number="2" />
+              <SetupStep complete={(totals?.count ?? 0) > 0} label="Recibir el primer cobro" number="3" />
             </ol>
 
             <details className="group mt-6 rounded-xl border border-white/10 bg-white/[0.06] p-4 open:bg-white/[0.08]">
@@ -202,21 +237,46 @@ export default function DashboardHomePage() {
               <p className="mt-1 text-sm text-neutral-500">Cobros detectados más recientemente</p>
             </div>
             <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-500">
-              0 registros
+              {recentList.length} registro{recentList.length === 1 ? '' : 's'}
             </span>
           </div>
-          <div className="grid min-h-52 place-items-center px-5 py-8 text-center">
-            <div>
-              <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-400">
-                <DashboardIcon className="h-5 w-5" name="receipt" />
-              </span>
-              <p className="mt-4 text-sm font-semibold text-neutral-900">Tu historial está listo</p>
-              <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-neutral-500">
-                En cuanto llegue una notificación de pago válida, la verás aquí con su billetera,
-                importe y estado.
-              </p>
+
+          {recentList.length === 0 ? (
+            <div className="grid min-h-52 place-items-center px-5 py-8 text-center">
+              <div>
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-400">
+                  <DashboardIcon className="h-5 w-5" name="receipt" />
+                </span>
+                <p className="mt-4 text-sm font-semibold text-neutral-900">Tu historial está listo</p>
+                <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-neutral-500">
+                  En cuanto llegue una notificación de pago válida, la verás aquí con su billetera,
+                  importe y estado.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {recentList.map((transaction) => (
+                <div className="flex items-center gap-3 px-5 py-4 sm:px-6" key={transaction.id}>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-500">
+                    <DashboardIcon className="h-4.5 w-4.5" name="wallet" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-neutral-950">
+                      {transaction.sender_name ?? 'Remitente sin nombre'}
+                    </span>
+                    <span className="block text-xs text-neutral-500">
+                      {transaction.wallet.display_name} · {formatElapsed(transaction.occurred_at)}
+                    </span>
+                  </span>
+                  <span className="font-mono text-sm font-semibold text-neutral-950">
+                    {formatCurrency(transaction.amount, transaction.currency)}
+                  </span>
+                  <StatusBadge status={transaction.status} />
+                </div>
+              ))}
+            </div>
+          )}
         </article>
 
         <article className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(24,24,27,0.03)] sm:p-6">
@@ -232,7 +292,17 @@ export default function DashboardHomePage() {
           <div className="mt-6 space-y-3">
             <StatusRow label="Panel web" status="Conectado" />
             <StatusRow label="Sesión segura" status="Activa" />
-            <StatusRow label="Dispositivo Android" pending status="Por vincular" />
+            <StatusRow
+              label="Dispositivo Android"
+              pending={!onlineDevice}
+              status={
+                !hasAnyDevice
+                  ? 'Por vincular'
+                  : onlineDevice
+                    ? 'En línea'
+                    : 'Sin conexión'
+              }
+            />
           </div>
         </article>
       </section>

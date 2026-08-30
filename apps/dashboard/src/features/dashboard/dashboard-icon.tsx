@@ -13,6 +13,8 @@ export type DashboardIconName =
   | 'home'
   | 'inbox'
   | 'logout'
+  | 'pause'
+  | 'play'
   | 'plug'
   | 'receipt'
   | 'refresh'
@@ -159,6 +161,13 @@ const iconPaths: Record<DashboardIconName, ReactNode> = {
       <path d="M12 20h.01" />
     </>
   ),
+  pause: (
+    <>
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+    </>
+  ),
+  play: <path d="M7 4v16l13-8Z" />,
   'wifi-off': (
     <>
       <path d="M3 3l18 18" />

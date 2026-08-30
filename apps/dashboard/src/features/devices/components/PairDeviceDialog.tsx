@@ -98,7 +98,7 @@ export function PairDeviceDialog({ accessToken, onClose }: Readonly<PairDeviceDi
         )}
 
         <ol className="mt-6 space-y-2 border-t border-neutral-100 pt-5 text-sm leading-6 text-neutral-600">
-          <li>1. Abre Yallegó en el Xiaomi.</li>
+          <li>1. Abre Yallegó en tu dispositivo.</li>
           <li>2. Escribe este código en “Código de vinculación”.</li>
           <li>3. Pulsa “Vincular celular”.</li>
         </ol>

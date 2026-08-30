@@ -12,7 +12,7 @@ export type DashboardNavigationItem = {
 export const dashboardNavigation = [
   { icon: 'home', label: 'Inicio', href: '/inicio' },
   { icon: 'receipt', label: 'Transacciones', href: '/transacciones' },
-  { icon: 'device', label: 'Dispositivos', href: null, permission: 'devices:manage' },
+  { icon: 'device', label: 'Dispositivos', href: '/dispositivos', permission: 'devices:manage' },
   { icon: 'wallet', label: 'Billeteras', href: null, permission: 'wallets:manage' },
   { icon: 'team', label: 'Equipo', href: '/equipo', permission: 'members:manage' },
   {
