@@ -19,6 +19,7 @@ class CaptureNotificationListener : NotificationListenerService() {
     @Inject lateinit var captureCoordinator: NotificationCaptureCoordinator
 
     private val reconcileHandler = Handler(Looper.getMainLooper())
+    private val observedNotifications = LinkedHashSet<String>()
     private val reconcileRunnable = object : Runnable {
         override fun run() {
             reconcileActiveNotifications()
@@ -28,6 +29,7 @@ class CaptureNotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName == packageName) return
+        if (!rememberNotification(sbn)) return
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
         val body = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
@@ -73,7 +75,18 @@ class CaptureNotificationListener : NotificationListenerService() {
             }
     }
 
+    private fun rememberNotification(sbn: StatusBarNotification): Boolean {
+        val identity = "${sbn.key}:${sbn.postTime}"
+        if (!observedNotifications.add(identity)) return false
+
+        if (observedNotifications.size > MAX_OBSERVED_NOTIFICATIONS) {
+            observedNotifications.remove(observedNotifications.first())
+        }
+        return true
+    }
+
     private companion object {
+        const val MAX_OBSERVED_NOTIFICATIONS = 512
         const val RECONCILE_INTERVAL_MS = 30_000L
     }
 }
