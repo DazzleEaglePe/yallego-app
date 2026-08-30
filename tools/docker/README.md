@@ -145,6 +145,12 @@ termina correctamente. Después espera los healthchecks de API y dashboard
 antes de abrir el proxy. PostgreSQL y Redis viven en una red marcada como
 `internal`; sus puertos, al igual que `3000/3001`, no se publican en el host.
 
+El mismo stack incluye Prometheus, Loki, Grafana Alloy y un Grafana
+provisionado. Solo Grafana publica un puerto, ligado por defecto a
+`127.0.0.1:3002` para acceder mediante túnel SSH; Prometheus, Loki y Alloy
+permanecen internos. La topología, el dashboard y su comprobación están en
+[`docs/13_OBSERVABILIDAD.md`](../../docs/13_OBSERVABILIDAD.md).
+
 La creación del rol `yallego_app` también usa una contraseña proporcionada por
 el ambiente. Ese rol no es propietario ni tiene `BYPASSRLS`; las migraciones
 continúan ejecutándose con el rol propietario. Las contraseñas deben ser

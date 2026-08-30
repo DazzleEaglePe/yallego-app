@@ -208,6 +208,8 @@ Confirmar además:
 - Registro, correo de verificación, login y una consulta autenticada funcionan.
 - Un dispositivo de prueba puede vincularse y reportar heartbeat.
 - WebSocket conecta y un cobro de prueba aparece sin recargar.
+- Grafana responde solo por loopback/túnel y el chequeo de observabilidad pasa:
+  `./tools/docker/deploy/scripts/check-observability.sh`.
 - El respaldo se copia al destino externo y puede listarse allí.
 
 No habilitar tráfico real si readiness, TLS, migración o respaldo fallan.
@@ -239,6 +241,9 @@ externo.
 - Programar el respaldo y su copia externa según `BACKUPS.md`.
 - Probar restauración periódicamente en un ambiente aislado.
 - Vigilar espacio de disco, expiración TLS, readiness, colas y tasa de parsing.
+- Operar métricas y registros según
+  [`13_OBSERVABILIDAD.md`](./13_OBSERVABILIDAD.md); no publicar Grafana, Loki
+  ni Prometheus directamente a Internet.
 - Conservar el tag anterior conocido-bueno para rollback.
 - No editar contenedores en ejecución: todo cambio nace de una imagen.
 - No ejecutar `docker compose down --volumes` en staging/producción: elimina

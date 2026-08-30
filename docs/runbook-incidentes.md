@@ -4,11 +4,11 @@ Guía de diagnóstico y resolución para quien esté de guardia. Cubre las
 señales que el propio sistema ya emite (alertas por correo, `/metrics`,
 `/health/ready`, registros estructurados) y qué hacer ante cada una.
 
-> No sustituye una plataforma de alerting real (Sprint 8: "configurar
-> tableros de monitoreo" y "configurar las alertas definidas" a nivel de
-> infraestructura siguen pendientes de un Grafana/Alertmanager desplegado).
-> Hoy las señales llegan por tres vías: correo (alertas de plataforma y de
-> negocio), `GET /metrics` (Prometheus) y los registros JSON de la API.
+> El stack de despliegue ya provisiona Prometheus, Loki, Alloy y Grafana; ver
+> [`13_OBSERVABILIDAD.md`](./13_OBSERVABILIDAD.md). Las señales llegan por
+> correo (alertas de aplicación), reglas de Prometheus visibles en Grafana y
+> registros JSON consultables en Loki. El enrutamiento externo de reglas de
+> infraestructura mediante Alertmanager queda ligado al proveedor del VPS.
 
 ## Antes de diagnosticar cualquier cosa
 
@@ -20,7 +20,8 @@ señales que el propio sistema ya emite (alertas por correo, `/metrics`,
    (`yallego_http_requests_total`, `yallego_parsing_results_total`,
    `yallego_webhook_deliveries_total`, `yallego_webhook_queue_depth`,
    `yallego_parsing_success_rate`).
-3. Registros: cada línea trae `req.id` (correlación), y cuando aplica
+3. Registros: abrir Grafana Explore y filtrar en Loki por `service="api"`;
+   cada línea trae `req.id` (correlación), y cuando aplica
    `tenantId`/`actorType`/`actorUserId`/`apiKeyId`/`deviceId`/
    `platformAdminId` — filtrar por esos campos aísla el incidente a un
    tenant o actor específico sin tener que leer todo el flujo.
