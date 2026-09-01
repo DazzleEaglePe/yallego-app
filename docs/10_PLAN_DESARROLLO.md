@@ -447,9 +447,9 @@
 
 > La membresía determina el **límite cuantitativo** de billeteras activas; la configuración del negocio determina **cuáles** usa cada tenant. No se debe guardar una `default_wallet_code` como decisión permanente del producto.
 
-- [ ] Habilitar la ruta y vista **Billeteras** del panel para propietarios y administradores
-- [ ] Consumir el catálogo global y mostrar únicamente billeteras disponibles y operativas
-- [ ] Permitir activar, configurar y desactivar billeteras por tenant, respetando el límite `wallets` del plan
+- [x] Habilitar la ruta y vista **Billeteras** del panel para propietarios y administradores _(Codex)_ — acceso derivado de `wallets:manage`, sin exposición a operadores o visores
+- [x] Consumir el catálogo global y mostrar únicamente billeteras disponibles y operativas _(Codex)_ — estados de carga, error y catálogo vacío incluidos
+- [x] Permitir activar, configurar y desactivar billeteras por tenant, respetando el límite `wallets` del plan _(Codex)_ — referencia opcional y mensaje específico al alcanzar `PLAN_LIMIT_EXCEEDED`
 - [ ] Incorporar la selección inicial de billeteras al onboarding, antes de vincular el primer Android
 - [ ] Sincronizar inmediatamente `monitored_packages` con los dispositivos vinculados cuando cambie la selección
 - [ ] Sustituir la activación automática de Yape en `AuthService.register` por la selección persistida del onboarding

@@ -37,4 +37,11 @@ describe('getVisibleNavigation', () => {
       'Auditoría',
     ]);
   });
+
+  it('habilita la ruta de billeteras solo para roles con permiso', () => {
+    expect(getVisibleNavigation('OWNER').find((item) => item.label === 'Billeteras')?.href).toBe(
+      '/billeteras',
+    );
+    expect(getVisibleNavigation('VIEWER').some((item) => item.label === 'Billeteras')).toBe(false);
+  });
 });
