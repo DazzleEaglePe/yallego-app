@@ -21,7 +21,10 @@ export class WalletsService {
 
   async listCatalog(): Promise<WalletCatalogEntry[]> {
     const wallets = await this.prisma.wallet.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        parserPatterns: { some: { isActive: true } },
+      },
       orderBy: { displayName: 'asc' },
     });
 
@@ -51,12 +54,18 @@ export class WalletsService {
     tenant: TenantContext,
     input: ActivateWalletInput,
   ): Promise<TenantWalletSummary> {
-    const wallet = await this.prisma.wallet.findUnique({ where: { code: input.wallet_code } });
-    if (!wallet || !wallet.isActive) {
+    const wallet = await this.prisma.wallet.findFirst({
+      where: {
+        code: input.wallet_code,
+        isActive: true,
+        parserPatterns: { some: { isActive: true } },
+      },
+    });
+    if (!wallet) {
       throw new ApiHttpException(
         HttpStatus.NOT_FOUND,
         'NOT_FOUND',
-        'Esa billetera no existe en el catálogo.',
+        'Esa billetera no está disponible o todavía no cuenta con un parser operativo.',
       );
     }
 
