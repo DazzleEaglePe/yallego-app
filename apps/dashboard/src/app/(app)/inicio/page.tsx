@@ -1,61 +1,378 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+
 import { useAuthSession } from '@/features/auth/auth-session';
+import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { PairDeviceDialog } from '@/features/devices/components/PairDeviceDialog';
+import { useDevices } from '@/features/devices/hooks/use-devices';
+import { StatusBadge } from '@/features/transactions/components/StatusBadge';
+import { fetchTransactions } from '@/features/transactions/api/transactions';
+import { useRealtimeTransactions } from '@/features/transactions/hooks/use-realtime-transactions';
+import { useTransactionSummary } from '@/features/transactions/hooks/use-transaction-summary';
+import { formatCurrency, formatElapsed } from '@/shared/lib/format';
+
+const weekDays = ['Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Mar', 'Hoy'];
+
+/** América/Lima no observa horario de verano: UTC-5 todo el año. */
+function startOfTodayLima(): string {
+  const today = new Intl.DateTimeFormat('en-CA', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'America/Lima',
+    year: 'numeric',
+  }).format(new Date());
+  return `${today}T05:00:00.000Z`;
+}
 
 export default function DashboardHomePage() {
   const { session } = useAuthSession();
-  const firstName = session?.user.full_name.trim().split(/\s+/)[0] ?? 'hola';
+  const [isPairingDialogOpen, setIsPairingDialogOpen] = useState(false);
+  const firstName = session?.user.full_name.trim().split(/\s+/)[0] ?? 'equipo';
   const today = new Intl.DateTimeFormat('es-PE', {
     day: 'numeric',
     month: 'long',
     timeZone: 'America/Lima',
     weekday: 'long',
   }).format(new Date());
+  const greeting = getGreeting();
+
+  const devices = useDevices();
+  const summary = useTransactionSummary({ from: startOfTodayLima() });
+  useRealtimeTransactions();
+  const accessToken = session?.accessToken ?? null;
+  const recentTransactions = useQuery({
+    queryKey: ['transactions', 'recent'],
+    queryFn: () => fetchTransactions(accessToken!, { limit: 5 }),
+    enabled: Boolean(accessToken),
+  });
+
+  const deviceList = devices.data ?? [];
+  const activeDevices = deviceList.filter((device) => device.status === 'ACTIVE');
+  const onlineDevice = activeDevices.find((device) => device.connectivity === 'ONLINE');
+  const totals = summary.data?.totals;
+  const recentList = recentTransactions.data?.data ?? [];
+
+  const hasAnyDevice = deviceList.length > 0;
+  const metrics = [
+    {
+      detail: totals && totals.count > 0 ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} hoy` : 'Sin movimientos todavía',
+      icon: 'wallet' as DashboardIconName,
+      label: 'Cobrado hoy',
+      value: totals ? formatCurrency(totals.amount, totals.currency) : 'S/ 0.00',
+    },
+    {
+      detail:
+        totals && totals.count > 0
+          ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} registrado${totals.count === 1 ? '' : 's'} hoy`
+          : 'Sin transacciones todavía',
+      icon: 'receipt' as DashboardIconName,
+      label: 'Transacciones',
+      value: String(totals?.count ?? 0),
+    },
+    {
+      detail: totals && totals.count > 0 ? 'Del período de hoy' : 'Se calculará con tu primer cobro',
+      icon: 'ticket' as DashboardIconName,
+      label: 'Ticket promedio',
+      value: totals && totals.count > 0 ? formatCurrency(totals.average, totals.currency) : 'S/ 0.00',
+    },
+    {
+      detail: hasAnyDevice ? `${activeDevices.length} vinculado${activeDevices.length === 1 ? '' : 's'}` : 'Vincula tu primer Android',
+      icon: 'device' as DashboardIconName,
+      label: 'Dispositivos activos',
+      value: `${activeDevices.length} de ${Math.max(deviceList.length, 1)}`,
+    },
+  ];
 
   return (
-    <div>
-      <p className="text-sm font-medium text-brand-600 first-letter:uppercase">{today}</p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">
-        Buenos días, {firstName}
-      </h1>
-      <p className="mt-2 text-sm text-neutral-500">
-        Aquí aparecerá el resumen en tiempo real de tu negocio.
-      </p>
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Resumen">
-        {[
-          ['Cobrado hoy', 'S/ 0.00'],
-          ['Transacciones', '0'],
-          ['Dispositivos activos', '0 de 1'],
-        ].map(([label, value]) => (
+    <div className="pb-6">
+      <section className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-sm font-medium text-neutral-500">
+            <DashboardIcon className="h-4 w-4 text-brand-500" name="calendar" />
+            <span className="first-letter:uppercase">{today}</span>
+          </div>
+          <h1 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
+            {greeting}, {firstName}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">
+            Todo lo importante de tu negocio, listo para revisar en un solo lugar.
+          </p>
+        </div>
+
+        <button
+          className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
+          onClick={() => setIsPairingDialogOpen(true)}
+          type="button"
+        >
+          <DashboardIcon className="h-4 w-4" name="device" />
+          Vincular dispositivo
+          <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
+        </button>
+      </section>
+
+      <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen">
+        {metrics.map((metric) => (
           <article
-            className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm"
-            key={label}
+            className="group rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(24,24,27,0.03)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-lg hover:shadow-neutral-900/5"
+            key={metric.label}
           >
-            <p className="text-sm font-medium text-neutral-500">{label}</p>
-            <p className="mt-3 font-mono text-2xl font-bold text-neutral-900">{value}</p>
+            <div className="flex items-start justify-between gap-4">
+              <p className="text-sm font-medium text-neutral-500">{metric.label}</p>
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-500 group-hover:text-white">
+                <DashboardIcon className="h-4.5 w-4.5" name={metric.icon} />
+              </span>
+            </div>
+            <p className="mt-4 font-mono text-2xl font-bold tracking-tight text-neutral-950">
+              {metric.value}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-neutral-500">{metric.detail}</p>
           </article>
         ))}
       </section>
-      <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-8 text-center shadow-sm">
-        <div
-          className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-xl text-brand-600"
-          aria-hidden="true"
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.7fr)]">
+        <article className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.03)]">
+          <div className="flex flex-col gap-3 border-b border-neutral-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-950">Actividad de cobros</h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                Importe recibido durante los últimos 7 días
+              </p>
+            </div>
+            <span className="inline-flex w-fit items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-semibold text-neutral-600">
+              <DashboardIcon className="h-4 w-4" name="calendar" />
+              Últimos 7 días
+            </span>
+          </div>
+
+          <div className="p-5 sm:p-6">
+            <div className="relative h-64 overflow-hidden rounded-2xl bg-neutral-50">
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-5 inset-y-7 flex flex-col justify-between"
+              >
+                {[0, 1, 2, 3].map((line) => (
+                  <span className="block border-t border-dashed border-neutral-200" key={line} />
+                ))}
+              </div>
+              <div className="absolute inset-0 grid place-items-center px-5 pb-8 text-center">
+                <div className="rounded-2xl border border-neutral-200 bg-white/95 px-5 py-4 shadow-lg shadow-neutral-900/5 backdrop-blur">
+                  <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                    <DashboardIcon className="h-5 w-5" name="activity" />
+                  </span>
+                  <p className="mt-3 text-sm font-semibold text-neutral-900">
+                    {recentList.length > 0 ? 'El gráfico llega en la próxima entrega' : 'Aún no hay movimientos'}
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {recentList.length > 0
+                      ? 'Ya hay cobros reales — revisa la lista de la derecha mientras tanto.'
+                      : 'Tu primer cobro aparecerá aquí en tiempo real.'}
+                  </p>
+                </div>
+              </div>
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-5 bottom-4 grid grid-cols-7 gap-2"
+              >
+                {weekDays.map((day) => (
+                  <span className="text-center text-[11px] font-medium text-neutral-400" key={day}>
+                    {day}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article
+          className="relative overflow-hidden rounded-2xl bg-neutral-950 p-6 text-white shadow-xl shadow-neutral-950/10"
+          id="primer-dispositivo"
         >
-          ↗
-        </div>
-        <h2 className="mt-4 text-lg font-semibold text-neutral-900">
-          Vincula tu primer dispositivo
-        </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">
-          Conecta un Android para empezar a recibir y validar notificaciones de pago.
-        </p>
-        <button
-          className="mt-5 rounded-md bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600"
-          type="button"
-        >
-          Configurar dispositivo
-        </button>
+          <div
+            aria-hidden="true"
+            className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-500/30 blur-3xl"
+          />
+          <div className="relative">
+            <span className="inline-flex rounded-full border border-brand-400/30 bg-brand-500/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-200">
+              Primeros pasos
+            </span>
+            <h2 className="mt-5 max-w-xs text-2xl font-bold tracking-tight">
+              Activa el monitoreo de tu negocio
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-neutral-400">
+              Conecta un Android y Yallegó empezará a reconocer tus notificaciones de pago.
+            </p>
+
+            <ol className="mt-6 space-y-4">
+              <SetupStep complete label="Cuenta creada y verificada" number="1" />
+              <SetupStep complete={hasAnyDevice} label="Vincular dispositivo Android" number="2" />
+              <SetupStep complete={(totals?.count ?? 0) > 0} label="Recibir el primer cobro" number="3" />
+            </ol>
+
+            <details className="group mt-6 rounded-xl border border-white/10 bg-white/[0.06] p-4 open:bg-white/[0.08]">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold focus:outline-none">
+                Ver guía de conexión
+                <DashboardIcon
+                  className="h-4 w-4 transition group-open:rotate-90"
+                  name="chevron-right"
+                />
+              </summary>
+              <ol className="mt-4 space-y-2 border-t border-white/10 pt-4 text-xs leading-5 text-neutral-300">
+                <li>1. Instala Yallegó en el Android que recibe los pagos.</li>
+                <li>2. Autoriza el acceso a notificaciones.</li>
+                <li>3. Escanea el código de vinculación desde este panel.</li>
+              </ol>
+            </details>
+          </div>
+        </article>
       </section>
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.7fr)]">
+        <article className="rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.03)]">
+          <div className="flex items-center justify-between gap-4 border-b border-neutral-100 px-5 py-5 sm:px-6">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-950">Últimas transacciones</h2>
+              <p className="mt-1 text-sm text-neutral-500">Cobros detectados más recientemente</p>
+            </div>
+            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-500">
+              {recentList.length} registro{recentList.length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {recentList.length === 0 ? (
+            <div className="grid min-h-52 place-items-center px-5 py-8 text-center">
+              <div>
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-400">
+                  <DashboardIcon className="h-5 w-5" name="receipt" />
+                </span>
+                <p className="mt-4 text-sm font-semibold text-neutral-900">Tu historial está listo</p>
+                <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-neutral-500">
+                  En cuanto llegue una notificación de pago válida, la verás aquí con su billetera,
+                  importe y estado.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-100">
+              {recentList.map((transaction) => (
+                <div className="flex items-center gap-3 px-5 py-4 sm:px-6" key={transaction.id}>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-500">
+                    <DashboardIcon className="h-4.5 w-4.5" name="wallet" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-neutral-950">
+                      {transaction.sender_name ?? 'Remitente sin nombre'}
+                    </span>
+                    <span className="block text-xs text-neutral-500">
+                      {transaction.wallet.display_name} · {formatElapsed(transaction.occurred_at)}
+                    </span>
+                  </span>
+                  <span className="font-mono text-sm font-semibold text-neutral-950">
+                    {formatCurrency(transaction.amount, transaction.currency)}
+                  </span>
+                  <StatusBadge status={transaction.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(24,24,27,0.03)] sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-neutral-950">Estado del sistema</h2>
+              <p className="mt-1 text-sm text-neutral-500">Resumen operativo</p>
+            </div>
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-success-50 text-success-600">
+              <DashboardIcon className="h-5 w-5" name="shield" />
+            </span>
+          </div>
+          <div className="mt-6 space-y-3">
+            <StatusRow label="Panel web" status="Conectado" />
+            <StatusRow label="Sesión segura" status="Activa" />
+            <StatusRow
+              label="Dispositivo Android"
+              pending={!onlineDevice}
+              status={
+                !hasAnyDevice
+                  ? 'Por vincular'
+                  : onlineDevice
+                    ? 'En línea'
+                    : 'Sin conexión'
+              }
+            />
+          </div>
+        </article>
+      </section>
+
+      {isPairingDialogOpen && session && (
+        <PairDeviceDialog accessToken={session.accessToken} onClose={() => setIsPairingDialogOpen(false)} />
+      )}
     </div>
   );
+}
+
+function SetupStep({
+  complete = false,
+  label,
+  number,
+}: {
+  complete?: boolean;
+  label: string;
+  number: string;
+}) {
+  return (
+    <li className="flex items-center gap-3">
+      <span
+        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${
+          complete
+            ? 'bg-brand-500 text-white'
+            : 'border border-white/15 bg-white/[0.06] text-neutral-400'
+        }`}
+      >
+        {complete ? <DashboardIcon className="h-4 w-4" name="check" /> : number}
+      </span>
+      <span className={`text-sm ${complete ? 'text-white' : 'text-neutral-400'}`}>{label}</span>
+    </li>
+  );
+}
+
+function StatusRow({
+  label,
+  pending = false,
+  status,
+}: {
+  label: string;
+  pending?: boolean;
+  status: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl bg-neutral-50 px-3.5 py-3">
+      <span className="text-sm font-medium text-neutral-700">{label}</span>
+      <span
+        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${pending ? 'text-warning-600' : 'text-success-600'}`}
+      >
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${pending ? 'bg-warning-500' : 'bg-success-500'}`}
+        />
+        {status}
+      </span>
+    </div>
+  );
+}
+
+function getGreeting(): string {
+  const hour = Number(
+    new Intl.DateTimeFormat('es-PE', {
+      hour: 'numeric',
+      hourCycle: 'h23',
+      timeZone: 'America/Lima',
+    }).format(new Date()),
+  );
+
+  if (hour < 12) return 'Buenos días';
+  if (hour < 19) return 'Buenas tardes';
+  return 'Buenas noches';
 }

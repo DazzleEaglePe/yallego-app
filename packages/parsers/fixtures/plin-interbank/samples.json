@@ -1,0 +1,44 @@
+[
+  {
+    "name": "inferred format — pending real sample",
+    "notification": {
+      "packageName": "pe.com.interbank.mobilebanking",
+      "title": "Plin",
+      "text": "Te llegó un Plin de LUIS FERNANDO MENDOZA por S/ 75.00",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "PLIN_INTERBANK",
+      "senderName": "LUIS FERNANDO MENDOZA",
+      "amount": { "value": 75, "currency": "PEN" },
+      "securityCode": null,
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "special characters in sender name",
+    "notification": {
+      "packageName": "pe.com.interbank.mobilebanking",
+      "title": "Plin",
+      "text": "Te llegó un Plin de ÑUSTA VICTORIA CÓRDOVA por S/ 15.00",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "PLIN_INTERBANK",
+      "senderName": "ÑUSTA VICTORIA CÓRDOVA",
+      "amount": { "value": 15, "currency": "PEN" },
+      "securityCode": null,
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "unrelated notification",
+    "notification": {
+      "packageName": "pe.com.interbank.mobilebanking",
+      "title": "Interbank",
+      "text": "Tu resumen de cuenta ya está disponible",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": null
+  }
+]

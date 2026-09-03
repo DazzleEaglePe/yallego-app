@@ -2,12 +2,13 @@ import Link from 'next/link';
 
 interface BrandMarkProps {
   compact?: boolean;
+  inverse?: boolean;
 }
 
-export function BrandMark({ compact = false }: BrandMarkProps) {
+export function BrandMark({ compact = false, inverse = false }: BrandMarkProps) {
   return (
     <Link
-      className="inline-flex items-center gap-3 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-4"
+      className={`inline-flex items-center gap-3 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-4 ${inverse ? 'focus:ring-offset-neutral-950' : 'focus:ring-offset-white'}`}
       href="/"
     >
       <span
@@ -18,8 +19,14 @@ export function BrandMark({ compact = false }: BrandMarkProps) {
       </span>
       {!compact && (
         <span>
-          <span className="block text-lg font-bold tracking-tight text-neutral-900">Yallegó</span>
-          <span className="block text-xs text-neutral-500">¿Ya llegó?</span>
+          <span
+            className={`block text-lg font-bold tracking-tight ${inverse ? 'text-white' : 'text-neutral-900'}`}
+          >
+            Yallegó
+          </span>
+          <span className={`block text-xs ${inverse ? 'text-neutral-400' : 'text-neutral-500'}`}>
+            ¿Ya llegó?
+          </span>
         </span>
       )}
     </Link>

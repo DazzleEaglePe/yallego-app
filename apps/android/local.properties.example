@@ -1,0 +1,10 @@
+# Copia este archivo a `local.properties` (ya está en .gitignore) y ajusta los
+# valores. Android Studio agrega `sdk.dir` automáticamente al abrir el proyecto.
+#
+# API_BASE_URL_DEBUG:   backend local. Usa 10.0.2.2 para el emulador; la IP de
+#                       LAN del equipo de desarrollo para un celular físico
+#                       (y agrégala también a
+#                       app/src/debug/res/xml/network_security_config_debug.xml).
+# API_BASE_URL_RELEASE: backend de producción, siempre HTTPS.
+API_BASE_URL_DEBUG=http://10.0.2.2:3001/
+API_BASE_URL_RELEASE=https://api.yallego.app/

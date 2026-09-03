@@ -34,6 +34,9 @@ integrationDescribe('Authentication API', () => {
     });
     process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = databaseUrl;
+    // Redis es real y compartida entre corridas: sin un prefijo único, jobs
+    // huérfanos de una corrida anterior (o de otro archivo) contaminarían esta.
+    process.env.BULLMQ_PREFIX = `test-${suffix}`;
     process.env.JWT_PRIVATE_KEY = Buffer.from(privateKey).toString('base64');
     process.env.JWT_PUBLIC_KEY = Buffer.from(publicKey).toString('base64');
 
@@ -51,17 +54,21 @@ integrationDescribe('Authentication API', () => {
   }, 30_000);
 
   afterAll(async () => {
-    const users = await prisma.user.findMany({
-      where: { email: { in: [primaryEmail, lockedEmail] } },
-      include: { memberships: true },
+    // `memberships` y `audit_events` tienen Row Level Security: sin
+    // `withoutTenantScope` esta limpieza no vería ninguna fila y dejaría
+    // negocios huérfanos.
+    await prisma.withoutTenantScope(async (tx) => {
+      const users = await tx.user.findMany({
+        where: { email: { in: [primaryEmail, lockedEmail] } },
+        include: { memberships: true },
+      });
+      const userIds = users.map(({ id }) => id);
+      const tenantIds = users.flatMap(({ memberships }) =>
+        memberships.map(({ tenantId }) => tenantId),
+      );
+      await tx.tenant.deleteMany({ where: { id: { in: tenantIds } } });
+      await tx.user.deleteMany({ where: { id: { in: userIds } } });
     });
-    const userIds = users.map(({ id }) => id);
-    const tenantIds = users.flatMap(({ memberships }) =>
-      memberships.map(({ tenantId }) => tenantId),
-    );
-    await prisma.auditEvent.deleteMany({ where: { actorUserId: { in: userIds } } });
-    await prisma.tenant.deleteMany({ where: { id: { in: tenantIds } } });
-    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await app.close();
   });
 
@@ -89,12 +96,24 @@ integrationDescribe('Authentication API', () => {
     expect(verificationToken).toMatch(/^ev_/);
     await agent.post('/v1/auth/verify-email').send({ token: verificationToken }).expect(200);
 
+    const secondaryTenant = await prisma.withoutTenantScope(async (tx) => {
+      const user = await tx.user.findUniqueOrThrow({ where: { email: primaryEmail } });
+      return tx.tenant.create({
+        data: {
+          businessName: `Segundo Negocio ${suffix}`,
+          slug: `segundo-negocio-${suffix}`,
+          memberships: { create: { role: 'OWNER', userId: user.id } },
+        },
+      });
+    });
+
     const login = await agent.post('/v1/auth/login').send({
       email: primaryEmail,
       password: originalPassword,
     });
     expect(login.status).toBe(200);
     expect(login.body.access_token).toEqual(expect.any(String));
+    expect(login.body.active_tenant_id).toBe(login.body.tenants[0].id);
     expect(login.body).not.toHaveProperty('refresh_token');
     const firstCookie = firstResponseCookie(login.headers['set-cookie']);
     expect(firstCookie).toContain('yallego_refresh=rt_');
@@ -108,8 +127,19 @@ integrationDescribe('Authentication API', () => {
     expect(profile.body.user.email).toBe(primaryEmail);
     expect(profile.body.tenants[0].role).toBe('OWNER');
 
-    const refreshed = await agent.post('/v1/auth/refresh').send({}).expect(200);
+    const switched = await agent
+      .post('/v1/auth/switch-tenant')
+      .set('Authorization', `Bearer ${login.body.access_token}`)
+      .send({ tenant_id: secondaryTenant.id })
+      .expect(200);
+    expect(switched.body.active_tenant_id).toBe(secondaryTenant.id);
+
+    const refreshed = await agent
+      .post('/v1/auth/refresh')
+      .send({ tenant_id: secondaryTenant.id })
+      .expect(200);
     expect(refreshed.body.access_token).not.toBe(login.body.access_token);
+    expect(refreshed.body.active_tenant_id).toBe(secondaryTenant.id);
     const secondCookie = firstResponseCookie(refreshed.headers['set-cookie']);
     expect(secondCookie).not.toBe(firstCookie);
 

@@ -11,6 +11,10 @@ describe('Health API', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
+    // Redis es real y compartida entre corridas: sin un prefijo único, jobs
+    // huérfanos de otro archivo o de una corrida anterior la contaminarían.
+    process.env.BULLMQ_PREFIX = `test-health-${Date.now()}`;
+
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
       .useValue({})

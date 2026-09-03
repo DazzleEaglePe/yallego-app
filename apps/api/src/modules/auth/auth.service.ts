@@ -14,6 +14,7 @@ import type {
   LoginInput,
   RegisterInput,
   ResetPasswordInput,
+  SwitchTenantInput,
   VerifyEmailInput,
 } from '@yallego/contracts';
 
@@ -29,8 +30,9 @@ const LOCK_DURATION_MS = 15 * 60 * 1_000;
 const MAX_FAILED_ATTEMPTS = 5;
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1_000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1_000;
+const DEFAULT_WALLET_CODE = 'YAPE';
 
-type UserWithMemberships = Prisma.UserGetPayload<{
+export type UserWithMemberships = Prisma.UserGetPayload<{
   include: { memberships: { include: { tenant: true } } };
 }>;
 
@@ -54,7 +56,7 @@ export class AuthService {
     const verificationHash = this.tokenService.hashOpaqueToken(verificationToken);
 
     try {
-      const result = await this.prisma.$transaction(async (transaction) => {
+      const result = await this.prisma.withoutTenantScope(async (transaction) => {
         const freePlan = await transaction.plan.findUnique({ where: { code: 'FREE' } });
         if (!freePlan) {
           throw new ApiHttpException(
@@ -78,6 +80,20 @@ export class AuthService {
             slug,
           },
         });
+        // Mientras el selector de billeteras sigue fuera del MVP, un negocio
+        // nuevo necesita al menos una fuente activa; de otro modo el Android
+        // recibe monitored_packages=[] y descarta todos los cobros.
+        const defaultWallet = await transaction.wallet.findUnique({
+          where: { code: DEFAULT_WALLET_CODE },
+        });
+        if (defaultWallet?.isActive) {
+          await transaction.tenantWallet.create({
+            data: {
+              tenantId: tenant.id,
+              walletId: defaultWallet.id,
+            },
+          });
+        }
         await transaction.membership.create({
           data: {
             role: MembershipRole.OWNER,
@@ -167,7 +183,7 @@ export class AuthService {
       );
     }
 
-    await this.prisma.$transaction(async (transaction) => {
+    await this.prisma.withoutTenantScope(async (transaction) => {
       const consumed = await transaction.oneTimeToken.updateMany({
         where: { id: token.id, consumedAt: null, expiresAt: { gt: now } },
         data: { consumedAt: now },
@@ -250,22 +266,28 @@ export class AuthService {
     return this.startSession(user, metadata);
   }
 
-  async refresh(refreshToken: string, metadata: RequestMetadata): Promise<SessionResult> {
+  async refresh(
+    refreshToken: string,
+    metadata: RequestMetadata,
+    activeTenantId?: string,
+  ): Promise<SessionResult> {
     const tokenHash = this.tokenService.hashOpaqueToken(refreshToken);
-    const current = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
-      include: {
-        user: {
-          include: {
-            memberships: {
-              include: { tenant: true },
-              orderBy: { joinedAt: 'asc' },
-              where: { tenant: { status: TenantStatus.ACTIVE } },
+    const current = await this.prisma.withoutTenantScope((tx) =>
+      tx.refreshToken.findUnique({
+        where: { tokenHash },
+        include: {
+          user: {
+            include: {
+              memberships: {
+                include: { tenant: true },
+                orderBy: { joinedAt: 'asc' },
+                where: { tenant: { status: TenantStatus.ACTIVE } },
+              },
             },
           },
         },
-      },
-    });
+      }),
+    );
 
     if (!current) throw this.invalidSessionError();
     if (current.revokedAt) {
@@ -281,7 +303,9 @@ export class AuthService {
       throw this.invalidSessionError();
     }
 
-    const membership = current.user.memberships[0];
+    const membership =
+      current.user.memberships.find(({ tenantId }) => tenantId === activeTenantId) ??
+      current.user.memberships[0];
     if (!membership) throw this.invalidSessionError();
     const nextRawToken = this.tokenService.createOpaqueToken('rt');
     const nextHash = this.tokenService.hashOpaqueToken(nextRawToken);
@@ -323,16 +347,15 @@ export class AuthService {
       throw error;
     }
 
-    return this.mapSession(current.user, nextRawToken, access);
+    return this.mapSession(current.user, nextRawToken, access, membership.tenantId);
   }
 
   async logout(refreshToken: string | undefined, metadata: RequestMetadata): Promise<void> {
     if (!refreshToken) return;
     const tokenHash = this.tokenService.hashOpaqueToken(refreshToken);
-    const token = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
-      include: { user: true },
-    });
+    const token = await this.prisma.withoutTenantScope((tx) =>
+      tx.refreshToken.findUnique({ where: { tokenHash }, include: { user: true } }),
+    );
     if (!token) return;
 
     await this.prisma.refreshToken.updateMany({
@@ -397,7 +420,7 @@ export class AuthService {
     }
 
     const passwordHash = await this.passwordService.hash(input.password);
-    await this.prisma.$transaction(async (transaction) => {
+    await this.prisma.withoutTenantScope(async (transaction) => {
       const consumed = await transaction.oneTimeToken.updateMany({
         where: { id: token.id, consumedAt: null, expiresAt: { gt: now } },
         data: { consumedAt: now },
@@ -467,6 +490,40 @@ export class AuthService {
     return { message: 'La contraseña se actualizó. Ingresa nuevamente.' };
   }
 
+  /**
+   * Reemite el access token con otro tenant al que pertenece el usuario.
+   * El refresh token no se modifica (docs/07_SEGURIDAD_AUTH.md §2.4): es una
+   * operación ligera, no una nueva sesión.
+   */
+  async switchTenant(
+    session: AccessTokenPayload,
+    input: SwitchTenantInput,
+  ): Promise<{ access_token: string; active_tenant_id: string; expires_in: number }> {
+    const membership = await this.prisma.withoutTenantScope((tx) =>
+      tx.membership.findUnique({
+        where: { tenantId_userId: { tenantId: input.tenant_id, userId: session.sub } },
+        include: { tenant: { select: { status: true } } },
+      }),
+    );
+
+    if (!membership || membership.tenant.status !== TenantStatus.ACTIVE) {
+      throw new ApiHttpException(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'No perteneces a ese negocio.');
+    }
+
+    const access = this.tokenService.issueAccessToken({
+      email: session.email,
+      role: membership.role,
+      tenantId: membership.tenantId,
+      userId: session.sub,
+    });
+
+    return {
+      access_token: access.token,
+      active_tenant_id: membership.tenantId,
+      expires_in: access.expiresIn,
+    };
+  }
+
   async getProfile(session: AccessTokenPayload): Promise<{
     tenants: Array<{ business_name: string; id: string; role: MembershipRole; slug: string }>;
     user: { email: string; full_name: string; id: string };
@@ -485,10 +542,8 @@ export class AuthService {
     };
   }
 
-  private async startSession(
-    user: UserWithMemberships,
-    metadata: RequestMetadata,
-  ): Promise<SessionResult> {
+  /** Público: lo reutiliza el módulo de miembros al aceptar una invitación con auto-ingreso. */
+  async startSession(user: UserWithMemberships, metadata: RequestMetadata): Promise<SessionResult> {
     const membership = user.memberships[0];
     if (!membership) throw this.invalidSessionError();
     const refreshToken = this.tokenService.createOpaqueToken('rt');
@@ -510,17 +565,20 @@ export class AuthService {
       },
     });
 
-    return this.mapSession(user, refreshToken, access);
+    return this.mapSession(user, refreshToken, access, membership.tenantId);
   }
 
-  private mapSession(
+  /** Público por la misma razón que `startSession`. */
+  mapSession(
     user: UserWithMemberships,
     refreshToken: string,
     access: { expiresIn: number; token: string },
+    activeTenantId: string,
   ): SessionResult {
     return {
       accessToken: access.token,
       accessTokenExpiresIn: access.expiresIn,
+      activeTenantId,
       refreshToken,
       refreshTokenExpiresIn: this.tokenService.getRefreshTokenTtlSeconds(),
       user: { id: user.id, email: user.email, fullName: user.fullName },
@@ -534,16 +592,18 @@ export class AuthService {
   }
 
   private findUserWithMemberships(email: string): Promise<UserWithMemberships | null> {
-    return this.prisma.user.findUnique({
-      where: { email },
-      include: {
-        memberships: {
-          include: { tenant: true },
-          orderBy: { joinedAt: 'asc' },
-          where: { tenant: { status: TenantStatus.ACTIVE } },
+    return this.prisma.withoutTenantScope((tx) =>
+      tx.user.findUnique({
+        where: { email },
+        include: {
+          memberships: {
+            include: { tenant: true },
+            orderBy: { joinedAt: 'asc' },
+            where: { tenant: { status: TenantStatus.ACTIVE } },
+          },
         },
-      },
-    });
+      }),
+    );
   }
 
   private async recordFailedLogin(
@@ -577,16 +637,18 @@ export class AuthService {
     user: { id: string; memberships?: Array<{ tenantId: string }> },
     metadata: RequestMetadata,
   ): Promise<void> {
-    await this.prisma.auditEvent.create({
-      data: {
-        action,
-        actorType: 'USER',
-        actorUserId: user.id,
-        ipAddress: metadata.ipAddress,
-        tenantId: user.memberships?.[0]?.tenantId,
-        userAgent: metadata.userAgent,
-      },
-    });
+    await this.prisma.withoutTenantScope((tx) =>
+      tx.auditEvent.create({
+        data: {
+          action,
+          actorType: 'USER',
+          actorUserId: user.id,
+          ipAddress: metadata.ipAddress,
+          tenantId: user.memberships?.[0]?.tenantId,
+          userAgent: metadata.userAgent,
+        },
+      }),
+    );
   }
 
   private revokeTokenFamily(familyId: string): Promise<Prisma.BatchPayload> {

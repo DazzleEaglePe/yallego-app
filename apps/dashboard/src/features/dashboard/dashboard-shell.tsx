@@ -1,25 +1,46 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { can } from '@yallego/contracts';
+import { useQuery } from '@tanstack/react-query';
 
-import { useAuthSession } from '@/features/auth/auth-session';
+import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
+import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { getVisibleNavigation } from '@/features/dashboard/dashboard-navigation';
+import { TenantSwitcher } from '@/features/dashboard/TenantSwitcher';
+import { useDevices } from '@/features/devices/hooks/use-devices';
+import { SubscriptionUsageNotice } from '@/features/subscription/components/SubscriptionUsageNotice';
+import { fetchTransactions } from '@/features/transactions/api/transactions';
 import { BrandMark } from '@/shared/components/BrandMark';
-
-const navigation = [
-  'Inicio',
-  'Transacciones',
-  'Dispositivos',
-  'Billeteras',
-  'Equipo',
-  'Integraciones',
-];
 
 export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
+  const pathname = usePathname();
   const { logout, session } = useAuthSession();
-  const tenant = session?.tenants[0];
+  const tenant = getActiveTenant(session);
+  const navigation = getVisibleNavigation(tenant?.role);
+  const canManageDevices = tenant !== undefined && can(tenant.role, 'devices:manage');
+  const canManageSubscription = tenant !== undefined && can(tenant.role, 'subscription:manage');
   const initials = getInitials(session?.user.full_name);
+  const page = getPageMeta(pathname);
+  const devices = useDevices();
+  const accessToken = session?.accessToken ?? null;
+  const setupTransactions = useQuery({
+    queryKey: ['transactions', 'setup-progress'],
+    queryFn: () => fetchTransactions(accessToken!, { limit: 1 }),
+    enabled: canManageDevices && Boolean(accessToken),
+  });
+  const hasDevice = (devices.data?.length ?? 0) > 0;
+  const hasTransaction = (setupTransactions.data?.data.length ?? 0) > 0;
+  const setupSteps = 1 + Number(hasDevice) + Number(hasTransaction);
+  const setupProgress = Math.round((setupSteps / 3) * 100);
+  const setupMessage = !hasDevice
+    ? 'Vincula un Android para comenzar a validar cobros.'
+    : !hasTransaction
+      ? 'Dispositivo vinculado. Falta recibir el primer cobro.'
+      : 'Configuración completada. Tu negocio ya recibe cobros.';
 
   async function handleLogout() {
     try {
@@ -30,31 +51,146 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 lg:grid lg:grid-cols-[256px_1fr]">
-      <aside className="hidden border-r border-neutral-200 bg-white px-5 py-6 lg:block">
-        <BrandMark />
-        <nav aria-label="Navegación principal" className="mt-10 space-y-1">
-          {navigation.map((item, index) => (
-            <span
-              className={`block rounded-md px-3 py-2.5 text-sm font-medium ${index === 0 ? 'bg-brand-50 text-brand-700' : 'text-neutral-600'}`}
-              key={item}
-            >
-              {item}
-            </span>
-          ))}
+    <div className="min-h-screen bg-neutral-100 lg:grid lg:grid-cols-[272px_minmax(0,1fr)]">
+      <aside className="hidden h-screen flex-col border-r border-white/5 bg-neutral-950 px-4 py-5 lg:sticky lg:top-0 lg:flex">
+        <div className="px-2">
+          <BrandMark inverse />
+          <div className="mt-7">
+            <TenantSwitcher variant="dark" />
+          </div>
+        </div>
+
+        <nav aria-label="Navegación principal" className="mt-10">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            Mi negocio
+          </p>
+          <div className="mt-3 space-y-1">
+            {navigation.map((item) => {
+              const isActive = item.href !== null && pathname?.startsWith(item.href);
+              const content = (
+                <>
+                  <DashboardIcon className="h-5 w-5 shrink-0" name={item.icon} />
+                  <span>{item.label}</span>
+                  {item.href === null && (
+                    <span className="ml-auto rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                      Pronto
+                    </span>
+                  )}
+                </>
+              );
+
+              return item.href !== null ? (
+                <Link
+                  aria-current={isActive ? 'page' : undefined}
+                  className={
+                    isActive
+                      ? 'flex items-center gap-3 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(36,119,239,0.22)] transition hover:bg-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-neutral-950'
+                      : 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-neutral-950'
+                  }
+                  href={item.href}
+                  key={item.label}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <span
+                  aria-disabled="true"
+                  className="flex cursor-default items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-400"
+                  key={item.label}
+                >
+                  {content}
+                </span>
+              );
+            })}
+          </div>
         </nav>
+
+        <div className="mt-auto">
+          {canManageDevices && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-white">Configuración inicial</p>
+                <span className="text-xs font-semibold text-brand-300">{setupProgress}%</span>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-brand-400 transition-[width]"
+                  style={{ width: `${setupProgress}%` }}
+                />
+              </div>
+              <p className="mt-3 text-xs leading-5 text-neutral-400">{setupMessage}</p>
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center gap-3 border-t border-white/10 px-2 pt-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500 text-sm font-bold text-white">
+              {initials}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-white">
+                {tenant?.business_name ?? 'Mi negocio'}
+              </span>
+              <span className="block truncate text-xs text-neutral-500">
+                {session?.user.email ?? 'Cuenta principal'}
+              </span>
+            </span>
+            <button
+              aria-label="Cerrar sesión"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-neutral-400 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-400"
+              onClick={() => void handleLogout()}
+              title="Cerrar sesión"
+              type="button"
+            >
+              <DashboardIcon className="h-4.5 w-4.5" name="logout" />
+            </button>
+          </div>
+        </div>
       </aside>
-      <div>
-        <header className="flex h-16 items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 lg:px-8">
+
+      <div className="min-w-0">
+        <header className="flex h-[72px] items-center justify-between gap-3 border-b border-neutral-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
           <div className="lg:hidden">
             <BrandMark compact />
           </div>
-          <span className="ml-auto truncate text-sm font-medium text-neutral-700">
-            {tenant?.business_name ?? 'Mi negocio'}
+
+          <div className="min-w-0 flex-1 sm:hidden">
+            <TenantSwitcher />
+          </div>
+
+          <div className="hidden items-center gap-3 lg:flex">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
+              <DashboardIcon className="h-4.5 w-4.5" name={page.icon} />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-neutral-900">{page.title}</span>
+              <span className="block text-xs text-neutral-500">{page.section}</span>
+            </span>
+          </div>
+
+          <div className="ml-auto hidden items-center gap-2 sm:flex">
+            <span className="mr-2 inline-flex items-center gap-2 rounded-full bg-success-50 px-3 py-1.5 text-xs font-semibold text-success-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
+              Panel conectado
+            </span>
+            <span
+              aria-label="Sin notificaciones"
+              className="grid h-10 w-10 place-items-center rounded-xl border border-neutral-200 bg-white text-neutral-400"
+              role="img"
+              title="Sin notificaciones"
+            >
+              <DashboardIcon className="h-5 w-5" name="bell" />
+            </span>
+          </div>
+
+          <span className="hidden min-w-0 sm:block">
+            <span className="block truncate text-sm font-semibold text-neutral-900">
+              {tenant?.business_name ?? 'Mi negocio'}
+            </span>
+            <span className="block text-xs text-neutral-500">{roleLabel(tenant?.role)}</span>
           </span>
           <button
             aria-label="Cerrar sesión"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 transition hover:bg-brand-200 focus:outline-none focus:ring-4 focus:ring-brand-100"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-neutral-950 text-sm font-semibold text-white transition hover:bg-neutral-800 focus:outline-none focus:ring-4 focus:ring-brand-100 lg:hidden"
             onClick={() => void handleLogout()}
             title="Cerrar sesión"
             type="button"
@@ -62,10 +198,71 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
             {initials}
           </button>
         </header>
-        <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{children}</main>
+
+        <nav
+          aria-label="Navegación móvil"
+          className="flex gap-2 overflow-x-auto border-b border-neutral-200 bg-white px-4 py-2 lg:hidden"
+        >
+          {navigation
+            .filter((item) => item.href !== null)
+            .map((item) => {
+              const isActive = item.href !== null && pathname?.startsWith(item.href);
+              return item.href !== null ? (
+                <Link
+                  aria-current={isActive ? 'page' : undefined}
+                  className={
+                    isActive
+                      ? 'inline-flex shrink-0 items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700'
+                      : 'inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-neutral-500'
+                  }
+                  href={item.href}
+                  key={item.label}
+                >
+                  <DashboardIcon className="h-4 w-4" name={item.icon} />
+                  {item.label}
+                </Link>
+              ) : null;
+            })}
+        </nav>
+
+        <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
+          <SubscriptionUsageNotice enabled={canManageSubscription} tenantId={tenant?.id} />
+          {children}
+        </main>
       </div>
     </div>
   );
+}
+
+function getPageMeta(pathname: string | null): {
+  icon: DashboardIconName;
+  section: string;
+  title: string;
+} {
+  if (pathname?.startsWith('/transacciones')) {
+    return { icon: 'receipt', section: 'Cobros', title: 'Transacciones' };
+  }
+  if (pathname?.startsWith('/equipo')) {
+    return { icon: 'team', section: 'Accesos', title: 'Equipo' };
+  }
+  if (pathname?.startsWith('/integraciones')) {
+    return { icon: 'plug', section: 'Desarrolladores', title: 'Integraciones' };
+  }
+  if (pathname?.startsWith('/membresia')) {
+    return { icon: 'ticket', section: 'Cuenta', title: 'Membresía' };
+  }
+  if (pathname?.startsWith('/auditoria')) {
+    return { icon: 'shield', section: 'Seguridad', title: 'Auditoría' };
+  }
+  return { icon: 'home', section: 'Inicio', title: 'Resumen general' };
+}
+
+function roleLabel(role: string | undefined): string {
+  if (role === 'OWNER') return 'Propietario';
+  if (role === 'ADMIN') return 'Administrador';
+  if (role === 'OPERATOR') return 'Operador';
+  if (role === 'VIEWER') return 'Solo lectura';
+  return 'Cuenta principal';
 }
 
 function getInitials(fullName?: string): string {

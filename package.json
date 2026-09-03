@@ -7,6 +7,12 @@
     "node": ">=22.0.0",
     "pnpm": ">=9.0.0"
   },
+  "pnpm": {
+    "overrides": {
+      "deepmerge-ts": "8.0.2",
+      "postcss": "8.5.26"
+    }
+  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -25,7 +31,12 @@
     "db:validate": "pnpm --filter @yallego/api db:validate",
     "docker:up": "docker compose -f tools/docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f tools/docker/docker-compose.yml down",
-    "docker:logs": "docker compose -f tools/docker/docker-compose.yml logs -f"
+    "docker:logs": "docker compose -f tools/docker/docker-compose.yml logs -f",
+    "docker:build:api": "docker build -f apps/api/Dockerfile -t yallego-api:local .",
+    "docker:build:migrations": "docker build --target migrations -f apps/api/Dockerfile -t yallego-migrations:local .",
+    "docker:build:dashboard": "docker build -f apps/dashboard/Dockerfile -t yallego-dashboard:local .",
+    "docker:build:proxy": "docker build -f tools/docker/nginx/Dockerfile -t yallego-proxy:local tools/docker/nginx",
+    "docker:build": "pnpm docker:build:api && pnpm docker:build:migrations && pnpm docker:build:dashboard && pnpm docker:build:proxy"
   },
   "devDependencies": {
     "@commitlint/cli": "20.2.0",

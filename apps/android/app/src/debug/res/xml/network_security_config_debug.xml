@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Emulador Android. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- Dispositivo físico conectado mediante `adb reverse`. -->
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+    <!--
+      Para probar en un dispositivo físico contra el backend local
+      (docs/11_ESTRUCTURA_PROYECTO.md §11.3), agrega aquí la IP de LAN del
+      equipo de desarrollo, ej.: <domain>192.168.1.100</domain>. No se puede
+      leer desde `local.properties` en este archivo XML estático.
+    -->
+
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

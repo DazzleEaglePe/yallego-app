@@ -24,6 +24,7 @@ export const loginSchema = z.strictObject({
 
 export const refreshSchema = z.strictObject({
   refresh_token: z.string().min(32).optional(),
+  tenant_id: z.uuid('Indica el negocio que deseas mantener activo.').optional(),
 });
 
 export const verifyEmailSchema = z.strictObject({

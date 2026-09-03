@@ -1,0 +1,44 @@
+[
+  {
+    "name": "inferred format — pending real sample",
+    "notification": {
+      "packageName": "com.bbva.nxt_peru",
+      "title": "Plin",
+      "text": "Recibiste S/ 50.00 por Plin de MARIA LOPEZ GARCIA",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "PLIN_BBVA",
+      "senderName": "MARIA LOPEZ GARCIA",
+      "amount": { "value": 50, "currency": "PEN" },
+      "securityCode": null,
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "thousands separator with legacy package alias",
+    "notification": {
+      "packageName": "com.bbva.nxtapp",
+      "title": "Plin",
+      "text": "Recibiste S/ 2,000.00 por Plin de CARLOS ALBERTO RUIZ",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "PLIN_BBVA",
+      "senderName": "CARLOS ALBERTO RUIZ",
+      "amount": { "value": 2000, "currency": "PEN" },
+      "securityCode": null,
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "unrelated notification",
+    "notification": {
+      "packageName": "com.bbva.nxt_peru",
+      "title": "BBVA",
+      "text": "Tu tarjeta fue usada en un comercio",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": null
+  }
+]
