@@ -36,3 +36,97 @@ describe('WalletsService catalog availability', () => {
     });
   });
 });
+
+describe('WalletsService tenant lifecycle', () => {
+  const wallet = {
+    id: 'wallet-1',
+    code: 'YAPE',
+    displayName: 'Yape',
+    provider: 'BCP',
+    issuer: 'BCP',
+    isActive: true,
+  };
+
+  it('checks the plan limit and audits a wallet reactivation', async () => {
+    const auditCreate = vi.fn().mockResolvedValue({});
+    const tenantWalletUpdate = vi.fn().mockResolvedValue({
+      id: 'tenant-wallet-1',
+      wallet,
+      isEnabled: true,
+      accountReference: null,
+      enabledAt: new Date('2026-09-03T08:00:00.000Z'),
+    });
+    const tx = {
+      auditEvent: { create: auditCreate },
+      subscription: {
+        findFirst: vi.fn().mockResolvedValue({ plan: { limits: { wallets: 2 } } }),
+      },
+      tenantWallet: {
+        count: vi.fn().mockResolvedValue(1),
+        findUnique: vi.fn().mockResolvedValue({ id: 'tenant-wallet-1', isEnabled: false }),
+        update: tenantWalletUpdate,
+      },
+    };
+    const assertWithin = vi.fn();
+    const service = new WalletsService(
+      {
+        wallet: { findFirst: vi.fn().mockResolvedValue(wallet) },
+        withTenant: vi.fn((_tenantId, operation) => operation(tx)),
+      } as never,
+      { assertWithin } as never,
+    );
+
+    await service.activateWallet({ id: 'tenant-1' } as never, { wallet_code: 'YAPE' });
+
+    expect(assertWithin).toHaveBeenCalledWith(
+      { wallets: 2 },
+      'wallets',
+      1,
+      'Se alcanzó el límite de billeteras del plan actual.',
+    );
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'wallets.activated',
+        metadata: { wallet_code: 'YAPE', reactivated: true },
+        resourceId: 'tenant-wallet-1',
+      }),
+    });
+  });
+
+  it('audits configuration changes without storing the account reference in metadata', async () => {
+    const auditCreate = vi.fn().mockResolvedValue({});
+    const tx = {
+      auditEvent: { create: auditCreate },
+      tenantWallet: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'tenant-wallet-1',
+          tenantId: 'tenant-1',
+          isEnabled: true,
+        }),
+        update: vi.fn().mockResolvedValue({
+          id: 'tenant-wallet-1',
+          wallet,
+          isEnabled: true,
+          accountReference: '123456789',
+          enabledAt: new Date('2026-09-03T08:00:00.000Z'),
+        }),
+      },
+    };
+    const service = new WalletsService(
+      { withTenant: vi.fn((_tenantId, operation) => operation(tx)) } as never,
+      {} as never,
+    );
+
+    await service.updateWallet({ id: 'tenant-1' } as never, 'tenant-wallet-1', {
+      account_reference: '123456789',
+    });
+
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'wallets.updated',
+        metadata: { wallet_code: 'YAPE', changed_fields: ['account_reference'] },
+      }),
+    });
+    expect(JSON.stringify(auditCreate.mock.calls)).not.toContain('123456789');
+  });
+});

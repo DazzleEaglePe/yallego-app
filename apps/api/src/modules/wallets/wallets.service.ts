@@ -81,6 +81,7 @@ export class WalletsService {
             'Esta billetera ya está activa.',
           );
         }
+        await this.assertWithinWalletLimit(tx, tenant.id);
         const reactivated = await tx.tenantWallet.update({
           where: { id: existing.id },
           data: {
@@ -89,6 +90,16 @@ export class WalletsService {
             accountReference: input.account_reference,
           },
           include: { wallet: true },
+        });
+        await tx.auditEvent.create({
+          data: {
+            tenantId: tenant.id,
+            action: 'wallets.activated',
+            actorType: 'USER',
+            resourceType: 'tenant_wallet',
+            resourceId: reactivated.id,
+            metadata: { wallet_code: wallet.code, reactivated: true },
+          },
         });
         return mapTenantWallet(reactivated);
       }
@@ -147,6 +158,25 @@ export class WalletsService {
             : {}),
         },
         include: { wallet: true },
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          tenantId: tenant.id,
+          action:
+            input.is_enabled === false
+              ? 'wallets.deactivated'
+              : input.is_enabled === true && !existing.isEnabled
+                ? 'wallets.activated'
+                : 'wallets.updated',
+          actorType: 'USER',
+          resourceType: 'tenant_wallet',
+          resourceId: updated.id,
+          metadata: {
+            wallet_code: updated.wallet.code,
+            changed_fields: Object.keys(input),
+          },
+        },
       });
 
       return mapTenantWallet(updated);

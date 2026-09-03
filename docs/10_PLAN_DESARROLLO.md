@@ -454,7 +454,7 @@
 - [ ] Sincronizar inmediatamente `monitored_packages` con los dispositivos vinculados cuando cambie la selección
 - [ ] Sustituir la activación automática de Yape en `AuthService.register` por la selección persistida del onboarding
 - [x] Mostrar estados vacíos y errores claros cuando el plan no permita otra billetera o todavía no exista un parser operativo _(Codex)_ — el catálogo y la activación exigen billetera y parser activos; el panel distingue catálogo vacío, fallo de carga y límite del plan
-- [ ] Cubrir permisos, límites, auditoría y el flujo panel → configuración remota Android con pruebas unitarias y end-to-end
+- [ ] Cubrir permisos, límites, auditoría y el flujo panel → configuración remota Android con pruebas unitarias y end-to-end — avance: catálogo operativo, límite en activación/reactivación y auditoría del ciclo de vida cubiertos con pruebas unitarias; faltan permisos y recorrido end-to-end hasta Android
 
 ### Administración de plataforma
 
