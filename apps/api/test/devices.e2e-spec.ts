@@ -169,6 +169,36 @@ integrationDescribe('Devices backend', () => {
     expect(config.body.heartbeat_interval_seconds).toBe(300);
     expect(config.body.ingest_batch_size).toBe(50);
 
+    const plinWallet = await request(app.getHttpServer())
+      .post('/v1/wallets')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ wallet_code: 'PLIN_BBVA' })
+      .expect(201);
+
+    const heartbeatAfterActivation = await request(app.getHttpServer())
+      .post('/internal/v1/heartbeat')
+      .set('Authorization', `Bearer ${deviceToken}`)
+      .send({ queue_size: 0 })
+      .expect(200);
+    expect(heartbeatAfterActivation.body.monitored_packages).toEqual(
+      expect.arrayContaining(['com.bcp.innovacxion.yapeapp', 'com.bbva.nxt_peru']),
+    );
+
+    await request(app.getHttpServer())
+      .delete(`/v1/wallets/${plinWallet.body.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(204);
+
+    const heartbeatAfterDeactivation = await request(app.getHttpServer())
+      .post('/internal/v1/heartbeat')
+      .set('Authorization', `Bearer ${deviceToken}`)
+      .send({ queue_size: 0 })
+      .expect(200);
+    expect(heartbeatAfterDeactivation.body.monitored_packages).toContain(
+      'com.bcp.innovacxion.yapeapp',
+    );
+    expect(heartbeatAfterDeactivation.body.monitored_packages).not.toContain('com.bbva.nxt_peru');
+
     const devices = await request(app.getHttpServer())
       .get('/v1/devices')
       .set('Authorization', `Bearer ${ownerToken}`)
