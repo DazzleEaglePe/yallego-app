@@ -48,6 +48,16 @@ export class DevicesService {
     input: CreatePairingCodeInput,
   ): Promise<PairingCodeResponse> {
     return this.prisma.withTenant(tenant.id, async (tx) => {
+      const enabledWallets = await tx.tenantWallet.count({
+        where: { tenantId: tenant.id, isEnabled: true },
+      });
+      if (enabledWallets === 0) {
+        throw new ApiHttpException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'VALIDATION_ERROR',
+          'Activa al menos una billetera antes de vincular un dispositivo.',
+        );
+      }
       await this.assertWithinDeviceLimit(tx, tenant.id);
 
       const code = generatePairingCode();

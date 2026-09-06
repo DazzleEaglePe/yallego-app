@@ -450,9 +450,9 @@
 - [x] Habilitar la ruta y vista **Billeteras** del panel para propietarios y administradores _(Codex)_ — acceso derivado de `wallets:manage`, sin exposición a operadores o visores
 - [x] Consumir el catálogo global y mostrar únicamente billeteras disponibles y operativas _(Codex)_ — estados de carga, error y catálogo vacío incluidos
 - [x] Permitir activar, configurar y desactivar billeteras por tenant, respetando el límite `wallets` del plan _(Codex)_ — referencia opcional y mensaje específico al alcanzar `PLAN_LIMIT_EXCEEDED`
-- [ ] Incorporar la selección inicial de billeteras al onboarding, antes de vincular el primer Android
+- [x] Incorporar la selección inicial de billeteras al onboarding, antes de vincular el primer Android _(Codex)_ — “Primeros pasos” dirige a Billeteras y el backend rechaza códigos de vinculación hasta que exista una selección activa
 - [ ] Sincronizar inmediatamente `monitored_packages` con los dispositivos vinculados cuando cambie la selección
-- [ ] Sustituir la activación automática de Yape en `AuthService.register` por la selección persistida del onboarding
+- [x] Sustituir la activación automática de Yape en `AuthService.register` por la selección persistida del onboarding _(Codex)_ — los tenants nuevos nacen sin billetera implícita; la elección explícita ocurre desde el panel
 - [x] Mostrar estados vacíos y errores claros cuando el plan no permita otra billetera o todavía no exista un parser operativo _(Codex)_ — el catálogo y la activación exigen billetera y parser activos; el panel distingue catálogo vacío, fallo de carga y límite del plan
 - [ ] Cubrir permisos, límites, auditoría y el flujo panel → configuración remota Android con pruebas unitarias y end-to-end — avance: catálogo operativo, límite en activación/reactivación y auditoría del ciclo de vida cubiertos con pruebas unitarias; faltan permisos y recorrido end-to-end hasta Android
 

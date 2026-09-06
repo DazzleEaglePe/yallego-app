@@ -92,7 +92,15 @@ integrationDescribe('Devices backend', () => {
     await app.close();
   });
 
-  it('rejects a pairing attempt before any wallet is enabled and before pairing', async () => {
+  it('requires a wallet before generating a pairing code or pairing', async () => {
+    const missingWallet = await request(app.getHttpServer())
+      .post('/v1/devices/pairing-codes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ label: 'Celular sin billetera' })
+      .expect(422);
+    expect(missingWallet.body.error.code).toBe('VALIDATION_ERROR');
+    expect(missingWallet.body.error.message).toContain('Activa al menos una billetera');
+
     const invalid = await request(app.getHttpServer())
       .post('/internal/v1/devices/pair')
       .send({ code: 'ZZZZ-ZZZZ', device: { manufacturer: 'Xiaomi', model: 'Redmi Note 12' } })

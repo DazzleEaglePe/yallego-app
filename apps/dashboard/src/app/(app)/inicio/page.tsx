@@ -1,9 +1,11 @@
 'use client';
 
+import { can } from '@yallego/contracts';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { useAuthSession } from '@/features/auth/auth-session';
+import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
 import { PairDeviceDialog } from '@/features/devices/components/PairDeviceDialog';
 import { useDevices } from '@/features/devices/hooks/use-devices';
@@ -11,6 +13,7 @@ import { StatusBadge } from '@/features/transactions/components/StatusBadge';
 import { fetchTransactions } from '@/features/transactions/api/transactions';
 import { useRealtimeTransactions } from '@/features/transactions/hooks/use-realtime-transactions';
 import { useTransactionSummary } from '@/features/transactions/hooks/use-transaction-summary';
+import { useWallets } from '@/features/wallets/hooks/use-wallets';
 import { formatCurrency, formatElapsed } from '@/shared/lib/format';
 
 const weekDays = ['Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Mar', 'Hoy'];
@@ -27,7 +30,11 @@ function startOfTodayLima(): string {
 }
 
 export default function DashboardHomePage() {
+  const router = useRouter();
   const { session } = useAuthSession();
+  const role = getActiveTenant(session)?.role;
+  const canManageDevices = role !== undefined && can(role, 'devices:manage');
+  const canManageWallets = role !== undefined && can(role, 'wallets:manage');
   const [isPairingDialogOpen, setIsPairingDialogOpen] = useState(false);
   const firstName = session?.user.full_name.trim().split(/\s+/)[0] ?? 'equipo';
   const today = new Intl.DateTimeFormat('es-PE', {
@@ -39,6 +46,7 @@ export default function DashboardHomePage() {
   const greeting = getGreeting();
 
   const devices = useDevices();
+  const { tenantWallets } = useWallets(canManageWallets);
   const summary = useTransactionSummary({ from: startOfTodayLima() });
   useRealtimeTransactions();
   const accessToken = session?.accessToken ?? null;
@@ -55,9 +63,13 @@ export default function DashboardHomePage() {
   const recentList = recentTransactions.data?.data ?? [];
 
   const hasAnyDevice = deviceList.length > 0;
+  const hasEnabledWallet = (tenantWallets.data ?? []).some((wallet) => wallet.is_enabled);
   const metrics = [
     {
-      detail: totals && totals.count > 0 ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} hoy` : 'Sin movimientos todavía',
+      detail:
+        totals && totals.count > 0
+          ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} hoy`
+          : 'Sin movimientos todavía',
       icon: 'wallet' as DashboardIconName,
       label: 'Cobrado hoy',
       value: totals ? formatCurrency(totals.amount, totals.currency) : 'S/ 0.00',
@@ -72,13 +84,17 @@ export default function DashboardHomePage() {
       value: String(totals?.count ?? 0),
     },
     {
-      detail: totals && totals.count > 0 ? 'Del período de hoy' : 'Se calculará con tu primer cobro',
+      detail:
+        totals && totals.count > 0 ? 'Del período de hoy' : 'Se calculará con tu primer cobro',
       icon: 'ticket' as DashboardIconName,
       label: 'Ticket promedio',
-      value: totals && totals.count > 0 ? formatCurrency(totals.average, totals.currency) : 'S/ 0.00',
+      value:
+        totals && totals.count > 0 ? formatCurrency(totals.average, totals.currency) : 'S/ 0.00',
     },
     {
-      detail: hasAnyDevice ? `${activeDevices.length} vinculado${activeDevices.length === 1 ? '' : 's'}` : 'Vincula tu primer Android',
+      detail: hasAnyDevice
+        ? `${activeDevices.length} vinculado${activeDevices.length === 1 ? '' : 's'}`
+        : 'Vincula tu primer Android',
       icon: 'device' as DashboardIconName,
       label: 'Dispositivos activos',
       value: `${activeDevices.length} de ${Math.max(deviceList.length, 1)}`,
@@ -101,15 +117,19 @@ export default function DashboardHomePage() {
           </p>
         </div>
 
-        <button
-          className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
-          onClick={() => setIsPairingDialogOpen(true)}
-          type="button"
-        >
-          <DashboardIcon className="h-4 w-4" name="device" />
-          Vincular dispositivo
-          <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
-        </button>
+        {canManageDevices && (
+          <button
+            className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
+            onClick={() =>
+              hasEnabledWallet ? setIsPairingDialogOpen(true) : router.push('/billeteras')
+            }
+            type="button"
+          >
+            <DashboardIcon className="h-4 w-4" name={hasEnabledWallet ? 'device' : 'wallet'} />
+            {hasEnabledWallet ? 'Vincular dispositivo' : 'Elegir billeteras'}
+            <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
+          </button>
+        )}
       </section>
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen">
@@ -163,7 +183,9 @@ export default function DashboardHomePage() {
                     <DashboardIcon className="h-5 w-5" name="activity" />
                   </span>
                   <p className="mt-3 text-sm font-semibold text-neutral-900">
-                    {recentList.length > 0 ? 'El gráfico llega en la próxima entrega' : 'Aún no hay movimientos'}
+                    {recentList.length > 0
+                      ? 'El gráfico llega en la próxima entrega'
+                      : 'Aún no hay movimientos'}
                   </p>
                   <p className="mt-1 text-xs text-neutral-500">
                     {recentList.length > 0
@@ -207,8 +229,13 @@ export default function DashboardHomePage() {
 
             <ol className="mt-6 space-y-4">
               <SetupStep complete label="Cuenta creada y verificada" number="1" />
-              <SetupStep complete={hasAnyDevice} label="Vincular dispositivo Android" number="2" />
-              <SetupStep complete={(totals?.count ?? 0) > 0} label="Recibir el primer cobro" number="3" />
+              <SetupStep complete={hasEnabledWallet} label="Elegir billeteras" number="2" />
+              <SetupStep complete={hasAnyDevice} label="Vincular dispositivo Android" number="3" />
+              <SetupStep
+                complete={(totals?.count ?? 0) > 0}
+                label="Recibir el primer cobro"
+                number="4"
+              />
             </ol>
 
             <details className="group mt-6 rounded-xl border border-white/10 bg-white/[0.06] p-4 open:bg-white/[0.08]">
@@ -220,9 +247,10 @@ export default function DashboardHomePage() {
                 />
               </summary>
               <ol className="mt-4 space-y-2 border-t border-white/10 pt-4 text-xs leading-5 text-neutral-300">
-                <li>1. Instala Yallegó en el Android que recibe los pagos.</li>
-                <li>2. Autoriza el acceso a notificaciones.</li>
-                <li>3. Escanea el código de vinculación desde este panel.</li>
+                <li>1. Elige las billeteras que usa tu negocio.</li>
+                <li>2. Instala Yallegó en el Android que recibe los pagos.</li>
+                <li>3. Autoriza el acceso a notificaciones.</li>
+                <li>4. Escanea el código de vinculación desde este panel.</li>
               </ol>
             </details>
           </div>
@@ -247,7 +275,9 @@ export default function DashboardHomePage() {
                 <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-400">
                   <DashboardIcon className="h-5 w-5" name="receipt" />
                 </span>
-                <p className="mt-4 text-sm font-semibold text-neutral-900">Tu historial está listo</p>
+                <p className="mt-4 text-sm font-semibold text-neutral-900">
+                  Tu historial está listo
+                </p>
                 <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-neutral-500">
                   En cuanto llegue una notificación de pago válida, la verás aquí con su billetera,
                   importe y estado.
@@ -295,20 +325,17 @@ export default function DashboardHomePage() {
             <StatusRow
               label="Dispositivo Android"
               pending={!onlineDevice}
-              status={
-                !hasAnyDevice
-                  ? 'Por vincular'
-                  : onlineDevice
-                    ? 'En línea'
-                    : 'Sin conexión'
-              }
+              status={!hasAnyDevice ? 'Por vincular' : onlineDevice ? 'En línea' : 'Sin conexión'}
             />
           </div>
         </article>
       </section>
 
-      {isPairingDialogOpen && session && (
-        <PairDeviceDialog accessToken={session.accessToken} onClose={() => setIsPairingDialogOpen(false)} />
+      {isPairingDialogOpen && session && hasEnabledWallet && (
+        <PairDeviceDialog
+          accessToken={session.accessToken}
+          onClose={() => setIsPairingDialogOpen(false)}
+        />
       )}
     </div>
   );
