@@ -4,6 +4,8 @@
 > **Sprints hasta MVP:** 8 (16 semanas)
 > **Metodología:** iterativa con entregable funcional al cierre de cada sprint
 
+> **Alcance de salida del MVP (decisión del 2026-09-07):** Yape es la única billetera habilitada y soportada para el lanzamiento inicial. Plin BBVA, Plin Interbank, BIM y las demás billeteras quedan en el roadmap de la versión v0.2 y no bloquean la salida del MVP.
+
 ---
 
 ## 1. Visión general
@@ -245,8 +247,8 @@
 
 ### Pruebas de parsers
 
-- [ ] Recolectar muestras reales de cada billetera _(Yape completado el 2026-08-27; faltan Plin BBVA, Plin Interbank y BIM)_
-- [ ] Anonimizar las muestras conservando la estructura _(Yape completado en `packages/parsers/fixtures/yape/samples.json`; faltan las demás billeteras)_
+- [ ] Recolectar muestras reales de las billeteras de v0.2 _(diferido; Yape quedó completado el 2026-08-27 y faltan Plin BBVA, Plin Interbank y BIM)_
+- [ ] Anonimizar las muestras de las billeteras de v0.2 conservando la estructura _(diferido; Yape quedó completado en `packages/parsers/fixtures/yape/samples.json`)_
 - [x] Construir la suite de pruebas por parser _(Claude + Codex — 27 pruebas; incluye muestras reales anonimizadas de Yape)_
 - [x] Verificar cobertura mínima del ochenta por ciento en el módulo _(Claude — 100%)_
 - [x] Incluir casos límite: montos con separador de miles, nombres con caracteres especiales, ausencia de código de seguridad _(Claude)_
@@ -262,7 +264,7 @@
 ### Criterios de aceptación
 
 - [x] Un cobro real por Yape produce una transacción con monto, remitente y código correctos _(Codex — reconfirmado el 2026-08-30: dos `Confirmación de Pago` de S/ 0.10, parser v22, código de seguridad extraído, tres capturas únicas produjeron exactamente tres transacciones y la cola local volvió a cero)_
-- [ ] Un cobro real por Plin produce una transacción correcta
+- [ ] Un cobro real por Plin produce una transacción correcta _(diferido a v0.2; no bloquea el MVP Yape)_
 - [x] Sin conectividad, la notificación se conserva y se envía al restablecerse _(Codex — verificado en Xiaomi real: cinco intentos fallidos con API detenida y confirmación del lote tras levantar el backend)_
 - [x] Una notificación duplicada no genera una segunda transacción _(Claude)_
 - [x] Una notificación sin parser coincidente queda registrada para revisión _(Claude)_
