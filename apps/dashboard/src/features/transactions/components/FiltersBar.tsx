@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
+import { Button } from '@/shared/components/ui/button';
 
 import type { TransactionFilters } from '../api/transactions';
 
@@ -63,7 +64,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white p-3">
+    <div className="rounded-xl border border-neutral-200 bg-white p-3">
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_170px_170px_auto_auto]">
         <div className="relative md:col-span-2 xl:col-span-1">
           <DashboardIcon
@@ -72,7 +73,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
           />
           <input
             aria-label="Buscar por nombre del remitente"
-            className="h-10 w-full rounded-lg border border-white/10 bg-neutral-900/50 pl-9 pr-3 text-sm text-neutral-100 outline-none transition placeholder:text-neutral-500 hover:border-white/20 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 hover:border-neutral-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
             onChange={(event) => setSearchDraft(event.target.value)}
             placeholder="Buscar remitente…"
             type="search"
@@ -82,7 +83,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
 
         <select
           aria-label="Filtrar por billetera"
-          className="h-10 min-w-0 rounded-lg border border-white/10 bg-neutral-900/50 px-3 text-sm text-neutral-300 outline-none transition hover:border-white/20 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+          className="h-10 min-w-0 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition hover:border-neutral-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
           onChange={(event) =>
             onChange({ ...filters, wallet_code: event.target.value || undefined })
           }
@@ -97,7 +98,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
 
         <select
           aria-label="Filtrar por estado"
-          className="h-10 min-w-0 rounded-lg border border-white/10 bg-neutral-900/50 px-3 text-sm text-neutral-300 outline-none transition hover:border-white/20 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+          className="h-10 min-w-0 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition hover:border-neutral-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
           onChange={(event) => onChange({ ...filters, status: event.target.value || undefined })}
           value={filters.status ?? ''}
         >
@@ -108,12 +109,12 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
           ))}
         </select>
 
-        <button
+        <Button
           aria-controls="transaction-advanced-filters"
           aria-expanded={showAdvancedFilters}
-          className="group flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-neutral-900/50 px-3 text-sm font-medium text-neutral-300 transition hover:border-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-400/20"
           onClick={() => setShowAdvancedFilters((visible) => !visible)}
           type="button"
+          variant="outline"
         >
           Más filtros
           {advancedFilterCount > 0 && (
@@ -125,23 +126,19 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
             className={`h-3.5 w-3.5 transition-transform ${showAdvancedFilters ? 'rotate-90' : ''}`}
             name="chevron-right"
           />
-        </button>
+        </Button>
 
         {hasActiveFilters && (
-          <button
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-neutral-400 transition hover:bg-white/[0.05] hover:text-white"
-            onClick={clearAll}
-            type="button"
-          >
+          <Button onClick={clearAll} type="button" variant="ghost">
             <DashboardIcon className="h-4 w-4" name="x" />
             Limpiar
-          </button>
+          </Button>
         )}
       </div>
 
       {showAdvancedFilters && (
         <div
-          className="mt-3 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2 xl:grid-cols-4"
+          className="mt-3 grid gap-3 border-t border-neutral-200 pt-3 sm:grid-cols-2 xl:grid-cols-4"
           id="transaction-advanced-filters"
         >
           <label className="block">
@@ -149,7 +146,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
               Desde
             </span>
             <input
-              className="h-10 w-full rounded-lg border border-white/10 bg-neutral-900/50 px-3 text-sm text-neutral-300 outline-none transition hover:border-white/20 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+              className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition hover:border-neutral-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
               onChange={(event) =>
                 onChange({
                   ...filters,
@@ -165,7 +162,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
               Hasta
             </span>
             <input
-              className="h-10 w-full rounded-lg border border-white/10 bg-neutral-900/50 px-3 text-sm text-neutral-300 outline-none transition hover:border-white/20 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+              className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition hover:border-neutral-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
               onChange={(event) =>
                 onChange({
                   ...filters,
@@ -181,7 +178,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
               Monto mínimo
             </span>
             <input
-              className="h-10 w-full rounded-lg border border-white/10 bg-neutral-900/50 px-3 text-sm text-neutral-300 outline-none transition placeholder:text-neutral-600 hover:border-white/20 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+              className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition placeholder:text-neutral-400 hover:border-neutral-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
               min={0}
               onChange={(event) =>
                 onChange({
@@ -199,7 +196,7 @@ export function FiltersBar({ filters, onChange }: Readonly<FiltersBarProps>) {
               Monto máximo
             </span>
             <input
-              className="h-10 w-full rounded-lg border border-white/10 bg-neutral-900/50 px-3 text-sm text-neutral-300 outline-none transition placeholder:text-neutral-600 hover:border-white/20 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+              className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition placeholder:text-neutral-400 hover:border-neutral-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
               min={0}
               onChange={(event) =>
                 onChange({

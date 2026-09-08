@@ -4,16 +4,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { can } from '@yallego/contracts';
-import { useQuery } from '@tanstack/react-query';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { DashboardMotion } from '@/features/dashboard/dashboard-motion';
 import { getVisibleNavigation } from '@/features/dashboard/dashboard-navigation';
 import { TenantSwitcher } from '@/features/dashboard/TenantSwitcher';
-import { useDevices } from '@/features/devices/hooks/use-devices';
 import { SubscriptionUsageNotice } from '@/features/subscription/components/SubscriptionUsageNotice';
-import { fetchTransactions } from '@/features/transactions/api/transactions';
 import { BrandMark } from '@/shared/components/BrandMark';
+import { Button } from '@/shared/components/ui/button';
 
 export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
@@ -24,26 +23,9 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   const navigationSections = ['Operación', 'Configuración', 'Administración'] as const;
   const primaryMobileNavigation = navigation.slice(0, 3);
   const secondaryMobileNavigation = navigation.slice(3);
-  const canManageDevices = tenant !== undefined && can(tenant.role, 'devices:manage');
   const canManageSubscription = tenant !== undefined && can(tenant.role, 'subscription:manage');
   const initials = getInitials(session?.user.full_name);
   const page = getPageMeta(pathname);
-  const devices = useDevices();
-  const accessToken = session?.accessToken ?? null;
-  const setupTransactions = useQuery({
-    queryKey: ['transactions', 'setup-progress'],
-    queryFn: () => fetchTransactions(accessToken!, { limit: 1 }),
-    enabled: canManageDevices && Boolean(accessToken),
-  });
-  const hasDevice = (devices.data?.length ?? 0) > 0;
-  const hasTransaction = (setupTransactions.data?.data.length ?? 0) > 0;
-  const setupSteps = 1 + Number(hasDevice) + Number(hasTransaction);
-  const setupProgress = Math.round((setupSteps / 3) * 100);
-  const setupMessage = !hasDevice
-    ? 'Vincula un Android para comenzar a validar cobros.'
-    : !hasTransaction
-      ? 'Dispositivo vinculado. Falta recibir el primer cobro.'
-      : 'Configuración completada. Tu negocio ya recibe cobros.';
 
   async function handleLogout() {
     try {
@@ -54,23 +36,23 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   }
 
   return (
-    <div className="dashboard-theme min-h-screen bg-neutral-950 text-neutral-100 lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">
-      <aside className="hidden h-screen flex-col border-r border-white/5 bg-neutral-950 px-4 py-6 lg:sticky lg:top-0 lg:flex">
+    <div className="dashboard-minimal-theme min-h-screen bg-[#f7f7f8] text-neutral-950 lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+      <aside className="hidden h-screen flex-col border-r border-neutral-200/80 bg-white px-3 py-5 lg:sticky lg:top-0 lg:flex">
         <div className="px-1">
-          <BrandMark inverse />
-          <div className="mt-8">
-            <TenantSwitcher variant="dark" />
+          <BrandMark />
+          <div className="mt-7">
+            <TenantSwitcher />
           </div>
         </div>
 
-        <nav aria-label="Navegación principal" className="mt-9 space-y-6">
+        <nav aria-label="Navegación principal" className="mt-8 space-y-5">
           {navigationSections.map((section) => {
             const items = navigation.filter((item) => item.section === section);
             if (items.length === 0) return null;
 
             return (
               <div key={section}>
-                <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
                   {section}
                 </p>
                 <div className="mt-2 space-y-1">
@@ -83,14 +65,14 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                         aria-current={isActive ? 'page' : undefined}
                         className={
                           isActive
-                            ? 'relative flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm font-semibold text-white transition before:absolute before:-left-[17px] before:h-5 before:w-0.5 before:rounded-full before:bg-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/40'
-                            : 'flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-neutral-400 transition hover:border-white/5 hover:bg-white/[0.04] hover:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-brand-400/40'
+                            ? 'flex items-center gap-3 rounded-lg bg-neutral-100 px-3 py-2.5 text-sm font-semibold text-neutral-950 outline-none ring-offset-white transition focus-visible:ring-2 focus-visible:ring-brand-500'
+                            : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-500 outline-none ring-offset-white transition hover:bg-neutral-50 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-brand-500'
                         }
                         href={item.href}
                         key={item.label}
                       >
                         <DashboardIcon
-                          className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-brand-300' : ''}`}
+                          className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-brand-600' : ''}`}
                           name={item.icon}
                         />
                         <span>{item.label}</span>
@@ -104,51 +86,36 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
         </nav>
 
         <div className="mt-auto">
-          {canManageDevices && setupProgress < 100 && (
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold text-white">Configuración inicial</p>
-                <span className="text-xs font-semibold text-brand-300">{setupProgress}%</span>
-              </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-brand-400 transition-[width] duration-200"
-                  style={{ width: `${setupProgress}%` }}
-                />
-              </div>
-              <p className="mt-3 text-xs leading-5 text-neutral-400">{setupMessage}</p>
-            </div>
-          )}
-
-          <div className="mt-5 flex items-center gap-3 border-t border-white/10 px-1 pt-5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-xs font-semibold text-white">
+          <div className="flex items-center gap-3 border-t border-neutral-200 px-1 pt-5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-700">
               {initials}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-white">
+              <span className="block truncate text-sm font-semibold text-neutral-900">
                 {tenant?.business_name ?? 'Mi negocio'}
               </span>
               <span className="block truncate text-xs text-neutral-500">
                 {session?.user.email ?? 'Cuenta principal'}
               </span>
             </span>
-            <button
+            <Button
               aria-label="Cerrar sesión"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-neutral-400 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-400"
               onClick={() => void handleLogout()}
+              size="icon"
               title="Cerrar sesión"
               type="button"
+              variant="ghost"
             >
-              <DashboardIcon className="h-4.5 w-4.5" name="logout" />
-            </button>
+              <DashboardIcon className="h-4 w-4" name="logout" />
+            </Button>
           </div>
         </div>
       </aside>
 
-      <div className="min-w-0 bg-neutral-950">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-neutral-200 bg-white/95 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+      <div className="min-w-0 bg-[#f7f7f8]">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-neutral-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="lg:hidden">
-            <BrandMark compact inverse />
+            <BrandMark compact />
           </div>
 
           <div className="min-w-0 flex-1 sm:hidden">
@@ -156,45 +123,36 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           </div>
 
           <div className="hidden items-center gap-3 text-sm lg:flex">
-            <span className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-brand-300">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-neutral-100 text-neutral-600">
               <DashboardIcon className="h-4 w-4" name={page.icon} />
             </span>
             <span className="text-neutral-500">{page.section}</span>
-            <span className="text-neutral-700">/</span>
-            <span className="font-medium text-neutral-100">{page.title}</span>
+            <span className="text-neutral-300">/</span>
+            <span className="font-medium text-neutral-700">{page.title}</span>
           </div>
 
-          <div className="ml-auto hidden items-center gap-2 sm:flex">
-            <span
-              aria-label="Sin notificaciones"
-              className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-400"
-              role="img"
-              title="Sin notificaciones"
-            >
-              <DashboardIcon className="h-5 w-5" name="bell" />
-            </span>
-          </div>
-
-          <span className="hidden min-w-0 sm:block">
+          <span className="ml-auto hidden min-w-0 sm:block">
             <span className="block truncate text-sm font-semibold text-neutral-900">
               {tenant?.business_name ?? 'Mi negocio'}
             </span>
             <span className="block text-xs text-neutral-500">{roleLabel(tenant?.role)}</span>
           </span>
-          <button
+          <Button
             aria-label="Cerrar sesión"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-white text-xs font-semibold text-white transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand-400/40 lg:hidden"
+            className="text-xs font-semibold lg:hidden"
             onClick={() => void handleLogout()}
+            size="icon"
             title="Cerrar sesión"
             type="button"
+            variant="outline"
           >
             {initials}
-          </button>
+          </Button>
         </header>
 
         <nav
           aria-label="Navegación móvil"
-          className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-xl border border-neutral-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl lg:hidden"
+          className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-xl border border-neutral-200 bg-white/95 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.10)] backdrop-blur-xl lg:hidden"
         >
           {primaryMobileNavigation.map((item) => {
             const isActive = item.href !== null && pathname?.startsWith(item.href);
@@ -203,7 +161,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                 aria-current={isActive ? 'page' : undefined}
                 className={
                   isActive
-                    ? 'inline-flex min-w-16 flex-col items-center gap-1 rounded-lg bg-brand-50 px-3 py-2 text-[10px] font-semibold text-brand-300'
+                    ? 'inline-flex min-w-16 flex-col items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-[10px] font-semibold text-white'
                     : 'inline-flex min-w-16 flex-col items-center gap-1 rounded-lg px-3 py-2 text-[10px] font-medium text-neutral-500'
                 }
                 href={item.href}
@@ -228,8 +186,8 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                       aria-current={isActive ? 'page' : undefined}
                       className={
                         isActive
-                          ? 'flex items-center gap-3 rounded-lg bg-brand-50 px-3 py-2.5 text-sm font-semibold text-brand-300'
-                          : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-neutral-300 hover:bg-neutral-50'
+                          ? 'flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2.5 text-sm font-semibold text-white'
+                          : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-neutral-600 hover:bg-neutral-50'
                       }
                       href={item.href}
                       key={item.label}
@@ -244,9 +202,9 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           )}
         </nav>
 
-        <main className="mx-auto max-w-[1560px] px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
+        <main className="mx-auto max-w-[1440px] px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
           <SubscriptionUsageNotice enabled={canManageSubscription} tenantId={tenant?.id} />
-          {children}
+          <DashboardMotion routeKey={pathname}>{children}</DashboardMotion>
         </main>
       </div>
     </div>

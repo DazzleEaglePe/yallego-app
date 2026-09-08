@@ -158,7 +158,7 @@ export default function TransactionsPage() {
         {hasNextPage && (
           <div className="border-t border-neutral-200 p-3">
             <button
-              className="w-full rounded-lg py-2.5 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-300 disabled:opacity-50"
+              className="w-full rounded-lg py-2.5 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-900 disabled:opacity-50"
               disabled={isFetchingNextPage}
               onClick={() => void fetchNextPage()}
               type="button"

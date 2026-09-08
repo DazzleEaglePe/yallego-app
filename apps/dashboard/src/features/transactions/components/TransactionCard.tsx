@@ -60,7 +60,7 @@ export function TransactionCard({
               ? `Código de seguridad ${transaction.security_code}`
               : 'Sin código de seguridad'
           }
-          className="w-fit rounded-md border border-neutral-200 bg-neutral-50 px-2.5 py-1 font-mono text-sm font-semibold tracking-[0.16em] text-neutral-300 xl:justify-self-end"
+          className="w-fit rounded-md border border-neutral-200 bg-neutral-50 px-2.5 py-1 font-mono text-sm font-semibold tracking-[0.16em] text-neutral-700 xl:justify-self-end"
         >
           {transaction.security_code ?? '—'}
         </span>
@@ -96,7 +96,7 @@ export function TransactionCard({
         )}
         {!canConfirm && !canDispute && (
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-300"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
             onClick={() => onSelect(transaction)}
             type="button"
           >

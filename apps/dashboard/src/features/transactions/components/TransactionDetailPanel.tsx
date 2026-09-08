@@ -67,7 +67,7 @@ export function TransactionDetailPanel({
           <button
             aria-label="Cerrar"
             autoFocus
-            className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-100"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-900"
             onClick={onClose}
             type="button"
           >
@@ -103,7 +103,7 @@ export function TransactionDetailPanel({
           )}
 
           <section className="mt-7">
-            <h3 className="text-sm font-semibold text-neutral-300">Información del cobro</h3>
+            <h3 className="text-sm font-semibold text-neutral-800">Información del cobro</h3>
             <dl className="mt-3 divide-y divide-neutral-200 border-y border-neutral-200">
               <Row label="Remitente" value={transaction.sender_name ?? 'No identificado'} />
               <Row label="Billetera" value={transaction.wallet.display_name} wallet />
@@ -116,7 +116,7 @@ export function TransactionDetailPanel({
           </section>
 
           <section className="mt-7">
-            <h3 className="text-sm font-semibold text-neutral-300">Actividad</h3>
+            <h3 className="text-sm font-semibold text-neutral-800">Actividad</h3>
             <ol className="mt-4 space-y-0">
               <TimelineItem
                 active
@@ -172,7 +172,7 @@ function Row({
   return (
     <div className="grid grid-cols-[130px_minmax(0,1fr)] gap-4 py-3.5 text-sm">
       <dt className="text-neutral-500">{label}</dt>
-      <dd className={`text-right font-medium ${wallet ? 'text-[#c879d5]' : 'text-neutral-300'}`}>
+      <dd className={`text-right font-medium ${wallet ? 'text-[#9a3cad]' : 'text-neutral-700'}`}>
         {value}
       </dd>
     </div>
@@ -202,7 +202,7 @@ function TimelineItem({
         className="absolute bottom-0 left-[4px] top-4 border-l border-neutral-200 group-last:hidden"
       />
       <span>
-        <span className="block text-sm font-medium text-neutral-300">{title}</span>
+        <span className="block text-sm font-medium text-neutral-800">{title}</span>
         <span className="mt-0.5 block text-xs text-neutral-500">{detail}</span>
       </span>
     </li>

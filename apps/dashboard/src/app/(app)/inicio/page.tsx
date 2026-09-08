@@ -15,6 +15,9 @@ import { StatusBadge } from '@/features/transactions/components/StatusBadge';
 import { useRealtimeTransactions } from '@/features/transactions/hooks/use-realtime-transactions';
 import { useTransactionSummary } from '@/features/transactions/hooks/use-transaction-summary';
 import { useWallets } from '@/features/wallets/hooks/use-wallets';
+import { Badge } from '@/shared/components/ui/badge';
+import { Button } from '@/shared/components/ui/button';
+import { Card } from '@/shared/components/ui/card';
 import { formatCurrency, formatElapsed } from '@/shared/lib/format';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1_000;
@@ -133,7 +136,10 @@ export default function DashboardHomePage() {
 
   return (
     <div className="pb-6">
-      <section className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      <section
+        className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"
+        data-animate
+      >
         <div>
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-neutral-500">
             <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
@@ -148,8 +154,8 @@ export default function DashboardHomePage() {
         </div>
 
         {canManageDevices && (
-          <button
-            className="inline-flex w-fit items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:cursor-wait disabled:opacity-60"
+          <Button
+            className="w-fit"
             disabled={walletConfigurationLoading}
             onClick={() =>
               hasEnabledWallet ? setIsPairingDialogOpen(true) : router.push('/billeteras')
@@ -168,19 +174,16 @@ export default function DashboardHomePage() {
                 ? 'Vincular dispositivo'
                 : 'Elegir billetera'}
             <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
-          </button>
+          </Button>
         )}
       </section>
 
       <section
         aria-label="Resumen del día"
-        className="mt-7 grid overflow-hidden rounded-xl border border-neutral-200 bg-white sm:grid-cols-2 xl:grid-cols-4"
+        className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
       >
         {metrics.map((metric) => (
-          <article
-            className="border-t border-neutral-200 px-5 py-5 first:border-t-0 sm:[&:nth-child(2)]:border-t-0 sm:[&:nth-child(even)]:border-l xl:border-l xl:border-t-0 xl:first:border-l-0"
-            key={metric.label}
-          >
+          <Card className="px-5 py-5" data-animate key={metric.label}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
               {metric.label}
             </p>
@@ -190,18 +193,18 @@ export default function DashboardHomePage() {
               {metric.value}
             </p>
             <p className="mt-1.5 text-xs text-neutral-500">{metric.detail}</p>
-          </article>
+          </Card>
         ))}
       </section>
 
       <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.65fr)]">
-        <article className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <Card className="overflow-hidden" data-animate>
           <div className="flex flex-col gap-3 border-b border-neutral-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h2 className="text-base font-semibold text-neutral-950">Actividad de cobros</h2>
               <p className="mt-1 text-sm text-neutral-500">Importe recibido durante 7 días</p>
             </div>
-            <span className="financial-value text-sm font-semibold text-neutral-300">
+            <span className="financial-value text-sm font-semibold text-neutral-700">
               {formatCurrency(activityTotal.toFixed(2), 'PEN')}
             </span>
           </div>
@@ -218,7 +221,7 @@ export default function DashboardHomePage() {
 
             {maxActivity === 0 && !activitySummary.isLoading && (
               <div className="pointer-events-none absolute inset-x-8 top-24 z-10 text-center">
-                <p className="text-sm font-semibold text-neutral-300">Aún no hay actividad</p>
+                <p className="text-sm font-semibold text-neutral-700">Aún no hay actividad</p>
                 <p className="mt-1 text-xs text-neutral-500">
                   El primer cobro aparecerá aquí en tiempo real.
                 </p>
@@ -252,7 +255,7 @@ export default function DashboardHomePage() {
               })}
             </div>
           </div>
-        </article>
+        </Card>
 
         {showOnboarding ? (
           <OnboardingPanel
@@ -265,25 +268,26 @@ export default function DashboardHomePage() {
         )}
       </section>
 
-      <section className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+      <Card className="mt-4 overflow-hidden" data-animate>
         <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-base font-semibold text-neutral-950">Últimas transacciones</h2>
             <p className="mt-1 text-sm text-neutral-500">Cobros detectados recientemente</p>
           </div>
-          <button
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-300 transition hover:text-white"
+          <Button
             onClick={() => router.push('/transacciones')}
+            size="sm"
             type="button"
+            variant="ghost"
           >
             Ver todas
             <DashboardIcon className="h-3.5 w-3.5" name="arrow-up-right" />
-          </button>
+          </Button>
         </div>
 
         {recentList.length === 0 ? (
           <div className="px-5 py-12 text-center">
-            <p className="text-sm font-semibold text-neutral-300">Tu historial está listo</p>
+            <p className="text-sm font-semibold text-neutral-700">Tu historial está listo</p>
             <p className="mt-1 text-sm text-neutral-500">
               Una notificación válida de Yape aparecerá aquí automáticamente.
             </p>
@@ -326,7 +330,7 @@ export default function DashboardHomePage() {
             </div>
           </div>
         )}
-      </section>
+      </Card>
 
       {isPairingDialogOpen && session && hasEnabledWallet && (
         <PairDeviceDialog
@@ -348,11 +352,8 @@ function OnboardingPanel({
   hasFirstTransaction: boolean;
 }>) {
   return (
-    <article
-      className="rounded-xl border border-neutral-200 bg-white p-5 sm:p-6"
-      id="primer-dispositivo"
-    >
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-300">
+    <Card className="p-5 sm:p-6" data-animate id="primer-dispositivo">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-700">
         Puesta en marcha
       </span>
       <h2 className="mt-3 text-xl font-semibold tracking-tight text-neutral-950">
@@ -370,13 +371,13 @@ function OnboardingPanel({
       </ol>
 
       <Link
-        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-300 transition hover:text-white"
+        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 transition hover:text-brand-900"
         href={hasEnabledWallet ? '/dispositivos' : '/billeteras'}
       >
         Continuar configuración
         <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
       </Link>
-    </article>
+    </Card>
   );
 }
 
@@ -385,7 +386,7 @@ function SystemStatusPanel({
   onlineDevice,
 }: Readonly<{ hasAnyDevice: boolean; onlineDevice: boolean }>) {
   return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
+    <Card className="p-5 sm:p-6" data-animate>
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
@@ -393,10 +394,10 @@ function SystemStatusPanel({
           </p>
           <h2 className="mt-2 text-lg font-semibold text-neutral-950">Estado del sistema</h2>
         </div>
-        <span className="flex items-center gap-2 text-xs font-semibold text-success-500">
+        <Badge className="gap-1.5" variant="success">
           <span className="h-2 w-2 rounded-full bg-success-500" />
           Operativo
-        </span>
+        </Badge>
       </div>
       <div className="mt-6 space-y-2">
         <StatusRow label="Panel web" status="Conectado" />
@@ -407,7 +408,7 @@ function SystemStatusPanel({
           status={!hasAnyDevice ? 'Por vincular' : onlineDevice ? 'En línea' : 'Sin conexión'}
         />
       </div>
-    </article>
+    </Card>
   );
 }
 
@@ -427,7 +428,7 @@ function SetupStep({
       >
         {complete ? <DashboardIcon className="h-3.5 w-3.5" name="check" /> : number}
       </span>
-      <span className={`text-sm ${complete ? 'text-neutral-300' : 'text-neutral-500'}`}>
+      <span className={`text-sm ${complete ? 'text-neutral-700' : 'text-neutral-500'}`}>
         {label}
       </span>
     </li>
