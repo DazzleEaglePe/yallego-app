@@ -86,6 +86,7 @@ export default function DashboardHomePage() {
   const recentList = recentTransactions.data?.data ?? [];
   const hasAnyDevice = deviceList.length > 0;
   const hasEnabledWallet = (tenantWallets.data ?? []).some((wallet) => wallet.is_enabled);
+  const walletConfigurationLoading = canManageWallets && tenantWallets.isLoading;
   const hasFirstTransaction = recentList.length > 0;
   const setupComplete = hasEnabledWallet && hasAnyDevice && hasFirstTransaction;
   const showOnboarding = canManageDevices && !setupComplete;
@@ -148,14 +149,24 @@ export default function DashboardHomePage() {
 
         {canManageDevices && (
           <button
-            className="inline-flex w-fit items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
+            className="inline-flex w-fit items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:cursor-wait disabled:opacity-60"
+            disabled={walletConfigurationLoading}
             onClick={() =>
               hasEnabledWallet ? setIsPairingDialogOpen(true) : router.push('/billeteras')
             }
             type="button"
           >
-            <DashboardIcon className="h-4 w-4" name={hasEnabledWallet ? 'device' : 'wallet'} />
-            {hasEnabledWallet ? 'Vincular dispositivo' : 'Elegir billetera'}
+            <DashboardIcon
+              className="h-4 w-4"
+              name={
+                walletConfigurationLoading ? 'activity' : hasEnabledWallet ? 'device' : 'wallet'
+              }
+            />
+            {walletConfigurationLoading
+              ? 'Cargando configuración…'
+              : hasEnabledWallet
+                ? 'Vincular dispositivo'
+                : 'Elegir billetera'}
             <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
           </button>
         )}
