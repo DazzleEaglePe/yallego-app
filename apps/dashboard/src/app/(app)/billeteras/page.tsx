@@ -19,8 +19,10 @@ export default function WalletsPage() {
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [reference, setReference] = useState('');
 
-  const catalogEntries = catalog.data ?? [];
-  const configured = tenantWallets.data ?? [];
+  // El MVP se publica con Yape. El catálogo conserva las siguientes billeteras
+  // para habilitarlas más adelante sin adelantar opciones todavía no validadas.
+  const catalogEntries = (catalog.data ?? []).filter((entry) => entry.code === 'YAPE');
+  const configured = (tenantWallets.data ?? []).filter((entry) => entry.wallet.code === 'YAPE');
   const configuredByCode = new Map(configured.map((entry) => [entry.wallet.code, entry]));
   const enabledCount = configured.filter((entry) => entry.is_enabled).length;
   const isLoading = catalog.isLoading || tenantWallets.isLoading;
@@ -75,14 +77,14 @@ export default function WalletsPage() {
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <DashboardIcon className="h-5 w-5 text-brand-500" name="wallet" />
-            <h1 className="text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
+            <DashboardIcon className="h-5 w-5 text-brand-400" name="wallet" />
+            <h1 className="text-2xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-3xl">
               Billeteras
             </h1>
           </div>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">
-            Elige qué aplicaciones de pago monitorea tu negocio. Los cambios se aplican a tus
-            dispositivos vinculados.
+            Configura Yape, la billetera disponible en esta primera versión. Los cambios se aplican
+            a tus dispositivos vinculados.
           </p>
         </div>
         <span className="rounded-full bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700">
@@ -99,11 +101,11 @@ export default function WalletsPage() {
         </p>
       )}
 
-      <section className="mt-7 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <section className="mt-6 overflow-hidden rounded-xl border border-neutral-200 bg-white">
         <div className="border-b border-neutral-200 px-5 py-4 sm:px-6">
           <h2 className="text-base font-semibold text-neutral-950">Métodos disponibles</h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Solo aparecen billeteras operativas en el catálogo de Yallegó.
+            Empezamos con Yape; incorporaremos más billeteras en próximas versiones.
           </p>
         </div>
 
@@ -122,15 +124,20 @@ export default function WalletsPage() {
           </div>
         )}
         {!isLoading && !loadFailed && catalogEntries.length > 0 && (
-          <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
+          <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
             {catalogEntries.map((entry) => {
               const current = configuredByCode.get(entry.code);
               const isEnabled = current?.is_enabled === true;
               const isEditing = editingCode === entry.code;
               return (
-                <article className="rounded-2xl border border-neutral-200 p-5" key={entry.id}>
+                <article
+                  className={`rounded-xl border p-5 transition hover:bg-neutral-50 ${entry.code === 'YAPE' ? 'border-[#c879d5]/35' : 'border-neutral-200'}`}
+                  key={entry.id}
+                >
                   <div className="flex items-start gap-3">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-600">
+                    <span
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-50 ${entry.code === 'YAPE' ? 'text-[#c879d5]' : 'text-neutral-500'}`}
+                    >
                       <DashboardIcon className="h-5 w-5" name="wallet" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -149,7 +156,7 @@ export default function WalletsPage() {
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-neutral-500">
-                        {entry.provider}
+                        {entry.code} · {entry.provider}
                         {entry.issuer ? ` · ${entry.issuer}` : ''}
                       </p>
                       {current?.account_reference && (
@@ -178,7 +185,7 @@ export default function WalletsPage() {
                   <div className="mt-5 flex flex-wrap gap-2">
                     {!isEnabled && !isEditing && (
                       <button
-                        className="rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
+                        className="rounded-lg bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
                         onClick={() => beginEdit(entry.code)}
                         type="button"
                       >
@@ -188,14 +195,14 @@ export default function WalletsPage() {
                     {isEnabled && !isEditing && (
                       <>
                         <button
-                          className="rounded-xl border border-neutral-200 px-3.5 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50"
+                          className="rounded-lg border border-neutral-200 px-3.5 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50"
                           onClick={() => beginEdit(entry.code)}
                           type="button"
                         >
                           Configurar
                         </button>
                         <button
-                          className="rounded-xl px-3.5 py-2 text-sm font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
+                          className="rounded-lg px-3.5 py-2 text-sm font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
                           disabled={isBusy}
                           onClick={() => actions.deactivate.mutate(current.id)}
                           type="button"
@@ -207,7 +214,7 @@ export default function WalletsPage() {
                     {isEditing && (
                       <>
                         <button
-                          className="rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
+                          className="rounded-lg bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
                           disabled={isBusy}
                           onClick={() => save(entry, current)}
                           type="button"
@@ -215,7 +222,7 @@ export default function WalletsPage() {
                           {isBusy ? 'Guardando…' : isEnabled ? 'Guardar' : 'Activar'}
                         </button>
                         <button
-                          className="rounded-xl px-3.5 py-2 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-100"
+                          className="rounded-lg px-3.5 py-2 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-100"
                           disabled={isBusy}
                           onClick={() => setEditingCode(null)}
                           type="button"
@@ -260,7 +267,7 @@ function WalletsSkeleton() {
   return (
     <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3" role="status">
       {[0, 1, 2].map((item) => (
-        <div className="h-40 animate-pulse rounded-2xl bg-neutral-100" key={item} />
+        <div className="h-40 animate-pulse rounded-xl bg-neutral-100" key={item} />
       ))}
       <span className="sr-only">Cargando billeteras</span>
     </div>

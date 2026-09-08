@@ -47,7 +47,7 @@ export default function AuditPage() {
             <DashboardIcon className="h-5 w-5 text-brand-500" name="shield" />
             <p className="text-sm font-semibold text-brand-600">Seguridad</p>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
+          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-3xl">
             Auditoría
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">
@@ -55,7 +55,7 @@ export default function AuditPage() {
           </p>
         </div>
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition hover:bg-neutral-50 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
           disabled={exportAudit.isPending}
           onClick={() => exportAudit.mutate({ ...filters, cursor: undefined, limit: undefined })}
           type="button"
@@ -83,7 +83,7 @@ export default function AuditPage() {
         </p>
       )}
 
-      <section className="mt-5 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <section className="mt-5 overflow-hidden rounded-xl border border-neutral-200 bg-white">
         <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-base font-semibold text-neutral-950">Registro de actividad</h2>
@@ -162,7 +162,7 @@ function AuditFiltersBar({
 
   return (
     <form
-      className="mt-6 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
+      className="mt-6 rounded-xl border border-neutral-200 bg-white p-4"
       onSubmit={(event) => {
         event.preventDefault();
         onApply(draft);

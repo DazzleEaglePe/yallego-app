@@ -1,20 +1,12 @@
 'use client';
 
-import { can } from '@yallego/contracts';
-import type { TransactionSummaryItem } from '@yallego/contracts';
+import { can, type TransactionSummaryItem } from '@yallego/contracts';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 import { formatCurrency, formatElapsed } from '@/shared/lib/format';
 
 import { StatusBadge } from './StatusBadge';
-
-function walletColorClass(walletCode: string): string {
-  if (walletCode === 'YAPE') return 'text-wallet-yape';
-  if (walletCode.startsWith('PLIN')) return 'text-wallet-plin';
-  if (walletCode === 'BIM') return 'text-wallet-bim';
-  return 'text-neutral-500';
-}
 
 interface TransactionCardProps {
   transaction: TransactionSummaryItem;
@@ -34,80 +26,85 @@ export function TransactionCard({
   const { session } = useAuthSession();
   const role = getActiveTenant(session)?.role;
   const canReview = role ? can(role, 'transactions:review') : false;
+  const canConfirm = canReview && transaction.status === 'CAPTURED';
+  const canDispute =
+    canReview && transaction.status !== 'DISPUTED' && transaction.status !== 'VOIDED';
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-brand-200 hover:shadow-md sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <button
-          className="min-w-0 flex-1 text-left"
-          onClick={() => onSelect(transaction)}
-          type="button"
-        >
-          <p className="text-2xl font-bold text-neutral-900 sm:text-3xl">
-            {formatCurrency(transaction.amount, transaction.currency)}
-          </p>
-          <p className="mt-1 truncate text-sm font-medium text-neutral-700">
+    <div className="grid gap-3 px-4 py-4 transition hover:bg-neutral-50 sm:px-5 lg:px-6 xl:grid-cols-[minmax(0,1fr)_170px] xl:items-center xl:gap-4">
+      <button
+        className="grid min-w-0 gap-3 text-left outline-none focus-visible:rounded-lg xl:grid-cols-[minmax(190px,1fr)_110px_130px_92px_112px] xl:items-center xl:gap-4"
+        onClick={() => onSelect(transaction)}
+        type="button"
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-neutral-950">
             {transaction.sender_name ?? 'Remitente no identificado'}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500">
-            <span className={`font-semibold ${walletColorClass(transaction.wallet.code)}`}>
-              {transaction.wallet.display_name}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span>{transaction.device.label}</span>
-            <span aria-hidden="true">·</span>
-            <span>{formatElapsed(transaction.occurred_at)}</span>
-          </div>
-        </button>
+          </span>
+          <span className="mt-1 block truncate text-xs text-neutral-500">
+            {formatElapsed(transaction.occurred_at)} · {transaction.device.label}
+          </span>
+        </span>
 
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        <span className="text-xs font-semibold text-[#c879d5]">
+          {transaction.wallet.display_name}
+        </span>
+
+        <span className="financial-value text-base font-semibold text-neutral-950 xl:text-right">
+          {formatCurrency(transaction.amount, transaction.currency)}
+        </span>
+
+        <span
+          aria-label={
+            transaction.security_code
+              ? `Código de seguridad ${transaction.security_code}`
+              : 'Sin código de seguridad'
+          }
+          className="w-fit rounded-md border border-neutral-200 bg-neutral-50 px-2.5 py-1 font-mono text-sm font-semibold tracking-[0.16em] text-neutral-300 xl:justify-self-end"
+        >
+          {transaction.security_code ?? '—'}
+        </span>
+
+        <span className="w-fit xl:justify-self-end">
           <StatusBadge status={transaction.status} />
-          {transaction.security_code && (
-            <span
-              aria-label={`Código de seguridad ${transaction.security_code}`}
-              className="rounded-lg bg-neutral-900 px-3 py-1.5 font-mono text-lg font-bold tracking-widest text-white"
-            >
-              {transaction.security_code}
-            </span>
-          )}
-        </div>
-      </div>
+        </span>
+      </button>
 
-      {canReview && transaction.status === 'CAPTURED' && (
-        <div className="mt-4 flex gap-2 border-t border-neutral-100 pt-3">
+      <div className="flex items-center gap-1 xl:justify-end">
+        {canConfirm && (
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-success-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-success-600 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-success-500 px-3 py-2 text-xs font-semibold text-neutral-950 transition hover:brightness-110 disabled:opacity-50"
             disabled={isBusy}
             onClick={() => onConfirm(transaction)}
             type="button"
           >
-            <DashboardIcon className="h-4 w-4" name="check" />
+            <DashboardIcon className="h-3.5 w-3.5" name="check" />
             Confirmar
           </button>
+        )}
+        {canDispute && (
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-danger-200 px-3 py-2 text-sm font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
+            aria-label={`Disputar cobro de ${transaction.sender_name ?? 'remitente no identificado'}`}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
             disabled={isBusy}
             onClick={() => onDispute(transaction)}
             type="button"
           >
-            <DashboardIcon className="h-4 w-4" name="x" />
+            <DashboardIcon className="h-3.5 w-3.5" name="x" />
             Disputar
           </button>
-        </div>
-      )}
-      {canReview && transaction.status === 'CONFIRMED' && (
-        <div className="mt-4 flex gap-2 border-t border-neutral-100 pt-3">
+        )}
+        {!canConfirm && !canDispute && (
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-danger-200 px-3 py-2 text-sm font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
-            disabled={isBusy}
-            onClick={() => onDispute(transaction)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-300"
+            onClick={() => onSelect(transaction)}
             type="button"
           >
-            <DashboardIcon className="h-4 w-4" name="x" />
-            Disputar
+            Ver detalle
+            <DashboardIcon className="h-3.5 w-3.5" name="chevron-right" />
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

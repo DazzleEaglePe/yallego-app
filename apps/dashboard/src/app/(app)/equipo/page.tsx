@@ -62,7 +62,7 @@ export default function TeamPage() {
         <div>
           <div className="flex items-center gap-2.5">
             <DashboardIcon className="h-5 w-5 text-brand-500" name="team" />
-            <h1 className="text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
+            <h1 className="text-2xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-3xl">
               Equipo
             </h1>
           </div>
@@ -85,7 +85,7 @@ export default function TeamPage() {
           </div>
           {canManageMembers && (
             <button
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
               onClick={() => {
                 actions.invite.reset();
                 setInviteOpen(true);
@@ -108,7 +108,7 @@ export default function TeamPage() {
         </p>
       )}
 
-      <section className="mt-7 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <section className="mt-6 overflow-hidden rounded-xl border border-neutral-200 bg-white">
         <div className="border-b border-neutral-200 px-5 py-4 sm:px-6">
           <h2 className="text-base font-semibold text-neutral-950">Integrantes</h2>
           <p className="mt-1 text-sm text-neutral-500">Personas con acceso vigente al panel.</p>
@@ -160,7 +160,7 @@ export default function TeamPage() {
       </section>
 
       {canManageMembers && (
-        <section className="mt-5 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <section className="mt-5 overflow-hidden rounded-xl border border-neutral-200 bg-white">
           <div className="border-b border-neutral-200 px-5 py-4 sm:px-6">
             <h2 className="text-base font-semibold text-neutral-950">Invitaciones</h2>
             <p className="mt-1 text-sm text-neutral-500">

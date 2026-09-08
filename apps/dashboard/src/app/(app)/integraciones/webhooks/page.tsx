@@ -78,7 +78,7 @@ export default function WebhooksPage() {
             <DashboardIcon className="h-5 w-5 text-brand-500" name="plug" />
             <p className="text-sm font-semibold text-brand-600">Integraciones</p>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
+          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-3xl">
             Webhooks
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">
@@ -87,7 +87,7 @@ export default function WebhooksPage() {
         </div>
 
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
           onClick={() => {
             actions.create.reset();
             setCreateOpen(true);
@@ -129,7 +129,7 @@ export default function WebhooksPage() {
         </p>
       )}
 
-      <section className="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <section className="mt-6 overflow-hidden rounded-xl border border-neutral-200 bg-white">
         <div className="flex flex-col gap-2 border-b border-neutral-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h2 className="text-base font-semibold text-neutral-950">Endpoints</h2>

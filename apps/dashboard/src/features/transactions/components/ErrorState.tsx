@@ -7,9 +7,9 @@ interface ErrorStateProps {
 
 export function ErrorState({ message, onRetry }: Readonly<ErrorStateProps>) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-danger-100 bg-danger-50 px-6 py-16 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-white text-danger-500">
-        <DashboardIcon className="h-6 w-6" name="alert-circle" />
+    <div className="flex min-h-72 flex-col items-center justify-center bg-danger-50 px-6 py-14 text-center">
+      <div className="grid h-10 w-10 place-items-center rounded-lg border border-danger-200 bg-white text-danger-500">
+        <DashboardIcon className="h-5 w-5" name="alert-circle" />
       </div>
       <p className="mt-4 text-sm font-semibold text-neutral-900">No pudimos cargar tus cobros</p>
       <p className="mt-1 max-w-sm text-sm text-neutral-600">{message}</p>

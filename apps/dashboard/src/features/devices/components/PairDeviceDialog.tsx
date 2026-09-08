@@ -51,7 +51,7 @@ export function PairDeviceDialog({ accessToken, onClose }: Readonly<PairDeviceDi
       className="fixed inset-0 z-50 grid place-items-center bg-neutral-950/55 p-4 backdrop-blur-sm"
       role="dialog"
     >
-      <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-2xl">
         <span className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-700">
           Vincular Android
         </span>
@@ -64,7 +64,7 @@ export function PairDeviceDialog({ accessToken, onClose }: Readonly<PairDeviceDi
 
         {!result && (
           <button
-            className="mt-6 w-full rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 w-full rounded-lg bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isCreating}
             onClick={() => void generateCode()}
             type="button"
@@ -74,19 +74,28 @@ export function PairDeviceDialog({ accessToken, onClose }: Readonly<PairDeviceDi
         )}
 
         {result && (
-          <div className="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-5 text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-700">Código de vinculación</p>
+          <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-5 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-700">
+              Código de vinculación
+            </p>
             <code className="mt-3 block font-mono text-3xl font-bold tracking-[0.08em] text-neutral-950">
               {result.code}
             </code>
             <p className="mt-3 text-xs leading-5 text-neutral-600">
-              Vence a las {new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit' }).format(new Date(result.expires_at))}.
+              Vence a las{' '}
+              {new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit' }).format(
+                new Date(result.expires_at),
+              )}
+              .
             </p>
           </div>
         )}
 
         {error && (
-          <p className="mt-4 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700" role="alert">
+          <p
+            className="mt-4 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700"
+            role="alert"
+          >
             {error}
           </p>
         )}
@@ -114,7 +123,7 @@ export function PairDeviceDialog({ accessToken, onClose }: Readonly<PairDeviceDi
             </button>
           )}
           <button
-            className="rounded-xl bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+            className="rounded-lg bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800"
             onClick={onClose}
             type="button"
           >

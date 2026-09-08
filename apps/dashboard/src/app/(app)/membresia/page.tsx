@@ -51,7 +51,7 @@ export default function MembershipPage() {
             <DashboardIcon className="h-5 w-5 text-brand-500" name="ticket" />
             <p className="text-sm font-semibold text-brand-600">Cuenta</p>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
+          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-3xl">
             Membresía
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">

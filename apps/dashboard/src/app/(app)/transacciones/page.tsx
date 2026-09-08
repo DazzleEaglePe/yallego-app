@@ -1,8 +1,11 @@
 'use client';
 
 import type { TransactionSummaryItem } from '@yallego/contracts';
+import Link from 'next/link';
 import { useState } from 'react';
 
+import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
+import type { TransactionFilters } from '@/features/transactions/api/transactions';
 import { ConnectionIndicator } from '@/features/transactions/components/ConnectionIndicator';
 import { EmptyState } from '@/features/transactions/components/EmptyState';
 import { ErrorState } from '@/features/transactions/components/ErrorState';
@@ -11,12 +14,10 @@ import { SummaryStrip } from '@/features/transactions/components/SummaryStrip';
 import { TransactionCard } from '@/features/transactions/components/TransactionCard';
 import { TransactionDetailPanel } from '@/features/transactions/components/TransactionDetailPanel';
 import { TransactionSkeleton } from '@/features/transactions/components/TransactionSkeleton';
-import type { TransactionFilters } from '@/features/transactions/api/transactions';
 import { useExportTransactions } from '@/features/transactions/hooks/use-export-transactions';
 import { useRealtimeTransactions } from '@/features/transactions/hooks/use-realtime-transactions';
 import { useTransactionActions } from '@/features/transactions/hooks/use-transaction-actions';
 import { useTransactions } from '@/features/transactions/hooks/use-transactions';
-import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 
 export default function TransactionsPage() {
   const [filters, setFilters] = useState<TransactionFilters>({});
@@ -37,7 +38,7 @@ export default function TransactionsPage() {
   const exportCsv = useExportTransactions();
 
   const transactions = data?.pages.flatMap((page) => page.data) ?? [];
-  const hasFilters = Object.keys(filters).length > 0;
+  const hasFilters = Object.values(filters).some((value) => value !== undefined && value !== '');
   const isBusy = confirm.isPending || dispute.isPending;
 
   function handleConfirm(transaction: TransactionSummaryItem) {
@@ -54,21 +55,21 @@ export default function TransactionsPage() {
     <div className="pb-6">
       <section className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <DashboardIcon className="h-5 w-5 text-brand-500" name="receipt" />
-            <h1 className="text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
+          <div className="flex items-center gap-2.5">
+            <DashboardIcon className="h-5 w-5 text-brand-400" name="receipt" />
+            <h1 className="text-2xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-3xl">
               Transacciones
             </h1>
           </div>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">
-            Tus cobros aparecen aquí en cuanto llegan, sin recargar la página.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
+            Consulta, confirma y audita los cobros que llegan desde tu Android.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ConnectionIndicator status={realtimeStatus} />
           <button
-            className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition hover:bg-neutral-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
             disabled={exportCsv.isPending}
             onClick={() => exportCsv.mutate(filters)}
             type="button"
@@ -87,7 +88,16 @@ export default function TransactionsPage() {
         <FiltersBar filters={filters} onChange={setFilters} />
       </section>
 
-      <section className="mt-4 space-y-3">
+      <section className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <div className="hidden grid-cols-[minmax(190px,1fr)_110px_130px_92px_112px_170px] gap-4 border-b border-neutral-200 bg-neutral-50 px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500 xl:grid">
+          <span>Remitente</span>
+          <span>Billetera</span>
+          <span className="text-right">Importe</span>
+          <span className="text-right">Código</span>
+          <span className="text-right">Estado</span>
+          <span className="text-right">Acciones</span>
+        </div>
+
         {isLoading && <TransactionSkeleton />}
 
         {isError && (
@@ -117,41 +127,45 @@ export default function TransactionsPage() {
         {!isLoading && !isError && transactions.length === 0 && !hasFilters && (
           <EmptyState
             action={
-              <a
+              <Link
                 className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800"
                 href="/dispositivos"
               >
                 Vincular dispositivo
-              </a>
+              </Link>
             }
-            description="En cuanto vincules un celular Android y recibas tu primer cobro, aparecerá aquí al instante."
+            description="Cuando el Android detecte una notificación válida de Yape, aparecerá aquí al instante."
             icon="inbox"
             title="Todavía no se registran cobros"
           />
         )}
 
-        {!isLoading &&
-          !isError &&
-          transactions.map((transaction) => (
-            <TransactionCard
-              isBusy={isBusy}
-              key={transaction.id}
-              onConfirm={handleConfirm}
-              onDispute={handleDispute}
-              onSelect={setSelected}
-              transaction={transaction}
-            />
-          ))}
+        {!isLoading && !isError && transactions.length > 0 && (
+          <div className="divide-y divide-neutral-100">
+            {transactions.map((transaction) => (
+              <TransactionCard
+                isBusy={isBusy}
+                key={transaction.id}
+                onConfirm={handleConfirm}
+                onDispute={handleDispute}
+                onSelect={setSelected}
+                transaction={transaction}
+              />
+            ))}
+          </div>
+        )}
 
         {hasNextPage && (
-          <button
-            className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-semibold text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
-            disabled={isFetchingNextPage}
-            onClick={() => void fetchNextPage()}
-            type="button"
-          >
-            {isFetchingNextPage ? 'Cargando…' : 'Cargar más cobros'}
-          </button>
+          <div className="border-t border-neutral-200 p-3">
+            <button
+              className="w-full rounded-lg py-2.5 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-300 disabled:opacity-50"
+              disabled={isFetchingNextPage}
+              onClick={() => void fetchNextPage()}
+              type="button"
+            >
+              {isFetchingNextPage ? 'Cargando…' : 'Cargar más cobros'}
+            </button>
+          </div>
         )}
       </section>
 

@@ -1,14 +1,16 @@
 export function TransactionSkeleton() {
   return (
-    <div className="space-y-3" role="status" aria-label="Cargando transacciones">
+    <div className="divide-y divide-neutral-100" role="status" aria-label="Cargando transacciones">
       {Array.from({ length: 5 }).map((_, index) => (
-        <div
-          className="animate-pulse rounded-2xl border border-neutral-200 bg-white p-5"
-          key={index}
-        >
-          <div className="h-7 w-32 rounded bg-neutral-200" />
-          <div className="mt-2 h-4 w-40 rounded bg-neutral-100" />
-          <div className="mt-3 h-3 w-56 rounded bg-neutral-100" />
+        <div className="grid animate-pulse gap-4 px-5 py-5 xl:grid-cols-6" key={index}>
+          <div className="xl:col-span-2">
+            <div className="h-3 w-36 rounded bg-neutral-800" />
+            <div className="mt-2 h-3 w-48 max-w-full rounded bg-neutral-800" />
+          </div>
+          <div className="h-4 w-20 rounded bg-neutral-800" />
+          <div className="h-4 w-24 rounded bg-neutral-800" />
+          <div className="h-6 w-20 rounded bg-neutral-800" />
+          <div className="h-6 w-24 rounded bg-neutral-800" />
         </div>
       ))}
     </div>

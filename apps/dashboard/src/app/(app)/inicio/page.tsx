@@ -2,31 +2,54 @@
 
 import { can } from '@yallego/contracts';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
-import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 import { PairDeviceDialog } from '@/features/devices/components/PairDeviceDialog';
 import { useDevices } from '@/features/devices/hooks/use-devices';
-import { StatusBadge } from '@/features/transactions/components/StatusBadge';
 import { fetchTransactions } from '@/features/transactions/api/transactions';
+import { StatusBadge } from '@/features/transactions/components/StatusBadge';
 import { useRealtimeTransactions } from '@/features/transactions/hooks/use-realtime-transactions';
 import { useTransactionSummary } from '@/features/transactions/hooks/use-transaction-summary';
 import { useWallets } from '@/features/wallets/hooks/use-wallets';
 import { formatCurrency, formatElapsed } from '@/shared/lib/format';
 
-const weekDays = ['Jue', 'Vie', 'Sáb', 'Dom', 'Lun', 'Mar', 'Hoy'];
+const DAY_IN_MS = 24 * 60 * 60 * 1_000;
 
 /** América/Lima no observa horario de verano: UTC-5 todo el año. */
 function startOfTodayLima(): string {
-  const today = new Intl.DateTimeFormat('en-CA', {
+  return `${limaDateKey(new Date())}T05:00:00.000Z`;
+}
+
+function startOfSevenDaysLima(): string {
+  return `${limaDateKey(new Date(Date.now() - 6 * DAY_IN_MS))}T05:00:00.000Z`;
+}
+
+function limaDateKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
     day: '2-digit',
     month: '2-digit',
     timeZone: 'America/Lima',
     year: 'numeric',
-  }).format(new Date());
-  return `${today}T05:00:00.000Z`;
+  }).format(date);
+}
+
+function lastSevenDays(): Array<{ date: string; label: string }> {
+  const dayFormatter = new Intl.DateTimeFormat('es-PE', {
+    timeZone: 'America/Lima',
+    weekday: 'short',
+  });
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(Date.now() - (6 - index) * DAY_IN_MS);
+    return {
+      date: limaDateKey(date),
+      label: index === 6 ? 'Hoy' : dayFormatter.format(date).replace('.', ''),
+    };
+  });
 }
 
 export default function DashboardHomePage() {
@@ -43,11 +66,11 @@ export default function DashboardHomePage() {
     timeZone: 'America/Lima',
     weekday: 'long',
   }).format(new Date());
-  const greeting = getGreeting();
 
   const devices = useDevices();
   const { tenantWallets } = useWallets(canManageWallets);
-  const summary = useTransactionSummary({ from: startOfTodayLima() });
+  const todaySummary = useTransactionSummary({ from: startOfTodayLima() });
+  const activitySummary = useTransactionSummary({ from: startOfSevenDaysLima() });
   useRealtimeTransactions();
   const accessToken = session?.accessToken ?? null;
   const recentTransactions = useQuery({
@@ -59,45 +82,51 @@ export default function DashboardHomePage() {
   const deviceList = devices.data ?? [];
   const activeDevices = deviceList.filter((device) => device.status === 'ACTIVE');
   const onlineDevice = activeDevices.find((device) => device.connectivity === 'ONLINE');
-  const totals = summary.data?.totals;
+  const totals = todaySummary.data?.totals;
   const recentList = recentTransactions.data?.data ?? [];
-
   const hasAnyDevice = deviceList.length > 0;
   const hasEnabledWallet = (tenantWallets.data ?? []).some((wallet) => wallet.is_enabled);
+  const hasFirstTransaction = recentList.length > 0;
+  const setupComplete = hasEnabledWallet && hasAnyDevice && hasFirstTransaction;
+  const showOnboarding = canManageDevices && !setupComplete;
+
+  const activityAmounts = new Map(
+    (activitySummary.data?.by_day ?? []).map((row) => [row.date, Number(row.amount)]),
+  );
+  const activityDays = lastSevenDays().map((day) => ({
+    ...day,
+    amount: activityAmounts.get(day.date) ?? 0,
+  }));
+  const maxActivity = Math.max(...activityDays.map((day) => day.amount), 0);
+  const activityTotal = activityDays.reduce((sum, day) => sum + day.amount, 0);
+
   const metrics = [
     {
       detail:
         totals && totals.count > 0
           ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} hoy`
           : 'Sin movimientos todavía',
-      icon: 'wallet' as DashboardIconName,
       label: 'Cobrado hoy',
+      signal: true,
       value: totals ? formatCurrency(totals.amount, totals.currency) : 'S/ 0.00',
     },
     {
-      detail:
-        totals && totals.count > 0
-          ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} registrado${totals.count === 1 ? '' : 's'} hoy`
-          : 'Sin transacciones todavía',
-      icon: 'receipt' as DashboardIconName,
+      detail: totals && totals.count > 0 ? 'Registrados hoy' : 'Esperando el primer cobro',
       label: 'Transacciones',
       value: String(totals?.count ?? 0),
     },
     {
-      detail:
-        totals && totals.count > 0 ? 'Del período de hoy' : 'Se calculará con tu primer cobro',
-      icon: 'ticket' as DashboardIconName,
+      detail: totals && totals.count > 0 ? 'Promedio del día' : 'Se calcula con tu primer cobro',
       label: 'Ticket promedio',
       value:
         totals && totals.count > 0 ? formatCurrency(totals.average, totals.currency) : 'S/ 0.00',
     },
     {
       detail: hasAnyDevice
-        ? `${activeDevices.length} vinculado${activeDevices.length === 1 ? '' : 's'}`
+        ? `${onlineDevice ? 1 : 0} en línea · ${activeDevices.length} activo${activeDevices.length === 1 ? '' : 's'}`
         : 'Vincula tu primer Android',
-      icon: 'device' as DashboardIconName,
-      label: 'Dispositivos activos',
-      value: `${activeDevices.length} de ${Math.max(deviceList.length, 1)}`,
+      label: 'Dispositivos',
+      value: `${activeDevices.length} / ${deviceList.length}`,
     },
   ];
 
@@ -105,230 +134,187 @@ export default function DashboardHomePage() {
     <div className="pb-6">
       <section className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm font-medium text-neutral-500">
-            <DashboardIcon className="h-4 w-4 text-brand-500" name="calendar" />
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-neutral-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
             <span className="first-letter:uppercase">{today}</span>
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-neutral-950 sm:text-4xl">
-            {greeting}, {firstName}
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
+            {getGreeting()}, {firstName}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">
-            Todo lo importante de tu negocio, listo para revisar en un solo lugar.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
+            Una vista clara de los cobros y del estado operativo de tu negocio.
           </p>
         </div>
 
         {canManageDevices && (
           <button
-            className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
+            className="inline-flex w-fit items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
             onClick={() =>
               hasEnabledWallet ? setIsPairingDialogOpen(true) : router.push('/billeteras')
             }
             type="button"
           >
             <DashboardIcon className="h-4 w-4" name={hasEnabledWallet ? 'device' : 'wallet'} />
-            {hasEnabledWallet ? 'Vincular dispositivo' : 'Elegir billeteras'}
+            {hasEnabledWallet ? 'Vincular dispositivo' : 'Elegir billetera'}
             <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
           </button>
         )}
       </section>
 
-      <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumen">
+      <section
+        aria-label="Resumen del día"
+        className="mt-7 grid overflow-hidden rounded-xl border border-neutral-200 bg-white sm:grid-cols-2 xl:grid-cols-4"
+      >
         {metrics.map((metric) => (
           <article
-            className="group rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(24,24,27,0.03)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-lg hover:shadow-neutral-900/5"
+            className="border-t border-neutral-200 px-5 py-5 first:border-t-0 sm:[&:nth-child(2)]:border-t-0 sm:[&:nth-child(even)]:border-l xl:border-l xl:border-t-0 xl:first:border-l-0"
             key={metric.label}
           >
-            <div className="flex items-start justify-between gap-4">
-              <p className="text-sm font-medium text-neutral-500">{metric.label}</p>
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-500 group-hover:text-white">
-                <DashboardIcon className="h-4.5 w-4.5" name={metric.icon} />
-              </span>
-            </div>
-            <p className="mt-4 font-mono text-2xl font-bold tracking-tight text-neutral-950">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+              {metric.label}
+            </p>
+            <p
+              className={`financial-value mt-3 text-2xl font-semibold ${metric.signal ? 'signal-value' : 'text-neutral-950'}`}
+            >
               {metric.value}
             </p>
-            <p className="mt-2 text-xs leading-5 text-neutral-500">{metric.detail}</p>
+            <p className="mt-1.5 text-xs text-neutral-500">{metric.detail}</p>
           </article>
         ))}
       </section>
 
-      <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.7fr)]">
-        <article className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.03)]">
-          <div className="flex flex-col gap-3 border-b border-neutral-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.65fr)]">
+        <article className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <div className="flex flex-col gap-3 border-b border-neutral-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h2 className="text-base font-semibold text-neutral-950">Actividad de cobros</h2>
-              <p className="mt-1 text-sm text-neutral-500">
-                Importe recibido durante los últimos 7 días
-              </p>
+              <p className="mt-1 text-sm text-neutral-500">Importe recibido durante 7 días</p>
             </div>
-            <span className="inline-flex w-fit items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-semibold text-neutral-600">
-              <DashboardIcon className="h-4 w-4" name="calendar" />
-              Últimos 7 días
+            <span className="financial-value text-sm font-semibold text-neutral-300">
+              {formatCurrency(activityTotal.toFixed(2), 'PEN')}
             </span>
           </div>
 
-          <div className="p-5 sm:p-6">
-            <div className="relative h-64 overflow-hidden rounded-2xl bg-neutral-50">
-              <div
-                aria-hidden="true"
-                className="absolute inset-x-5 inset-y-7 flex flex-col justify-between"
-              >
-                {[0, 1, 2, 3].map((line) => (
-                  <span className="block border-t border-dashed border-neutral-200" key={line} />
-                ))}
+          <div className="relative h-72 px-5 pb-5 pt-7 sm:px-6">
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-6 bottom-12 top-7 flex flex-col justify-between"
+            >
+              {[0, 1, 2, 3].map((line) => (
+                <span className="block border-t border-dashed border-neutral-200" key={line} />
+              ))}
+            </div>
+
+            {maxActivity === 0 && !activitySummary.isLoading && (
+              <div className="pointer-events-none absolute inset-x-8 top-24 z-10 text-center">
+                <p className="text-sm font-semibold text-neutral-300">Aún no hay actividad</p>
+                <p className="mt-1 text-xs text-neutral-500">
+                  El primer cobro aparecerá aquí en tiempo real.
+                </p>
               </div>
-              <div className="absolute inset-0 grid place-items-center px-5 pb-8 text-center">
-                <div className="rounded-2xl border border-neutral-200 bg-white/95 px-5 py-4 shadow-lg shadow-neutral-900/5 backdrop-blur">
-                  <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
-                    <DashboardIcon className="h-5 w-5" name="activity" />
-                  </span>
-                  <p className="mt-3 text-sm font-semibold text-neutral-900">
-                    {recentList.length > 0
-                      ? 'El gráfico llega en la próxima entrega'
-                      : 'Aún no hay movimientos'}
-                  </p>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    {recentList.length > 0
-                      ? 'Ya hay cobros reales — revisa la lista de la derecha mientras tanto.'
-                      : 'Tu primer cobro aparecerá aquí en tiempo real.'}
-                  </p>
-                </div>
-              </div>
-              <div
-                aria-hidden="true"
-                className="absolute inset-x-5 bottom-4 grid grid-cols-7 gap-2"
-              >
-                {weekDays.map((day) => (
-                  <span className="text-center text-[11px] font-medium text-neutral-400" key={day}>
-                    {day}
-                  </span>
-                ))}
-              </div>
+            )}
+
+            <div className="relative grid h-full grid-cols-7 items-end gap-2 sm:gap-4">
+              {activityDays.map((day) => {
+                const height =
+                  maxActivity > 0
+                    ? `${Math.max((day.amount / maxActivity) * 100, day.amount > 0 ? 6 : 1)}%`
+                    : '1%';
+                return (
+                  <div
+                    aria-label={`${day.label}: ${formatCurrency(day.amount.toFixed(2), 'PEN')}`}
+                    className="group flex h-full min-w-0 flex-col justify-end"
+                    key={day.date}
+                  >
+                    <div className="relative flex h-[calc(100%-28px)] items-end justify-center">
+                      <span
+                        className={`w-full max-w-12 rounded-t-md transition-colors ${day.amount > 0 ? 'bg-success-500/80 group-hover:bg-success-500' : 'bg-neutral-800'}`}
+                        style={{ height }}
+                        title={formatCurrency(day.amount.toFixed(2), 'PEN')}
+                      />
+                    </div>
+                    <span className="mt-2 truncate text-center text-[10px] font-medium capitalize text-neutral-500 sm:text-[11px]">
+                      {day.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </article>
 
-        <article
-          className="relative overflow-hidden rounded-2xl bg-neutral-950 p-6 text-white shadow-xl shadow-neutral-950/10"
-          id="primer-dispositivo"
-        >
-          <div
-            aria-hidden="true"
-            className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-500/30 blur-3xl"
+        {showOnboarding ? (
+          <OnboardingPanel
+            hasAnyDevice={hasAnyDevice}
+            hasEnabledWallet={hasEnabledWallet}
+            hasFirstTransaction={hasFirstTransaction}
           />
-          <div className="relative">
-            <span className="inline-flex rounded-full border border-brand-400/30 bg-brand-500/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-200">
-              Primeros pasos
-            </span>
-            <h2 className="mt-5 max-w-xs text-2xl font-bold tracking-tight">
-              Activa el monitoreo de tu negocio
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-neutral-400">
-              Conecta un Android y Yallegó empezará a reconocer tus notificaciones de pago.
-            </p>
-
-            <ol className="mt-6 space-y-4">
-              <SetupStep complete label="Cuenta creada y verificada" number="1" />
-              <SetupStep complete={hasEnabledWallet} label="Elegir billeteras" number="2" />
-              <SetupStep complete={hasAnyDevice} label="Vincular dispositivo Android" number="3" />
-              <SetupStep
-                complete={(totals?.count ?? 0) > 0}
-                label="Recibir el primer cobro"
-                number="4"
-              />
-            </ol>
-
-            <details className="group mt-6 rounded-xl border border-white/10 bg-white/[0.06] p-4 open:bg-white/[0.08]">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold focus:outline-none">
-                Ver guía de conexión
-                <DashboardIcon
-                  className="h-4 w-4 transition group-open:rotate-90"
-                  name="chevron-right"
-                />
-              </summary>
-              <ol className="mt-4 space-y-2 border-t border-white/10 pt-4 text-xs leading-5 text-neutral-300">
-                <li>1. Elige las billeteras que usa tu negocio.</li>
-                <li>2. Instala Yallegó en el Android que recibe los pagos.</li>
-                <li>3. Autoriza el acceso a notificaciones.</li>
-                <li>4. Escanea el código de vinculación desde este panel.</li>
-              </ol>
-            </details>
-          </div>
-        </article>
+        ) : (
+          <SystemStatusPanel hasAnyDevice={hasAnyDevice} onlineDevice={Boolean(onlineDevice)} />
+        )}
       </section>
 
-      <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.7fr)]">
-        <article className="rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.03)]">
-          <div className="flex items-center justify-between gap-4 border-b border-neutral-100 px-5 py-5 sm:px-6">
-            <div>
-              <h2 className="text-base font-semibold text-neutral-950">Últimas transacciones</h2>
-              <p className="mt-1 text-sm text-neutral-500">Cobros detectados más recientemente</p>
-            </div>
-            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-500">
-              {recentList.length} registro{recentList.length === 1 ? '' : 's'}
-            </span>
+      <section className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
+          <div>
+            <h2 className="text-base font-semibold text-neutral-950">Últimas transacciones</h2>
+            <p className="mt-1 text-sm text-neutral-500">Cobros detectados recientemente</p>
           </div>
+          <button
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-300 transition hover:text-white"
+            onClick={() => router.push('/transacciones')}
+            type="button"
+          >
+            Ver todas
+            <DashboardIcon className="h-3.5 w-3.5" name="arrow-up-right" />
+          </button>
+        </div>
 
-          {recentList.length === 0 ? (
-            <div className="grid min-h-52 place-items-center px-5 py-8 text-center">
-              <div>
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-400">
-                  <DashboardIcon className="h-5 w-5" name="receipt" />
-                </span>
-                <p className="mt-4 text-sm font-semibold text-neutral-900">
-                  Tu historial está listo
-                </p>
-                <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-neutral-500">
-                  En cuanto llegue una notificación de pago válida, la verás aquí con su billetera,
-                  importe y estado.
-                </p>
-              </div>
+        {recentList.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm font-semibold text-neutral-300">Tu historial está listo</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              Una notificación válida de Yape aparecerá aquí automáticamente.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="hidden grid-cols-[minmax(220px,1fr)_130px_150px_120px] gap-4 border-b border-neutral-200 bg-neutral-50 px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500 md:grid">
+              <span>Remitente</span>
+              <span>Billetera</span>
+              <span className="text-right">Importe</span>
+              <span className="text-right">Estado</span>
             </div>
-          ) : (
             <div className="divide-y divide-neutral-100">
               {recentList.map((transaction) => (
-                <div className="flex items-center gap-3 px-5 py-4 sm:px-6" key={transaction.id}>
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-500">
-                    <DashboardIcon className="h-4.5 w-4.5" name="wallet" />
-                  </span>
-                  <span className="min-w-0 flex-1">
+                <button
+                  className="grid w-full gap-2 px-5 py-3.5 text-left transition hover:bg-neutral-50 sm:px-6 md:grid-cols-[minmax(220px,1fr)_130px_150px_120px] md:items-center md:gap-4"
+                  key={transaction.id}
+                  onClick={() => router.push('/transacciones')}
+                  type="button"
+                >
+                  <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-neutral-950">
                       {transaction.sender_name ?? 'Remitente sin nombre'}
                     </span>
                     <span className="block text-xs text-neutral-500">
-                      {transaction.wallet.display_name} · {formatElapsed(transaction.occurred_at)}
+                      {formatElapsed(transaction.occurred_at)} · {transaction.device.label}
                     </span>
                   </span>
-                  <span className="font-mono text-sm font-semibold text-neutral-950">
+                  <span className="text-xs font-semibold text-[#c879d5]">
+                    {transaction.wallet.display_name}
+                  </span>
+                  <span className="financial-value text-sm font-semibold text-neutral-950 md:text-right">
                     {formatCurrency(transaction.amount, transaction.currency)}
                   </span>
-                  <StatusBadge status={transaction.status} />
-                </div>
+                  <span className="md:justify-self-end">
+                    <StatusBadge status={transaction.status} />
+                  </span>
+                </button>
               ))}
             </div>
-          )}
-        </article>
-
-        <article className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(24,24,27,0.03)] sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-base font-semibold text-neutral-950">Estado del sistema</h2>
-              <p className="mt-1 text-sm text-neutral-500">Resumen operativo</p>
-            </div>
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-success-50 text-success-600">
-              <DashboardIcon className="h-5 w-5" name="shield" />
-            </span>
           </div>
-          <div className="mt-6 space-y-3">
-            <StatusRow label="Panel web" status="Conectado" />
-            <StatusRow label="Sesión segura" status="Activa" />
-            <StatusRow
-              label="Dispositivo Android"
-              pending={!onlineDevice}
-              status={!hasAnyDevice ? 'Por vincular' : onlineDevice ? 'En línea' : 'Sin conexión'}
-            />
-          </div>
-        </article>
+        )}
       </section>
 
       {isPairingDialogOpen && session && hasEnabledWallet && (
@@ -341,27 +327,98 @@ export default function DashboardHomePage() {
   );
 }
 
+function OnboardingPanel({
+  hasAnyDevice,
+  hasEnabledWallet,
+  hasFirstTransaction,
+}: Readonly<{
+  hasAnyDevice: boolean;
+  hasEnabledWallet: boolean;
+  hasFirstTransaction: boolean;
+}>) {
+  return (
+    <article
+      className="rounded-xl border border-neutral-200 bg-white p-5 sm:p-6"
+      id="primer-dispositivo"
+    >
+      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-300">
+        Puesta en marcha
+      </span>
+      <h2 className="mt-3 text-xl font-semibold tracking-tight text-neutral-950">
+        Activa el monitoreo
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-neutral-500">
+        Completa estos pasos para comenzar a reconocer cobros de Yape.
+      </p>
+
+      <ol className="mt-6 space-y-4">
+        <SetupStep complete label="Cuenta verificada" number="1" />
+        <SetupStep complete={hasEnabledWallet} label="Yape activado" number="2" />
+        <SetupStep complete={hasAnyDevice} label="Android vinculado" number="3" />
+        <SetupStep complete={hasFirstTransaction} label="Primer cobro recibido" number="4" />
+      </ol>
+
+      <Link
+        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-300 transition hover:text-white"
+        href={hasEnabledWallet ? '/dispositivos' : '/billeteras'}
+      >
+        Continuar configuración
+        <DashboardIcon className="h-4 w-4" name="arrow-up-right" />
+      </Link>
+    </article>
+  );
+}
+
+function SystemStatusPanel({
+  hasAnyDevice,
+  onlineDevice,
+}: Readonly<{ hasAnyDevice: boolean; onlineDevice: boolean }>) {
+  return (
+    <article className="rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+            Operación
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-neutral-950">Estado del sistema</h2>
+        </div>
+        <span className="flex items-center gap-2 text-xs font-semibold text-success-500">
+          <span className="h-2 w-2 rounded-full bg-success-500" />
+          Operativo
+        </span>
+      </div>
+      <div className="mt-6 space-y-2">
+        <StatusRow label="Panel web" status="Conectado" />
+        <StatusRow label="Sesión segura" status="Activa" />
+        <StatusRow
+          label="Android"
+          pending={!onlineDevice}
+          status={!hasAnyDevice ? 'Por vincular' : onlineDevice ? 'En línea' : 'Sin conexión'}
+        />
+      </div>
+    </article>
+  );
+}
+
 function SetupStep({
   complete = false,
   label,
   number,
-}: {
-  complete?: boolean;
-  label: string;
-  number: string;
-}) {
+}: Readonly<{ complete?: boolean; label: string; number: string }>) {
   return (
     <li className="flex items-center gap-3">
       <span
-        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${
+        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
           complete
-            ? 'bg-brand-500 text-white'
-            : 'border border-white/15 bg-white/[0.06] text-neutral-400'
+            ? 'bg-success-500 text-neutral-950'
+            : 'border border-neutral-200 bg-neutral-50 text-neutral-500'
         }`}
       >
-        {complete ? <DashboardIcon className="h-4 w-4" name="check" /> : number}
+        {complete ? <DashboardIcon className="h-3.5 w-3.5" name="check" /> : number}
       </span>
-      <span className={`text-sm ${complete ? 'text-white' : 'text-neutral-400'}`}>{label}</span>
+      <span className={`text-sm ${complete ? 'text-neutral-300' : 'text-neutral-500'}`}>
+        {label}
+      </span>
     </li>
   );
 }
@@ -370,14 +427,10 @@ function StatusRow({
   label,
   pending = false,
   status,
-}: {
-  label: string;
-  pending?: boolean;
-  status: string;
-}) {
+}: Readonly<{ label: string; pending?: boolean; status: string }>) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl bg-neutral-50 px-3.5 py-3">
-      <span className="text-sm font-medium text-neutral-700">{label}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-neutral-200 py-3 last:border-b-0">
+      <span className="text-sm text-neutral-500">{label}</span>
       <span
         className={`inline-flex items-center gap-1.5 text-xs font-semibold ${pending ? 'text-warning-600' : 'text-success-600'}`}
       >

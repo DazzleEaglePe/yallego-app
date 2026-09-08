@@ -13,6 +13,7 @@ export type DashboardIconName =
   | 'home'
   | 'inbox'
   | 'logout'
+  | 'menu'
   | 'pause'
   | 'play'
   | 'plug'
@@ -86,6 +87,14 @@ const iconPaths: Record<DashboardIconName, ReactNode> = {
     <>
       <path d="M10 17l5-5-5-5M15 12H3" />
       <path d="M14 3h4a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-4" />
+    </>
+  ),
+  menu: (
+    <>
+      <rect x="4" y="4" width="5" height="5" rx="1" />
+      <rect x="15" y="4" width="5" height="5" rx="1" />
+      <rect x="4" y="15" width="5" height="5" rx="1" />
+      <rect x="15" y="15" width="5" height="5" rx="1" />
     </>
   ),
   plug: (
