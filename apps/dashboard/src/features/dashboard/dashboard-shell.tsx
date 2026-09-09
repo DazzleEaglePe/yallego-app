@@ -1,57 +1,51 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { can } from '@yallego/contracts';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
+import { DashboardAccountMenu } from '@/features/dashboard/dashboard-account-menu';
 import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
+import { formatRoleLabel, getInitials } from '@/features/dashboard/dashboard-labels';
 import { DashboardMotion } from '@/features/dashboard/dashboard-motion';
 import { getVisibleNavigation } from '@/features/dashboard/dashboard-navigation';
 import { TenantSwitcher } from '@/features/dashboard/TenantSwitcher';
 import { SubscriptionUsageNotice } from '@/features/subscription/components/SubscriptionUsageNotice';
 import { BrandMark } from '@/shared/components/BrandMark';
-import { Button } from '@/shared/components/ui/button';
 
 export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) {
-  const router = useRouter();
   const pathname = usePathname();
-  const { logout, session } = useAuthSession();
+  const { session } = useAuthSession();
   const tenant = getActiveTenant(session);
   const navigation = getVisibleNavigation(tenant?.role);
   const navigationSections = ['Operación', 'Configuración', 'Administración'] as const;
   const primaryMobileNavigation = navigation.slice(0, 3);
   const secondaryMobileNavigation = navigation.slice(3);
   const canManageSubscription = tenant !== undefined && can(tenant.role, 'subscription:manage');
-  const initials = getInitials(session?.user.full_name);
   const page = getPageMeta(pathname);
 
-  async function handleLogout() {
-    try {
-      await logout();
-    } finally {
-      router.replace('/login');
-    }
-  }
-
   return (
-    <div className="dashboard-minimal-theme min-h-screen bg-[#f7f7f8] text-neutral-950 lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      <aside className="hidden h-screen flex-col border-r border-neutral-200/80 bg-white px-3 py-5 lg:sticky lg:top-0 lg:flex">
+    <div className="dashboard-minimal-theme min-h-screen bg-[#f7f7f8] text-neutral-950 lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
+      <aside className="hidden h-screen flex-col border-r border-neutral-200/80 bg-white px-3.5 py-5 lg:sticky lg:top-0 lg:flex">
         <div className="px-1">
           <BrandMark />
-          <div className="mt-7">
+          <div className="mt-6 border-b border-neutral-200 pb-5">
             <TenantSwitcher />
           </div>
         </div>
 
-        <nav aria-label="Navegación principal" className="mt-8 space-y-5">
+        <nav aria-label="Navegación principal" className="mt-5 flex-1 overflow-y-auto pr-1">
           {navigationSections.map((section) => {
             const items = navigation.filter((item) => item.section === section);
             if (items.length === 0) return null;
 
             return (
-              <div key={section}>
+              <div
+                className="border-t border-neutral-100 py-4 first:border-t-0 first:pt-0"
+                key={section}
+              >
                 <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
                   {section}
                 </p>
@@ -85,30 +79,8 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           })}
         </nav>
 
-        <div className="mt-auto">
-          <div className="flex items-center gap-3 border-t border-neutral-200 px-1 pt-5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-700">
-              {initials}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-neutral-900">
-                {tenant?.business_name ?? 'Mi negocio'}
-              </span>
-              <span className="block truncate text-xs text-neutral-500">
-                {session?.user.email ?? 'Cuenta principal'}
-              </span>
-            </span>
-            <Button
-              aria-label="Cerrar sesión"
-              onClick={() => void handleLogout()}
-              size="icon"
-              title="Cerrar sesión"
-              type="button"
-              variant="ghost"
-            >
-              <DashboardIcon className="h-4 w-4" name="logout" />
-            </Button>
-          </div>
+        <div className="mt-auto border-t border-neutral-200 px-1 pt-4">
+          <DashboardAccountMenu />
         </div>
       </aside>
 
@@ -119,7 +91,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           </div>
 
           <div className="min-w-0 flex-1 sm:hidden">
-            <TenantSwitcher />
+            <TenantSwitcher compact />
           </div>
 
           <div className="hidden items-center gap-3 text-sm lg:flex">
@@ -131,23 +103,25 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
             <span className="font-medium text-neutral-700">{page.title}</span>
           </div>
 
-          <span className="ml-auto hidden min-w-0 sm:block">
-            <span className="block truncate text-sm font-semibold text-neutral-900">
-              {tenant?.business_name ?? 'Mi negocio'}
+          <span className="ml-auto hidden min-w-0 items-center gap-3 sm:flex">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-50 text-[10px] font-bold text-neutral-700">
+              {getInitials(tenant?.business_name)}
             </span>
-            <span className="block text-xs text-neutral-500">{roleLabel(tenant?.role)}</span>
+            <span className="min-w-0">
+              <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                Administrando
+              </span>
+              <span className="block max-w-48 truncate text-sm font-semibold text-neutral-900">
+                {tenant?.business_name ?? 'Mi negocio'}
+              </span>
+            </span>
+            <span className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[10px] font-semibold text-neutral-500">
+              {formatRoleLabel(tenant?.role)}
+            </span>
           </span>
-          <Button
-            aria-label="Cerrar sesión"
-            className="text-xs font-semibold lg:hidden"
-            onClick={() => void handleLogout()}
-            size="icon"
-            title="Cerrar sesión"
-            type="button"
-            variant="outline"
-          >
-            {initials}
-          </Button>
+          <span className="lg:hidden">
+            <DashboardAccountMenu compact />
+          </span>
         </header>
 
         <nav
@@ -238,23 +212,4 @@ function getPageMeta(pathname: string | null): {
     return { icon: 'shield', section: 'Administración', title: 'Auditoría' };
   }
   return { icon: 'home', section: 'Operación', title: 'Resumen general' };
-}
-
-function roleLabel(role: string | undefined): string {
-  if (role === 'OWNER') return 'Propietario';
-  if (role === 'ADMIN') return 'Administrador';
-  if (role === 'OPERATOR') return 'Operador';
-  if (role === 'VIEWER') return 'Solo lectura';
-  return 'Cuenta principal';
-}
-
-function getInitials(fullName?: string): string {
-  if (!fullName) return 'YL';
-
-  return fullName
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
 }
