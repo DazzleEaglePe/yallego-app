@@ -21,14 +21,11 @@ import { Card } from '@/shared/components/ui/card';
 import { formatCurrency, formatElapsed } from '@/shared/lib/format';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1_000;
+const DASHBOARD_PERIOD_DAYS = 14;
 
 /** América/Lima no observa horario de verano: UTC-5 todo el año. */
-function startOfTodayLima(): string {
-  return `${limaDateKey(new Date())}T05:00:00.000Z`;
-}
-
-function startOfSevenDaysLima(): string {
-  return `${limaDateKey(new Date(Date.now() - 6 * DAY_IN_MS))}T05:00:00.000Z`;
+function startOfPeriodLima(days: number): string {
+  return `${limaDateKey(new Date(Date.now() - (days - 1) * DAY_IN_MS))}T05:00:00.000Z`;
 }
 
 function limaDateKey(date: Date): string {
@@ -40,17 +37,19 @@ function limaDateKey(date: Date): string {
   }).format(date);
 }
 
-function lastSevenDays(): Array<{ date: string; label: string }> {
+function lastPeriodDays(days: number): Array<{ date: string; label: string }> {
   const dayFormatter = new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
     timeZone: 'America/Lima',
     weekday: 'short',
   });
 
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(Date.now() - (6 - index) * DAY_IN_MS);
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(Date.now() - (days - 1 - index) * DAY_IN_MS);
     return {
       date: limaDateKey(date),
-      label: index === 6 ? 'Hoy' : dayFormatter.format(date).replace('.', ''),
+      label:
+        index === days - 1 ? 'Hoy' : dayFormatter.format(date).replaceAll('.', '').replace(',', ''),
     };
   });
 }
@@ -72,8 +71,9 @@ export default function DashboardHomePage() {
 
   const devices = useDevices();
   const { tenantWallets } = useWallets(canManageWallets);
-  const todaySummary = useTransactionSummary({ from: startOfTodayLima() });
-  const activitySummary = useTransactionSummary({ from: startOfSevenDaysLima() });
+  const periodSummary = useTransactionSummary({
+    from: startOfPeriodLima(DASHBOARD_PERIOD_DAYS),
+  });
   useRealtimeTransactions();
   const accessToken = session?.accessToken ?? null;
   const recentTransactions = useQuery({
@@ -85,7 +85,10 @@ export default function DashboardHomePage() {
   const deviceList = devices.data ?? [];
   const activeDevices = deviceList.filter((device) => device.status === 'ACTIVE');
   const onlineDevice = activeDevices.find((device) => device.connectivity === 'ONLINE');
-  const totals = todaySummary.data?.totals;
+  const totals = periodSummary.data?.totals;
+  const confirmedTotals = periodSummary.data?.confirmed_totals;
+  const disputedCount =
+    periodSummary.data?.by_status?.find(({ status }) => status === 'DISPUTED')?.count ?? 0;
   const recentList = recentTransactions.data?.data ?? [];
   const hasAnyDevice = deviceList.length > 0;
   const hasEnabledWallet = (tenantWallets.data ?? []).some((wallet) => wallet.is_enabled);
@@ -95,9 +98,9 @@ export default function DashboardHomePage() {
   const showOnboarding = canManageDevices && !setupComplete;
 
   const activityAmounts = new Map(
-    (activitySummary.data?.by_day ?? []).map((row) => [row.date, Number(row.amount)]),
+    (periodSummary.data?.confirmed_by_day ?? []).map((row) => [row.date, Number(row.amount)]),
   );
-  const activityDays = lastSevenDays().map((day) => ({
+  const activityDays = lastPeriodDays(DASHBOARD_PERIOD_DAYS).map((day) => ({
     ...day,
     amount: activityAmounts.get(day.date) ?? 0,
   }));
@@ -107,23 +110,35 @@ export default function DashboardHomePage() {
   const metrics = [
     {
       detail:
-        totals && totals.count > 0
-          ? `${totals.count} cobro${totals.count === 1 ? '' : 's'} hoy`
-          : 'Sin movimientos todavía',
-      label: 'Cobrado hoy',
+        confirmedTotals && confirmedTotals.count > 0
+          ? `${confirmedTotals.count} cobro${confirmedTotals.count === 1 ? '' : 's'} confirmado${confirmedTotals.count === 1 ? '' : 's'}`
+          : 'Sin cobros confirmados',
+      label: `Cobrado (${DASHBOARD_PERIOD_DAYS} días)`,
       signal: true,
-      value: totals ? formatCurrency(totals.amount, totals.currency) : 'S/ 0.00',
+      value: confirmedTotals
+        ? formatCurrency(confirmedTotals.amount, confirmedTotals.currency)
+        : 'S/ 0.00',
     },
     {
-      detail: totals && totals.count > 0 ? 'Registrados hoy' : 'Esperando el primer cobro',
-      label: 'Transacciones',
+      detail:
+        totals && totals.count > 0
+          ? disputedCount > 0
+            ? `${disputedCount} disputada${disputedCount === 1 ? '' : 's'}`
+            : 'Sin disputas'
+          : 'Esperando el primer cobro',
+      label: 'Transacciones detectadas',
       value: String(totals?.count ?? 0),
     },
     {
-      detail: totals && totals.count > 0 ? 'Promedio del día' : 'Se calcula con tu primer cobro',
+      detail:
+        confirmedTotals && confirmedTotals.count > 0
+          ? 'Promedio de cobros confirmados'
+          : 'Se calcula con el primer cobro confirmado',
       label: 'Ticket promedio',
       value:
-        totals && totals.count > 0 ? formatCurrency(totals.average, totals.currency) : 'S/ 0.00',
+        confirmedTotals && confirmedTotals.count > 0
+          ? formatCurrency(confirmedTotals.average, confirmedTotals.currency)
+          : 'S/ 0.00',
     },
     {
       detail: hasAnyDevice
@@ -179,7 +194,7 @@ export default function DashboardHomePage() {
       </section>
 
       <section
-        aria-label="Resumen del día"
+        aria-label={`Resumen de los últimos ${DASHBOARD_PERIOD_DAYS} días`}
         className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
       >
         {metrics.map((metric) => (
@@ -202,7 +217,9 @@ export default function DashboardHomePage() {
           <div className="flex flex-col gap-3 border-b border-neutral-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h2 className="text-base font-semibold text-neutral-950">Actividad de cobros</h2>
-              <p className="mt-1 text-sm text-neutral-500">Importe recibido durante 7 días</p>
+              <p className="mt-1 text-sm text-neutral-500">
+                Importe confirmado durante {DASHBOARD_PERIOD_DAYS} días
+              </p>
             </div>
             <span className="financial-value text-sm font-semibold text-neutral-700">
               {formatCurrency(activityTotal.toFixed(2), 'PEN')}
@@ -219,7 +236,7 @@ export default function DashboardHomePage() {
               ))}
             </div>
 
-            {maxActivity === 0 && !activitySummary.isLoading && (
+            {maxActivity === 0 && !periodSummary.isLoading && (
               <div className="pointer-events-none absolute inset-x-8 top-24 z-10 text-center">
                 <p className="text-sm font-semibold text-neutral-700">Aún no hay actividad</p>
                 <p className="mt-1 text-xs text-neutral-500">
@@ -228,7 +245,12 @@ export default function DashboardHomePage() {
               </div>
             )}
 
-            <div className="relative grid h-full grid-cols-7 items-end gap-2 sm:gap-4">
+            <div
+              className="relative grid h-full items-end gap-1.5 sm:gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${DASHBOARD_PERIOD_DAYS}, minmax(0, 1fr))`,
+              }}
+            >
               {activityDays.map((day) => {
                 const height =
                   maxActivity > 0
@@ -242,12 +264,12 @@ export default function DashboardHomePage() {
                   >
                     <div className="relative flex h-[calc(100%-28px)] items-end justify-center">
                       <span
-                        className={`w-full max-w-12 rounded-t-md transition-colors ${day.amount > 0 ? 'bg-success-500/80 group-hover:bg-success-500' : 'bg-neutral-800'}`}
+                        className={`w-full max-w-8 rounded-t-md transition-colors ${day.amount > 0 ? 'bg-success-500/80 group-hover:bg-success-500' : 'bg-neutral-800'}`}
                         style={{ height }}
                         title={formatCurrency(day.amount.toFixed(2), 'PEN')}
                       />
                     </div>
-                    <span className="mt-2 truncate text-center text-[10px] font-medium capitalize text-neutral-500 sm:text-[11px]">
+                    <span className="mt-2 truncate text-center text-[8px] font-medium capitalize text-neutral-500 sm:text-[10px]">
                       {day.label}
                     </span>
                   </div>

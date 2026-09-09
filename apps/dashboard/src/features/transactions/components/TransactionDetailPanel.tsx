@@ -109,6 +109,15 @@ export function TransactionDetailPanel({
               <Row label="Billetera" value={transaction.wallet.display_name} wallet />
               <Row label="Dispositivo" value={transaction.device.label} />
               <Row label="Fecha y hora" value={formatDateTime(transaction.occurred_at)} />
+              {transaction.confirmed_at && (
+                <Row label="Confirmado el" value={formatDateTime(transaction.confirmed_at)} />
+              )}
+              {transaction.confirmed_at && (
+                <Row
+                  label="Confirmado por"
+                  value={transaction.confirmed_by_name ?? 'Integración autorizada'}
+                />
+              )}
               {transaction.approval_code && (
                 <Row label="Código de aprobación" value={transaction.approval_code} />
               )}
@@ -126,7 +135,7 @@ export function TransactionDetailPanel({
               {transaction.confirmed_at && (
                 <TimelineItem
                   active
-                  detail={formatDateTime(transaction.confirmed_at)}
+                  detail={`${formatDateTime(transaction.confirmed_at)} · ${transaction.confirmed_by_name ?? 'Integración autorizada'}`}
                   title="Cobro confirmado"
                 />
               )}

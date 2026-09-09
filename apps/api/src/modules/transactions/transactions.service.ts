@@ -34,7 +34,15 @@ const DISPUTABLE_STATUSES: TransactionStatus[] = [
 export type TransactionActor =
   { type: 'user'; userId: string } | { type: 'api_key'; apiKeyId: string };
 
-type TransactionRow = Prisma.TransactionGetPayload<{ include: { wallet: true; device: true } }>;
+const TRANSACTION_SUMMARY_INCLUDE = {
+  wallet: true,
+  device: true,
+  confirmer: { select: { fullName: true } },
+} as const;
+
+type TransactionRow = Prisma.TransactionGetPayload<{
+  include: typeof TRANSACTION_SUMMARY_INCLUDE;
+}>;
 
 @Injectable()
 export class TransactionsService {
@@ -52,7 +60,7 @@ export class TransactionsService {
       const where = await this.buildWhere(tx, tenant.id, query);
       const rows = await tx.transaction.findMany({
         where,
-        include: { wallet: true, device: true },
+        include: TRANSACTION_SUMMARY_INCLUDE,
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         take: query.limit + 1,
       });
@@ -85,7 +93,7 @@ export class TransactionsService {
     const row = await this.prisma.withTenant(tenantId, (tx) =>
       tx.transaction.findUnique({
         where: { id: transactionId },
-        include: { wallet: true, device: true },
+        include: TRANSACTION_SUMMARY_INCLUDE,
       }),
     );
     if (!row || row.tenantId !== tenantId) {
@@ -112,7 +120,7 @@ export class TransactionsService {
             confirmedBy: actor.type === 'user' ? actor.userId : null,
             ...(input.note !== undefined ? { note: input.note } : {}),
           },
-          include: { wallet: true, device: true },
+          include: TRANSACTION_SUMMARY_INCLUDE,
         }),
       auditAction: 'transactions.confirmed',
       actor,
@@ -147,7 +155,7 @@ export class TransactionsService {
             status: TransactionStatus.DISPUTED,
             ...(input.note !== undefined ? { note: input.note } : {}),
           },
-          include: { wallet: true, device: true },
+          include: TRANSACTION_SUMMARY_INCLUDE,
         }),
       auditAction: 'transactions.disputed',
       actor,
@@ -172,26 +180,52 @@ export class TransactionsService {
       : new Date(to.getTime() - 13 * 24 * 60 * 60 * 1_000);
 
     return this.prisma.withTenant(tenant.id, async (tx) => {
-      const [totals, byWallet, byDay] = await Promise.all([
-        tx.transaction.aggregate({
-          where: { tenantId: tenant.id, occurredAt: { gte: from, lte: to } },
-          _count: true,
-          _sum: { amount: true },
-        }),
-        tx.transaction.groupBy({
-          by: ['walletId'],
-          where: { tenantId: tenant.id, occurredAt: { gte: from, lte: to } },
-          _count: true,
-          _sum: { amount: true },
-        }),
-        tx.$queryRaw<Array<{ date: Date; count: bigint; amount: Prisma.Decimal }>>`
-          SELECT date_trunc('day', occurred_at) AS date, count(*) AS count, coalesce(sum(amount), 0) AS amount
+      const occurredAt = { gte: from, lte: to };
+      const [totals, confirmedTotals, byStatus, byWallet, byDay, confirmedByDay] =
+        await Promise.all([
+          tx.transaction.aggregate({
+            where: { tenantId: tenant.id, occurredAt },
+            _count: true,
+            _sum: { amount: true },
+          }),
+          tx.transaction.aggregate({
+            where: { tenantId: tenant.id, occurredAt, status: TransactionStatus.CONFIRMED },
+            _count: true,
+            _sum: { amount: true },
+          }),
+          tx.transaction.groupBy({
+            by: ['status'],
+            where: { tenantId: tenant.id, occurredAt },
+            _count: true,
+            _sum: { amount: true },
+          }),
+          tx.transaction.groupBy({
+            by: ['walletId'],
+            where: { tenantId: tenant.id, occurredAt },
+            _count: true,
+            _sum: { amount: true },
+          }),
+          tx.$queryRaw<Array<{ date: string; count: bigint; amount: Prisma.Decimal }>>`
+          SELECT to_char(occurred_at AT TIME ZONE 'America/Lima', 'YYYY-MM-DD') AS date,
+                 count(*) AS count,
+                 coalesce(sum(amount), 0) AS amount
           FROM transactions
           WHERE tenant_id = ${tenant.id}::uuid AND occurred_at BETWEEN ${from} AND ${to}
           GROUP BY 1
           ORDER BY 1
         `,
-      ]);
+          tx.$queryRaw<Array<{ date: string; count: bigint; amount: Prisma.Decimal }>>`
+          SELECT to_char(occurred_at AT TIME ZONE 'America/Lima', 'YYYY-MM-DD') AS date,
+                 count(*) AS count,
+                 coalesce(sum(amount), 0) AS amount
+          FROM transactions
+          WHERE tenant_id = ${tenant.id}::uuid
+            AND occurred_at BETWEEN ${from} AND ${to}
+            AND status = 'CONFIRMED'
+          GROUP BY 1
+          ORDER BY 1
+        `,
+        ]);
 
       const wallets = byWallet.length
         ? await tx.wallet.findMany({ where: { id: { in: byWallet.map((w) => w.walletId) } } })
@@ -201,6 +235,10 @@ export class TransactionsService {
       const count = totals._count;
       const amount = totals._sum.amount ?? new Prisma.Decimal(0);
       const average = count > 0 ? amount.dividedBy(count) : new Prisma.Decimal(0);
+      const confirmedCount = confirmedTotals._count;
+      const confirmedAmount = confirmedTotals._sum.amount ?? new Prisma.Decimal(0);
+      const confirmedAverage =
+        confirmedCount > 0 ? confirmedAmount.dividedBy(confirmedCount) : new Prisma.Decimal(0);
 
       return {
         period: { from: from.toISOString(), to: to.toISOString() },
@@ -210,13 +248,29 @@ export class TransactionsService {
           currency: 'PEN',
           average: average.toFixed(2),
         },
+        confirmed_totals: {
+          count: confirmedCount,
+          amount: confirmedAmount.toFixed(2),
+          currency: 'PEN',
+          average: confirmedAverage.toFixed(2),
+        },
+        by_status: byStatus.map((row) => ({
+          status: row.status,
+          count: row._count,
+          amount: (row._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
+        })),
         by_wallet: byWallet.map((row) => ({
           wallet_code: walletCodeById.get(row.walletId) ?? row.walletId,
           count: row._count,
           amount: (row._sum.amount ?? new Prisma.Decimal(0)).toFixed(2),
         })),
         by_day: byDay.map((row) => ({
-          date: row.date.toISOString().slice(0, 10),
+          date: row.date,
+          count: Number(row.count),
+          amount: row.amount.toFixed(2),
+        })),
+        confirmed_by_day: confirmedByDay.map((row) => ({
+          date: row.date,
           count: Number(row.count),
           amount: row.amount.toFixed(2),
         })),
@@ -229,7 +283,7 @@ export class TransactionsService {
       const where = await this.buildWhere(tx, tenant.id, query);
       return tx.transaction.findMany({
         where,
-        include: { wallet: true, device: true },
+        include: TRANSACTION_SUMMARY_INCLUDE,
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         take: 10_000,
       });
@@ -386,6 +440,7 @@ export class TransactionsService {
       occurred_at: row.occurredAt.toISOString(),
       confirmed_at: row.confirmedAt?.toISOString() ?? null,
       confirmed_by: row.confirmedBy,
+      confirmed_by_name: row.confirmer?.fullName ?? null,
       device: { id: row.device.id, label: row.device.label },
     };
   }

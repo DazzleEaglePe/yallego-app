@@ -94,12 +94,14 @@ integrationDescribe('Transactions and realtime gateway', () => {
     ownerToken = login.body.access_token as string;
     tenantId = login.body.tenants[0].id as string;
 
-    await request(app.getHttpServer()).post('/v1/auth/register').send({
-      email: secondOwnerEmail,
-      password,
-      full_name: 'Dueño de aislamiento realtime',
-      business_name: `Bodega Realtime B ${suffix}`,
-    });
+    await request(app.getHttpServer())
+      .post('/v1/auth/register')
+      .send({
+        email: secondOwnerEmail,
+        password,
+        full_name: 'Dueño de aislamiento realtime',
+        business_name: `Bodega Realtime B ${suffix}`,
+      });
     const secondVerification = mailer.sendVerificationEmail.mock.calls.find(
       ([input]) => input.email === secondOwnerEmail,
     )?.[0].token as string;
@@ -295,6 +297,7 @@ integrationDescribe('Transactions and realtime gateway', () => {
       .expect(200);
     expect(confirmed.body.status).toBe('CONFIRMED');
     expect(confirmed.body.confirmed_at).toBeTruthy();
+    expect(confirmed.body.confirmed_by_name).toBe('Dueña de Prueba');
 
     const secondAttempt = await request(app.getHttpServer())
       .post(`/v1/transactions/${target}/confirm`)
@@ -331,6 +334,12 @@ integrationDescribe('Transactions and realtime gateway', () => {
   });
 
   it('aggregates totals by wallet and by day in the summary', async () => {
+    await request(app.getHttpServer())
+      .post(`/v1/transactions/${transactionIds[1]!}/confirm`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({})
+      .expect(200);
+
     const summary = await request(app.getHttpServer())
       .get('/v1/transactions/summary')
       .set('Authorization', `Bearer ${ownerToken}`)
@@ -338,6 +347,19 @@ integrationDescribe('Transactions and realtime gateway', () => {
     expect(summary.body.totals.count).toBeGreaterThanOrEqual(4);
     expect(summary.body.by_wallet.length).toBeGreaterThanOrEqual(2);
     expect(Number(summary.body.totals.amount)).toBeGreaterThan(0);
+    expect(summary.body.confirmed_totals).toMatchObject({
+      count: 1,
+      amount: '120.00',
+      average: '120.00',
+      currency: 'PEN',
+    });
+    expect(summary.body.by_status).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: 'CONFIRMED', count: 1 }),
+        expect.objectContaining({ status: 'DISPUTED', count: 1 }),
+      ]),
+    );
+    expect(summary.body.confirmed_by_day).toHaveLength(1);
   });
 
   it('exports the filtered transactions as CSV', async () => {

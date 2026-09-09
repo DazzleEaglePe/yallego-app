@@ -12,6 +12,7 @@ export interface TransactionSummaryItem {
   occurred_at: string;
   confirmed_at: string | null;
   confirmed_by: string | null;
+  confirmed_by_name?: string | null;
   device: { id: string; label: string };
 }
 
@@ -23,8 +24,11 @@ export interface TransactionListResponse {
 export interface TransactionsSummaryResponse {
   period: { from: string; to: string };
   totals: { count: number; amount: string; currency: string; average: string };
+  confirmed_totals?: { count: number; amount: string; currency: string; average: string };
+  by_status?: Array<{ status: TransactionStatus; count: number; amount: string }>;
   by_wallet: Array<{ wallet_code: string; count: number; amount: string }>;
   by_day: Array<{ date: string; count: number; amount: string }>;
+  confirmed_by_day?: Array<{ date: string; count: number; amount: string }>;
 }
 
 /** Payload emitido por el canal `wss://.../v1/realtime` (docs/06_API_CONTRACT.md §10). */

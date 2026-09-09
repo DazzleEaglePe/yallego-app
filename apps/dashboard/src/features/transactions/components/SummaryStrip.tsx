@@ -24,16 +24,33 @@ export function SummaryStrip() {
     );
   }
 
+  const confirmed = data.confirmed_totals ?? {
+    amount: '0.00',
+    average: '0.00',
+    count: 0,
+    currency: data.totals.currency,
+  };
+  const disputedCount = data.by_status?.find(({ status }) => status === 'DISPUTED')?.count ?? 0;
   const tiles = [
-    { label: 'Cobros (14 días)', value: String(data.totals.count), signal: false },
     {
-      label: 'Total registrado',
-      value: formatCurrency(data.totals.amount, data.totals.currency),
+      detail:
+        disputedCount > 0
+          ? `${confirmed.count} confirmada${confirmed.count === 1 ? '' : 's'} · ${disputedCount} disputada${disputedCount === 1 ? '' : 's'}`
+          : `${confirmed.count} confirmada${confirmed.count === 1 ? '' : 's'}`,
+      label: 'Transacciones detectadas',
+      value: String(data.totals.count),
+      signal: false,
+    },
+    {
+      detail: 'Solo estados confirmados',
+      label: 'Cobrado confirmado',
+      value: formatCurrency(confirmed.amount, confirmed.currency),
       signal: true,
     },
     {
-      label: 'Promedio por cobro',
-      value: formatCurrency(data.totals.average, data.totals.currency),
+      detail: 'Calculado sobre cobros confirmados',
+      label: 'Ticket promedio',
+      value: formatCurrency(confirmed.average, confirmed.currency),
       signal: false,
     },
   ];
@@ -56,6 +73,7 @@ export function SummaryStrip() {
           >
             {tile.value}
           </p>
+          <p className="mt-1 text-xs text-neutral-500">{tile.detail}</p>
         </div>
       ))}
     </div>
