@@ -62,6 +62,11 @@ android {
                 "DASHBOARD_URL",
                 "\"" + localProperty("DASHBOARD_URL_DEBUG", "http://10.0.2.2:3000/membresia") + "\"",
             )
+            buildConfigField(
+                "String",
+                "ACCOUNT_URL",
+                "\"" + localProperty("ACCOUNT_URL_DEBUG", "http://10.0.2.2:3000/cuenta") + "\"",
+            )
         }
         release {
             isMinifyEnabled = true
@@ -73,6 +78,7 @@ android {
                 "\"$releaseApiBaseUrl\"",
             )
             buildConfigField("String", "DASHBOARD_URL", "\"https://app.yallego.app/membresia\"")
+            buildConfigField("String", "ACCOUNT_URL", "\"https://app.yallego.app/cuenta\"")
         }
     }
 

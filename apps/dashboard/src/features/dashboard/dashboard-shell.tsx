@@ -211,5 +211,8 @@ function getPageMeta(pathname: string | null): {
   if (pathname?.startsWith('/auditoria')) {
     return { icon: 'shield', section: 'Administración', title: 'Auditoría' };
   }
+  if (pathname?.startsWith('/cuenta')) {
+    return { icon: 'user', section: 'Cuenta', title: 'Cuenta y seguridad' };
+  }
   return { icon: 'home', section: 'Operación', title: 'Resumen general' };
 }

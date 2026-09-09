@@ -100,6 +100,16 @@ export function DashboardAccountMenu({ compact = false }: DashboardAccountMenuPr
         </div>
 
         <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem asChild>
+            <Link href="/cuenta">
+              <DashboardIcon className="h-4 w-4 text-neutral-400" name="user" />
+              <span className="flex-1">Cuenta y seguridad</span>
+              <DashboardIcon className="h-3.5 w-3.5 text-neutral-300" name="chevron-right" />
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
         <DropdownMenuLabel>Empresa administrada</DropdownMenuLabel>
         <div className="mx-1 mb-1 flex items-center gap-3 rounded-lg bg-neutral-50 px-2.5 py-2.5">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-white text-xs font-bold text-neutral-700">

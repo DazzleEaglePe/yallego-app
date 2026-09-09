@@ -158,6 +158,8 @@
     <string name="more_plan_unlimited">%1$d · sin límite</string>
     <string name="more_manage_plan">Administrar plan</string>
     <string name="more_settings_title">Configuración del dispositivo</string>
+    <string name="more_account">Cuenta y seguridad</string>
+    <string name="more_account_body">Nombre, correo y contraseña en el panel seguro</string>
     <string name="more_notifications">Lectura de notificaciones</string>
     <string name="more_battery">Actividad en segundo plano</string>
     <string name="more_app_settings">Ajustes del sistema</string>

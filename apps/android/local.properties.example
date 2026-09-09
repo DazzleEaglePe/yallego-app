@@ -8,3 +8,5 @@
 # API_BASE_URL_RELEASE: backend de producción, siempre HTTPS.
 API_BASE_URL_DEBUG=http://10.0.2.2:3001/
 API_BASE_URL_RELEASE=https://api.yallego.app/
+DASHBOARD_URL_DEBUG=http://10.0.2.2:3000/membresia
+ACCOUNT_URL_DEBUG=http://10.0.2.2:3000/cuenta

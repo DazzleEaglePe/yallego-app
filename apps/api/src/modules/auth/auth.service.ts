@@ -15,6 +15,7 @@ import type {
   RegisterInput,
   ResetPasswordInput,
   SwitchTenantInput,
+  UpdateProfileInput,
   VerifyEmailInput,
 } from '@yallego/contracts';
 
@@ -524,6 +525,23 @@ export class AuthService {
         business_name: tenant.businessName,
         role,
       })),
+    };
+  }
+
+  async updateProfile(
+    session: AccessTokenPayload,
+    input: UpdateProfileInput,
+  ): Promise<{ user: { email: string; full_name: string; id: string } }> {
+    const user = await this.prisma.user.findUnique({ where: { id: session.sub } });
+    if (!user || user.email !== session.email) throw this.invalidSessionError();
+
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { fullName: input.full_name },
+    });
+
+    return {
+      user: { id: updated.id, email: updated.email, full_name: updated.fullName },
     };
   }
 

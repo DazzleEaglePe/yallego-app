@@ -178,6 +178,9 @@ fun YallegoNavHost(
                 onOpenDashboard = {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.DASHBOARD_URL)))
                 },
+                onOpenAccount = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.ACCOUNT_URL)))
+                },
             )
         }
     }

@@ -7,9 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -39,7 +39,7 @@ private enum class MainTab(
     val icon: ImageVector,
 ) {
     HOME(R.string.nav_home, Icons.Rounded.Home),
-    ACTIVITY(R.string.nav_activity, Icons.Rounded.ReceiptLong),
+    ACTIVITY(R.string.nav_activity, Icons.AutoMirrored.Rounded.ReceiptLong),
     MORE(R.string.nav_more, Icons.Rounded.MoreHoriz),
 }
 
@@ -52,6 +52,7 @@ fun MainShell(
     onOpenBatterySettings: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenDashboard: () -> Unit,
+    onOpenAccount: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(MainTab.HOME) }
 
@@ -106,6 +107,7 @@ fun MainShell(
                     onOpenBatterySettings = onOpenBatterySettings,
                     onOpenAppSettings = onOpenAppSettings,
                     onOpenDashboard = onOpenDashboard,
+                    onOpenAccount = onOpenAccount,
                 )
             }
         }

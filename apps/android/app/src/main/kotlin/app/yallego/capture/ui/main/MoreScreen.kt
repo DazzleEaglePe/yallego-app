@@ -14,13 +14,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.rounded.Launch
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.AdminPanelSettings
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.Devices
-import androidx.compose.material.icons.rounded.Launch
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ManageAccounts
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -63,6 +64,7 @@ fun MoreScreen(
     onOpenBatterySettings: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenDashboard: () -> Unit,
+    onOpenAccount: () -> Unit,
 ) {
     YallegoBackdrop {
         LazyColumn(
@@ -141,6 +143,13 @@ fun MoreScreen(
             }
             item {
                 YallegoCard(modifier = Modifier.fillMaxWidth()) {
+                    SettingsRow(
+                        icon = Icons.Rounded.ManageAccounts,
+                        title = stringResource(R.string.more_account),
+                        detail = stringResource(R.string.more_account_body),
+                        onClick = onOpenAccount,
+                    )
+                    Spacer(Modifier.height(16.dp))
                     SettingsRow(
                         icon = Icons.Rounded.NotificationsActive,
                         title = stringResource(R.string.more_notifications),
@@ -306,7 +315,7 @@ private fun PlanCard(
         PrimaryActionButton(
             text = stringResource(R.string.more_manage_plan),
             onClick = onOpenDashboard,
-            leadingIcon = Icons.Rounded.Launch,
+            leadingIcon = Icons.AutoMirrored.Rounded.Launch,
         )
     }
 }

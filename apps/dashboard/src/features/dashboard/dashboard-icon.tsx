@@ -23,6 +23,7 @@ export type DashboardIconName =
   | 'shield'
   | 'team'
   | 'ticket'
+  | 'user'
   | 'wallet'
   | 'wifi'
   | 'wifi-off'
@@ -126,6 +127,12 @@ const iconPaths: Record<DashboardIconName, ReactNode> = {
     <>
       <path d="M4 5h16v4a3 3 0 0 0 0 6v4H4v-4a3 3 0 0 0 0-6V5Z" />
       <path d="M13 8v2M13 14v2" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
     </>
   ),
   wallet: (

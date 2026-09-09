@@ -127,6 +127,16 @@ integrationDescribe('Authentication API', () => {
     expect(profile.body.user.email).toBe(primaryEmail);
     expect(profile.body.tenants[0].role).toBe('OWNER');
 
+    const updatedProfile = await agent
+      .patch('/v1/auth/me')
+      .set('Authorization', `Bearer ${login.body.access_token}`)
+      .send({ full_name: 'María Quispe Actualizada' })
+      .expect(200);
+    expect(updatedProfile.body.user).toMatchObject({
+      email: primaryEmail,
+      full_name: 'María Quispe Actualizada',
+    });
+
     const switched = await agent
       .post('/v1/auth/switch-tenant')
       .set('Authorization', `Bearer ${login.body.access_token}`)

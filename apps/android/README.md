@@ -20,9 +20,10 @@ y compila directamente con Android Studio / Gradle.
      puerto es el configurado en Android y el segundo es el puerto real del API
      en tu Mac. Por ejemplo, si el API corre con `PORT=3011`, usa
      `adb reverse tcp:3001 tcp:3011`. Repite el comando al reconectar el celular.
-   - Si quieres probar `Más → Administrar plan`, configura
-     `DASHBOARD_URL_DEBUG`. En un celular físico puedes usar
-     `http://127.0.0.1:3010/membresia` junto con
+   - Si quieres probar los accesos web de `Más`, configura
+     `DASHBOARD_URL_DEBUG` y `ACCOUNT_URL_DEBUG`. En un celular físico puedes
+     usar `http://127.0.0.1:3010/membresia` y
+     `http://127.0.0.1:3010/cuenta` junto con
      `adb reverse tcp:3010 tcp:3010`.
 3. Con el backend corriendo (`pnpm dev:api` desde la raíz del repositorio),
    ejecuta la app en un emulador o dispositivo.

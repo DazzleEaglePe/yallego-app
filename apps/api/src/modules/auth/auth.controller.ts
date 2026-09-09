@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Patch,
   Post,
   Req,
   Res,
@@ -20,6 +21,7 @@ import {
   registerSchema,
   resetPasswordSchema,
   switchTenantSchema,
+  updateProfileSchema,
   verifyEmailSchema,
   type ChangePasswordInput,
   type ForgotPasswordInput,
@@ -28,6 +30,7 @@ import {
   type RegisterInput,
   type ResetPasswordInput,
   type SwitchTenantInput,
+  type UpdateProfileInput,
   type VerifyEmailInput,
 } from '@yallego/contracts';
 import type { Request, Response } from 'express';
@@ -137,6 +140,15 @@ export class AuthController {
   @UseGuards(AccessTokenGuard)
   getProfile(@CurrentSession() session: AccessTokenPayload) {
     return this.authService.getProfile(session);
+  }
+
+  @Patch('me')
+  @UseGuards(AccessTokenGuard)
+  updateProfile(
+    @CurrentSession() session: AccessTokenPayload,
+    @Body(new ZodValidationPipe(updateProfileSchema)) input: UpdateProfileInput,
+  ) {
+    return this.authService.updateProfile(session, input);
   }
 
   @Post('switch-tenant')

@@ -174,6 +174,7 @@ conservar el negocio activo durante la renovación.
 | `POST` | `/v1/auth/change-password` | Cambia contraseña con sesión activa    |
 | `POST` | `/v1/auth/switch-tenant`   | Cambia el negocio activo de la sesión  |
 | `GET`  | `/v1/auth/me`              | Perfil del usuario y tenants asociados |
+| `PATCH`| `/v1/auth/me`              | Actualiza el nombre visible del usuario|
 
 ---
 
