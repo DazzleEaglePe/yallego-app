@@ -16,7 +16,10 @@ y compila directamente con Android Studio / Gradle.
    - Emulador: `http://10.0.2.2:3001/` (valor por defecto, apunta al backend
      local corriendo en el equipo host).
    - Celular físico por USB/Wi-Fi debugging: usa `http://127.0.0.1:3001/` y
-     ejecuta `adb reverse tcp:3001 tcp:3001` antes de iniciar la app.
+     ejecuta `adb reverse tcp:3001 tcp:3001` antes de iniciar la app. El primer
+     puerto es el configurado en Android y el segundo es el puerto real del API
+     en tu Mac. Por ejemplo, si el API corre con `PORT=3011`, usa
+     `adb reverse tcp:3001 tcp:3011`. Repite el comando al reconectar el celular.
 3. Con el backend corriendo (`pnpm dev:api` desde la raíz del repositorio),
    ejecuta la app en un emulador o dispositivo.
 

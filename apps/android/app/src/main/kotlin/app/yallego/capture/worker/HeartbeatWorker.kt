@@ -55,7 +55,9 @@ class HeartbeatWorker @AssistedInject constructor(
                 .setInitialDelay(initialDelayMinutes, TimeUnit.MINUTES)
                 .build()
             WorkManager.getInstance(context)
-                .enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+                // El worker actual todavía está ejecutándose. Anexar el siguiente evita que
+                // WorkManager cancele esta ejecución justo antes de devolver su resultado.
+                .enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
 
         /** Primer disparo inmediato: al vincular o al reiniciar el dispositivo. */
