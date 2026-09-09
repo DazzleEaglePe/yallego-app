@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import app.yallego.capture.BuildConfig
 import app.yallego.capture.data.local.secure.DeviceCredentialsStore
 import app.yallego.capture.service.CaptureForegroundService
 import app.yallego.capture.ui.onboarding.BatteryOptimizationStep
@@ -27,7 +28,7 @@ import app.yallego.capture.ui.onboarding.PairingScreen
 import app.yallego.capture.ui.onboarding.QrScanScreen
 import app.yallego.capture.ui.onboarding.VendorGuidanceStep
 import app.yallego.capture.ui.onboarding.WelcomeScreen
-import app.yallego.capture.ui.status.StatusScreen
+import app.yallego.capture.ui.main.MainShell
 import app.yallego.capture.ui.status.StatusViewModel
 
 object Routes {
@@ -144,9 +145,40 @@ fun YallegoNavHost(
 
         composable(Routes.STATUS) {
             val viewModel: StatusViewModel = hiltViewModel()
+            val context = LocalContext.current
             val state by viewModel.uiState.collectAsState()
-            RefreshOnResume { viewModel.refreshPermissions() }
-            StatusScreen(state = state)
+            val overviewState by viewModel.overviewState.collectAsState()
+            RefreshOnResume {
+                viewModel.refreshPermissions()
+                viewModel.refreshOverview()
+            }
+            MainShell(
+                statusState = state,
+                overviewState = overviewState,
+                onRefresh = viewModel::refreshOverview,
+                onOpenNotificationSettings = {
+                    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                },
+                onOpenBatterySettings = {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:" + context.packageName),
+                        ),
+                    )
+                },
+                onOpenAppSettings = {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:" + context.packageName),
+                        ),
+                    )
+                },
+                onOpenDashboard = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.DASHBOARD_URL)))
+                },
+            )
         }
     }
 }

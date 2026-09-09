@@ -20,6 +20,10 @@ y compila directamente con Android Studio / Gradle.
      puerto es el configurado en Android y el segundo es el puerto real del API
      en tu Mac. Por ejemplo, si el API corre con `PORT=3011`, usa
      `adb reverse tcp:3001 tcp:3011`. Repite el comando al reconectar el celular.
+   - Si quieres probar `Más → Administrar plan`, configura
+     `DASHBOARD_URL_DEBUG`. En un celular físico puedes usar
+     `http://127.0.0.1:3010/membresia` junto con
+     `adb reverse tcp:3010 tcp:3010`.
 3. Con el backend corriendo (`pnpm dev:api` desde la raíz del repositorio),
    ejecuta la app en un emulador o dispositivo.
 
@@ -28,6 +32,15 @@ y compila directamente con Android Studio / Gradle.
 Verificado con Gradle 8.10.2/JDK 21 y probado en un Xiaomi M2101K7BL (Android
 13): instalación incremental, migración Room 1→2, vinculación preservada,
 acceso a notificaciones, configuración remota y conexión al API local.
+
+La superficie principal se organiza en tres destinos:
+
+- `Inicio`: salud de la captura, conectividad real con el servidor, última
+  señal, cola pendiente y permisos esenciales.
+- `Actividad`: últimos cobros detectados por este dispositivo, con billetera,
+  importe, fecha, hora y estado.
+- `Más`: negocio y dispositivo vinculados, billeteras monitoreadas, plan y uso,
+  acceso al panel de membresía y ajustes del sistema.
 
 Mientras el servicio persistente está activo, envía una señal cada 2 minutos.
 El panel la interpreta como `En línea` durante 3 minutos, `Señal retrasada`

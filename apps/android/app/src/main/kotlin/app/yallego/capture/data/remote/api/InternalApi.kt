@@ -5,6 +5,7 @@ import app.yallego.capture.data.remote.dto.HeartbeatRequestDto
 import app.yallego.capture.data.remote.dto.HeartbeatResponseDto
 import app.yallego.capture.data.remote.dto.IngestNotificationsRequestDto
 import app.yallego.capture.data.remote.dto.IngestNotificationsResponseDto
+import app.yallego.capture.data.remote.dto.MobileOverviewResponseDto
 import app.yallego.capture.data.remote.dto.PairDeviceRequestDto
 import app.yallego.capture.data.remote.dto.PairDeviceResponseDto
 import retrofit2.Response
@@ -23,6 +24,9 @@ interface InternalApi {
 
     @GET("internal/v1/config")
     suspend fun getConfig(): Response<DeviceConfigResponseDto>
+
+    @GET("internal/v1/mobile-overview")
+    suspend fun getMobileOverview(): Response<MobileOverviewResponseDto>
 
     @POST("internal/v1/ingest")
     suspend fun ingestNotifications(

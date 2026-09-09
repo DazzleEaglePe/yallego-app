@@ -119,4 +119,47 @@
     <string name="status_battery_missing">Podría detenerse con la pantalla apagada</string>
     <string name="status_background_title">Yallegó trabaja en segundo plano</string>
     <string name="status_background_body">Puedes cerrar la app. La captura seguirá activa.</string>
+
+    <string name="nav_home">Inicio</string>
+    <string name="nav_activity">Actividad</string>
+    <string name="nav_more">Más</string>
+    <string name="action_refresh">Actualizar</string>
+    <string name="action_retry">Reintentar</string>
+
+    <string name="connection_server_title">CONEXIÓN CON YALLEGÓ</string>
+    <string name="connection_online">Servidor conectado</string>
+    <string name="connection_delayed">Señal retrasada</string>
+    <string name="connection_offline">Servidor sin conexión</string>
+
+    <string name="activity_eyebrow">Movimientos del dispositivo</string>
+    <string name="activity_title">Actividad</string>
+    <string name="activity_subtitle">Los últimos cobros detectados por este celular.</string>
+    <string name="activity_pending_title">Sincronización pendiente</string>
+    <string name="activity_pending_body">%1$d elementos esperan conexión con el servidor.</string>
+    <string name="activity_error_title">No pudimos cargar la actividad</string>
+    <string name="activity_empty_title">Aún no hay cobros</string>
+    <string name="activity_empty_body">El primer pago detectado aparecerá aquí.</string>
+    <string name="transaction_sender_unknown">Remitente no disponible</string>
+    <string name="transaction_status_captured">Detectado</string>
+    <string name="transaction_status_confirmed">Confirmado</string>
+    <string name="transaction_status_disputed">Disputado</string>
+    <string name="transaction_status_voided">Anulado</string>
+
+    <string name="more_eyebrow">Tu espacio de trabajo</string>
+    <string name="more_title">Más</string>
+    <string name="more_subtitle">Plan, billeteras y configuración de este celular.</string>
+    <string name="more_loading">Cargando información del negocio…</string>
+    <string name="more_wallets_title">BILLETERAS MONITOREADAS</string>
+    <string name="more_wallets_empty">Configúralas desde el panel web.</string>
+    <string name="more_plan_title">PLAN Y USO</string>
+    <string name="more_plan_unavailable">Sin información de plan</string>
+    <string name="more_plan_renews">Período vigente hasta %1$s</string>
+    <string name="more_plan_usage">Transacciones del período</string>
+    <string name="more_plan_unlimited">%1$d · sin límite</string>
+    <string name="more_manage_plan">Administrar plan</string>
+    <string name="more_settings_title">Configuración del dispositivo</string>
+    <string name="more_notifications">Lectura de notificaciones</string>
+    <string name="more_battery">Actividad en segundo plano</string>
+    <string name="more_app_settings">Ajustes del sistema</string>
+    <string name="more_app_settings_body">Permisos, notificaciones y almacenamiento</string>
 </resources>

@@ -30,6 +30,37 @@ data class PermissionSnapshot(
     val batteryOptimizationDisabled: Boolean,
 )
 
+data class MobileOverview(
+    val businessName: String,
+    val deviceId: String,
+    val deviceLabel: String,
+    val wallets: List<MobileWallet>,
+    val subscription: MobileSubscription?,
+    val recentActivity: List<MobileTransaction>,
+)
+
+data class MobileWallet(val code: String, val displayName: String)
+
+data class MobileSubscription(
+    val planCode: String,
+    val planName: String,
+    val status: String,
+    val periodEndIso: String,
+    val transactionsUsed: Int,
+    val transactionsLimit: Int,
+)
+
+data class MobileTransaction(
+    val id: String,
+    val walletCode: String,
+    val walletName: String,
+    val senderName: String?,
+    val amount: String,
+    val currency: String,
+    val status: String,
+    val occurredAtIso: String,
+)
+
 /** Resultado de una llamada a la API interna; evita filtrar excepciones de red hacia la UI. */
 sealed interface DeviceCallResult<out T> {
     data class Success<T>(val value: T) : DeviceCallResult<T>

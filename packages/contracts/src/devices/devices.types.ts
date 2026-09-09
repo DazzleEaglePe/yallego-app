@@ -39,3 +39,28 @@ export interface DeviceConfigResponse {
   ingest_batch_size: number;
   config_version: number;
 }
+
+export interface DeviceMobileActivityItem {
+  id: string;
+  wallet: { code: string; display_name: string };
+  sender_name: string | null;
+  amount: string;
+  currency: string;
+  status: 'CAPTURED' | 'CONFIRMED' | 'DISPUTED' | 'VOIDED';
+  occurred_at: string;
+}
+
+export interface DeviceMobileOverviewResponse {
+  tenant: { id: string; business_name: string };
+  device: { id: string; label: string };
+  wallets: Array<{ code: string; display_name: string }>;
+  subscription: {
+    plan_code: string;
+    plan_name: string;
+    status: string;
+    period_end: string;
+    transactions_used: number;
+    transactions_limit: number;
+  } | null;
+  recent_activity: DeviceMobileActivityItem[];
+}

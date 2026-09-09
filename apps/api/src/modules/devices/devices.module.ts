@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { MailerModule } from '../../infrastructure/mailer/mailer.module';
+import { CryptoModule } from '../../infrastructure/crypto/crypto.module';
 import { AccessPolicyGuard } from '../../shared/guards/access-policy.guard';
 import { ApiKeyRateLimitGuard } from '../../shared/guards/api-key-rate-limit.guard';
 import { DeviceTokenGuard } from '../../shared/guards/device-token.guard';
@@ -15,7 +16,7 @@ import { DevicesController } from './devices.controller';
 import { DevicesService } from './devices.service';
 
 @Module({
-  imports: [MailerModule, AuthModule, ApiKeysModule, PlansModule],
+  imports: [MailerModule, CryptoModule, AuthModule, ApiKeysModule, PlansModule],
   controllers: [DevicesController, DeviceGatewayController],
   providers: [
     DevicesService,

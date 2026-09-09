@@ -3,6 +3,7 @@ package app.yallego.capture.domain.repository
 import app.yallego.capture.domain.model.DeviceCallResult
 import app.yallego.capture.domain.model.DeviceMetadata
 import app.yallego.capture.domain.model.HeartbeatOutcome
+import app.yallego.capture.domain.model.MobileOverview
 import app.yallego.capture.domain.model.PairingResult
 import app.yallego.capture.domain.model.PermissionSnapshot
 import app.yallego.capture.domain.model.RemoteConfig
@@ -15,4 +16,5 @@ interface DeviceRepository {
         permissions: PermissionSnapshot,
     ): DeviceCallResult<HeartbeatOutcome>
     suspend fun fetchRemoteConfig(): DeviceCallResult<RemoteConfig>
+    suspend fun fetchMobileOverview(): DeviceCallResult<MobileOverview>
 }

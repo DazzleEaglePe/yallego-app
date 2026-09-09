@@ -9,6 +9,10 @@ import app.yallego.capture.data.remote.dto.PairDeviceRequestDto
 import app.yallego.capture.domain.model.DeviceCallResult
 import app.yallego.capture.domain.model.DeviceMetadata
 import app.yallego.capture.domain.model.HeartbeatOutcome
+import app.yallego.capture.domain.model.MobileOverview
+import app.yallego.capture.domain.model.MobileSubscription
+import app.yallego.capture.domain.model.MobileTransaction
+import app.yallego.capture.domain.model.MobileWallet
 import app.yallego.capture.domain.model.PairingResult
 import app.yallego.capture.domain.model.PermissionSnapshot
 import app.yallego.capture.domain.model.RemoteConfig
@@ -73,6 +77,38 @@ class DeviceRepositoryImpl @Inject constructor(
     override suspend fun fetchRemoteConfig(): DeviceCallResult<RemoteConfig> =
         safeCall { api.getConfig() }.map { body ->
             RemoteConfig(body.monitoredPackages, body.configVersion, body.ingestBatchSize)
+        }
+
+    override suspend fun fetchMobileOverview(): DeviceCallResult<MobileOverview> =
+        safeCall { api.getMobileOverview() }.map { body ->
+            MobileOverview(
+                businessName = body.tenant.businessName,
+                deviceId = body.device.id,
+                deviceLabel = body.device.label,
+                wallets = body.wallets.map { MobileWallet(it.code, it.displayName) },
+                subscription = body.subscription?.let {
+                    MobileSubscription(
+                        planCode = it.planCode,
+                        planName = it.planName,
+                        status = it.status,
+                        periodEndIso = it.periodEnd,
+                        transactionsUsed = it.transactionsUsed,
+                        transactionsLimit = it.transactionsLimit,
+                    )
+                },
+                recentActivity = body.recentActivity.map {
+                    MobileTransaction(
+                        id = it.id,
+                        walletCode = it.wallet.code,
+                        walletName = it.wallet.displayName,
+                        senderName = it.senderName,
+                        amount = it.amount,
+                        currency = it.currency,
+                        status = it.status,
+                        occurredAtIso = it.occurredAt,
+                    )
+                },
+            )
         }
 
     private fun <T, R> DeviceCallResult<T>.map(transform: (T) -> R): DeviceCallResult<R> = when (this) {

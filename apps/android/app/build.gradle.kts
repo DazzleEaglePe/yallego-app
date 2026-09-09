@@ -55,7 +55,12 @@ android {
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"${localProperty("API_BASE_URL_DEBUG", "http://10.0.2.2:3001/")}\"",
+                "\"" + localProperty("API_BASE_URL_DEBUG", "http://10.0.2.2:3001/") + "\"",
+            )
+            buildConfigField(
+                "String",
+                "DASHBOARD_URL",
+                "\"" + localProperty("DASHBOARD_URL_DEBUG", "http://10.0.2.2:3000/membresia") + "\"",
             )
         }
         release {
@@ -67,6 +72,7 @@ android {
                 "API_BASE_URL",
                 "\"$releaseApiBaseUrl\"",
             )
+            buildConfigField("String", "DASHBOARD_URL", "\"https://app.yallego.app/membresia\"")
         }
     }
 
@@ -103,6 +109,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.navigation.compose)

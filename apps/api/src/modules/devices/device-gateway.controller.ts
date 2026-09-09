@@ -55,4 +55,10 @@ export class DeviceGatewayController {
   getConfig(@CurrentDevice() device: DeviceContext) {
     return this.deviceGatewayService.getConfig(device);
   }
+
+  @Get('mobile-overview')
+  @UseGuards(DeviceTokenGuard)
+  getMobileOverview(@CurrentDevice() device: DeviceContext) {
+    return this.deviceGatewayService.getMobileOverview(device);
+  }
 }

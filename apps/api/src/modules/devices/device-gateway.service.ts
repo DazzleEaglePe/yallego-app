@@ -3,16 +3,19 @@ import { TenantStatus } from '@prisma/client';
 import type {
   DeviceConfigResponse,
   DeviceHeartbeatInput,
+  DeviceMobileOverviewResponse,
   HeartbeatResponse,
   PairDeviceInput,
   PairDeviceResponse,
 } from '@yallego/contracts';
 
+import { EncryptionService } from '../../infrastructure/crypto/encryption.service';
 import { PrismaService, type ScopedClient } from '../../infrastructure/database/prisma.service';
 import { MailerService } from '../../infrastructure/mailer/mailer.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import type { DeviceContext } from '../../shared/guards/device-token.guard';
 import { TokenService } from '../auth/token.service';
+import type { PlanLimits } from '../plans/plan-limits.service';
 import { DevicesService } from './devices.service';
 import { canonicalizePairingCode } from './pairing-code.util';
 
@@ -26,6 +29,7 @@ export class DeviceGatewayService {
     @Inject(TokenService) private readonly tokenService: TokenService,
     @Inject(DevicesService) private readonly devicesService: DevicesService,
     @Inject(MailerService) private readonly mailer: MailerService,
+    @Inject(EncryptionService) private readonly cipher: EncryptionService,
   ) {}
 
   async pairDevice(input: PairDeviceInput): Promise<PairDeviceResponse> {
@@ -151,6 +155,76 @@ export class DeviceGatewayService {
       ingest_batch_size: INGEST_BATCH_SIZE,
       config_version: configVersion,
     };
+  }
+
+  async getMobileOverview(device: DeviceContext): Promise<DeviceMobileOverviewResponse> {
+    return this.prisma.withoutTenantScope(async (tx) => {
+      const [tenant, currentDevice, wallets, subscription, recentActivity] = await Promise.all([
+        tx.tenant.findUniqueOrThrow({ where: { id: device.tenantId } }),
+        tx.device.findUniqueOrThrow({ where: { id: device.id } }),
+        tx.tenantWallet.findMany({
+          where: { tenantId: device.tenantId, isEnabled: true },
+          include: { wallet: true },
+          orderBy: { enabledAt: 'asc' },
+        }),
+        tx.subscription.findFirst({
+          where: { tenantId: device.tenantId, status: 'ACTIVE' },
+          include: { plan: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        tx.transaction.findMany({
+          where: { tenantId: device.tenantId, deviceId: device.id },
+          include: { wallet: true },
+          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+          take: 20,
+        }),
+      ]);
+
+      const usage = subscription
+        ? await tx.usagePeriod.findUnique({
+            where: {
+              tenantId_periodStart: {
+                tenantId: device.tenantId,
+                periodStart: subscription.periodStart,
+              },
+            },
+          })
+        : null;
+      const limits = subscription?.plan.limits as PlanLimits | undefined;
+
+      return {
+        tenant: { id: tenant.id, business_name: tenant.businessName },
+        device: { id: currentDevice.id, label: currentDevice.label },
+        wallets: wallets.map(({ wallet }) => ({
+          code: wallet.code,
+          display_name: wallet.displayName,
+        })),
+        subscription: subscription
+          ? {
+              plan_code: subscription.plan.code,
+              plan_name: subscription.plan.displayName,
+              status: subscription.status,
+              period_end: subscription.periodEnd.toISOString(),
+              transactions_used: usage?.transactionsCount ?? 0,
+              transactions_limit: limits?.transactions_per_month ?? -1,
+            }
+          : null,
+        recent_activity: recentActivity.map((transaction) => ({
+          id: transaction.id,
+          wallet: {
+            code: transaction.wallet.code,
+            display_name: transaction.wallet.displayName,
+          },
+          sender_name: transaction.senderNameEncrypted
+            ? this.cipher.decrypt(transaction.senderNameEncrypted)
+            : null,
+          amount: transaction.amount.toFixed(2),
+          currency: transaction.currency,
+          status: transaction.status,
+          occurred_at: transaction.occurredAt.toISOString(),
+        })),
+      };
+    });
   }
 
   private async notifyRecovery(tenantId: string, deviceId: string): Promise<void> {

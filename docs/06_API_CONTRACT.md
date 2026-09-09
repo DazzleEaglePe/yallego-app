@@ -281,7 +281,7 @@ conservar el negocio activo durante la renovación.
 }
 ```
 
-> `connectivity` se deriva de `last_seen_at`: `ONLINE` si el último heartbeat ocurrió hace menos de 15 minutos; `OFFLINE` en caso contrario.
+> `connectivity` se deriva de `last_seen_at`: `ONLINE` durante los primeros 3 minutos, `DELAYED` entre 3 y 6 minutos y `OFFLINE` después de 6 minutos sin heartbeat.
 
 ---
 
@@ -693,6 +693,40 @@ const socket = io('wss://api.yallego.app/v1/realtime', {
 ### `GET /internal/v1/config`
 
 Devuelve la configuración vigente: paquetes a monitorear, intervalo de heartbeat, tamaño de lote. Permite ajustar comportamiento sin actualizar la aplicación.
+
+### `GET /internal/v1/mobile-overview`
+
+Devuelve la información operativa que necesita la navegación principal de la
+app Android: negocio y dispositivo vinculados, billeteras habilitadas, resumen
+del plan vigente y las últimas 20 transacciones capturadas por ese dispositivo.
+Requiere el token del dispositivo y nunca expone actividad de otros celulares
+del negocio.
+
+```json
+// 200 OK
+{
+  "tenant": { "id": "...", "business_name": "Bodega Santa Rosa" },
+  "device": { "id": "...", "label": "Celular caja principal" },
+  "wallets": [{ "code": "YAPE", "display_name": "Yape" }],
+  "subscription": {
+    "plan_name": "Emprendedor",
+    "period_end": "2026-10-01T00:00:00Z",
+    "transactions_used": 124,
+    "transactions_limit": 1000
+  },
+  "recent_activity": [
+    {
+      "id": "...",
+      "wallet_name": "Yape",
+      "sender_name": "JUAN PEREZ",
+      "amount": "35.50",
+      "currency": "PEN",
+      "status": "CONFIRMED",
+      "occurred_at": "2026-09-09T13:40:00Z"
+    }
+  ]
+}
+```
 
 ---
 

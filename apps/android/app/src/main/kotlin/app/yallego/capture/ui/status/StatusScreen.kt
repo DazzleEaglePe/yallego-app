@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.Bolt
@@ -25,11 +27,15 @@ import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.SyncProblem
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,17 +61,19 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun StatusScreen(state: StatusUiState) {
+fun StatusScreen(
+    state: StatusUiState,
+    modifier: Modifier = Modifier,
+) {
     val businessName = state.businessName?.takeIf { it.isNotBlank() }
         ?: stringResource(R.string.business_fallback)
 
-    YallegoBackdrop {
+    YallegoBackdrop(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
-                .navigationBarsPadding()
                 .padding(horizontal = 22.dp, vertical = 18.dp),
         ) {
             //YallegoBrandHeader(trailingLabel = stringResource(R.string.status_monitoring_label))
@@ -85,6 +93,8 @@ fun StatusScreen(state: StatusUiState) {
             Spacer(Modifier.height(24.dp))
 
             OperationalHero(state.operationalStatus)
+            Spacer(Modifier.height(12.dp))
+            ServerConnectionCard(state.connectionStatus)
             Spacer(Modifier.height(28.dp))
             Text(
                 text = stringResource(R.string.status_summary_title),
@@ -161,7 +171,7 @@ fun StatusScreen(state: StatusUiState) {
 
 @Composable
 private fun OperationalHero(status: OperationalStatus) {
-    val color = statusColor(status)
+    val color by animateColorAsState(statusColor(status), label = "capture-status-color")
     val label = statusLabel(status)
     val description = when (status) {
         OperationalStatus.ACTIVE -> stringResource(R.string.status_active_body)
@@ -185,6 +195,52 @@ private fun OperationalHero(status: OperationalStatus) {
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
                 Text(label, color = Color.White, style = MaterialTheme.typography.titleMedium)
                 Text(description, color = AppTextSecondary, style = MaterialTheme.typography.bodySmall)
+            }
+            Box(Modifier.size(8.dp).background(color, CircleShape))
+        }
+    }
+}
+
+@Composable
+private fun ServerConnectionCard(status: DeviceConnectionStatus) {
+    val color by animateColorAsState(
+        targetValue = when (status) {
+            DeviceConnectionStatus.ONLINE -> SuccessBright
+            DeviceConnectionStatus.DELAYED -> WarningBright
+            DeviceConnectionStatus.OFFLINE -> DangerBright
+        },
+        label = "server-connection-color",
+    )
+    val icon = when (status) {
+        DeviceConnectionStatus.ONLINE -> Icons.Rounded.Wifi
+        DeviceConnectionStatus.DELAYED -> Icons.Rounded.SyncProblem
+        DeviceConnectionStatus.OFFLINE -> Icons.Rounded.WifiOff
+    }
+    val label = when (status) {
+        DeviceConnectionStatus.ONLINE -> stringResource(R.string.connection_online)
+        DeviceConnectionStatus.DELAYED -> stringResource(R.string.connection_delayed)
+        DeviceConnectionStatus.OFFLINE -> stringResource(R.string.connection_offline)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = color.copy(alpha = 0.09f),
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                Text(
+                    stringResource(R.string.connection_server_title),
+                    color = AppTextSecondary,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                AnimatedContent(targetState = label, label = "server-connection-label") {
+                    Text(it, color = Color.White, style = MaterialTheme.typography.titleSmall)
+                }
             }
             Box(Modifier.size(8.dp).background(color, CircleShape))
         }

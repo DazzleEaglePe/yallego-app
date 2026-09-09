@@ -62,6 +62,54 @@ data class DeviceConfigResponseDto(
 )
 
 @Serializable
+data class MobileOverviewResponseDto(
+    val tenant: MobileTenantDto,
+    val device: MobileDeviceDto,
+    val wallets: List<MobileWalletDto>,
+    val subscription: MobileSubscriptionDto? = null,
+    @SerialName("recent_activity") val recentActivity: List<MobileTransactionDto>,
+)
+
+@Serializable
+data class MobileTenantDto(
+    val id: String,
+    @SerialName("business_name") val businessName: String,
+)
+
+@Serializable
+data class MobileDeviceDto(
+    val id: String,
+    val label: String,
+)
+
+@Serializable
+data class MobileWalletDto(
+    val code: String,
+    @SerialName("display_name") val displayName: String,
+)
+
+@Serializable
+data class MobileSubscriptionDto(
+    @SerialName("plan_code") val planCode: String,
+    @SerialName("plan_name") val planName: String,
+    val status: String,
+    @SerialName("period_end") val periodEnd: String,
+    @SerialName("transactions_used") val transactionsUsed: Int,
+    @SerialName("transactions_limit") val transactionsLimit: Int,
+)
+
+@Serializable
+data class MobileTransactionDto(
+    val id: String,
+    val wallet: MobileWalletDto,
+    @SerialName("sender_name") val senderName: String? = null,
+    val amount: String,
+    val currency: String,
+    val status: String,
+    @SerialName("occurred_at") val occurredAt: String,
+)
+
+@Serializable
 data class IngestNotificationItemDto(
     @SerialName("client_ref") val clientRef: String,
     @SerialName("package_name") val packageName: String,
