@@ -1,6 +1,6 @@
 'use client';
 
-import { can } from '@yallego/contracts';
+import { can, type DeviceConnectivity } from '@yallego/contracts';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -83,14 +83,22 @@ export default function DashboardHomePage() {
   });
 
   const deviceList = devices.data ?? [];
+  const hasAnyDevice = deviceList.length > 0;
   const activeDevices = deviceList.filter((device) => device.status === 'ACTIVE');
-  const onlineDevice = activeDevices.find((device) => device.connectivity === 'ONLINE');
+  const onlineDevices = activeDevices.filter((device) => device.connectivity === 'ONLINE');
+  const degradedDevices = activeDevices.filter((device) => device.connectivity === 'DEGRADED');
+  const androidConnectivity: DeviceConnectivity | null = onlineDevices.length
+    ? 'ONLINE'
+    : degradedDevices.length
+      ? 'DEGRADED'
+      : activeDevices.length
+        ? 'OFFLINE'
+        : null;
   const totals = periodSummary.data?.totals;
   const confirmedTotals = periodSummary.data?.confirmed_totals;
   const disputedCount =
     periodSummary.data?.by_status?.find(({ status }) => status === 'DISPUTED')?.count ?? 0;
   const recentList = recentTransactions.data?.data ?? [];
-  const hasAnyDevice = deviceList.length > 0;
   const hasEnabledWallet = (tenantWallets.data ?? []).some((wallet) => wallet.is_enabled);
   const walletConfigurationLoading = canManageWallets && tenantWallets.isLoading;
   const hasFirstTransaction = recentList.length > 0;
@@ -142,7 +150,7 @@ export default function DashboardHomePage() {
     },
     {
       detail: hasAnyDevice
-        ? `${onlineDevice ? 1 : 0} en línea · ${activeDevices.length} activo${activeDevices.length === 1 ? '' : 's'}`
+        ? `${onlineDevices.length} en línea${degradedDevices.length ? ` · ${degradedDevices.length} con señal retrasada` : ''} · ${activeDevices.length} activo${activeDevices.length === 1 ? '' : 's'}`
         : 'Vincula tu primer Android',
       label: 'Dispositivos',
       value: `${activeDevices.length} / ${deviceList.length}`,
@@ -286,7 +294,7 @@ export default function DashboardHomePage() {
             hasFirstTransaction={hasFirstTransaction}
           />
         ) : (
-          <SystemStatusPanel hasAnyDevice={hasAnyDevice} onlineDevice={Boolean(onlineDevice)} />
+          <SystemStatusPanel androidConnectivity={androidConnectivity} />
         )}
       </section>
 
@@ -404,9 +412,17 @@ function OnboardingPanel({
 }
 
 function SystemStatusPanel({
-  hasAnyDevice,
-  onlineDevice,
-}: Readonly<{ hasAnyDevice: boolean; onlineDevice: boolean }>) {
+  androidConnectivity,
+}: Readonly<{ androidConnectivity: DeviceConnectivity | null }>) {
+  const panelStatus =
+    androidConnectivity === 'ONLINE'
+      ? { badge: 'Operativo', status: 'En línea', tone: 'success' as const }
+      : androidConnectivity === 'DEGRADED'
+        ? { badge: 'Atención', status: 'Señal retrasada', tone: 'warning' as const }
+        : androidConnectivity === 'OFFLINE'
+          ? { badge: 'Interrumpido', status: 'Sin conexión', tone: 'danger' as const }
+          : { badge: 'Configuración', status: 'Por vincular', tone: 'warning' as const };
+
   return (
     <Card className="p-5 sm:p-6" data-animate>
       <div className="flex items-center justify-between gap-4">
@@ -416,19 +432,32 @@ function SystemStatusPanel({
           </p>
           <h2 className="mt-2 text-lg font-semibold text-neutral-950">Estado del sistema</h2>
         </div>
-        <Badge className="gap-1.5" variant="success">
-          <span className="h-2 w-2 rounded-full bg-success-500" />
-          Operativo
+        <Badge
+          className={`gap-1.5 ${
+            panelStatus.tone === 'warning'
+              ? 'bg-warning-50 text-warning-600'
+              : panelStatus.tone === 'danger'
+                ? 'bg-danger-50 text-danger-600'
+                : ''
+          }`}
+          variant="success"
+        >
+          <span
+            className={`h-2 w-2 rounded-full ${
+              panelStatus.tone === 'success'
+                ? 'bg-success-500'
+                : panelStatus.tone === 'warning'
+                  ? 'bg-warning-500'
+                  : 'bg-danger-500'
+            }`}
+          />
+          {panelStatus.badge}
         </Badge>
       </div>
       <div className="mt-6 space-y-2">
         <StatusRow label="Panel web" status="Conectado" />
         <StatusRow label="Sesión segura" status="Activa" />
-        <StatusRow
-          label="Android"
-          pending={!onlineDevice}
-          status={!hasAnyDevice ? 'Por vincular' : onlineDevice ? 'En línea' : 'Sin conexión'}
-        />
+        <StatusRow label="Android" status={panelStatus.status} tone={panelStatus.tone} />
       </div>
     </Card>
   );
@@ -459,18 +488,25 @@ function SetupStep({
 
 function StatusRow({
   label,
-  pending = false,
   status,
-}: Readonly<{ label: string; pending?: boolean; status: string }>) {
+  tone = 'success',
+}: Readonly<{ label: string; status: string; tone?: 'success' | 'warning' | 'danger' }>) {
+  const textColor = {
+    danger: 'text-danger-600',
+    success: 'text-success-600',
+    warning: 'text-warning-600',
+  }[tone];
+  const dotColor = {
+    danger: 'bg-danger-500',
+    success: 'bg-success-500',
+    warning: 'bg-warning-500',
+  }[tone];
+
   return (
     <div className="flex items-center justify-between gap-4 border-b border-neutral-200 py-3 last:border-b-0">
       <span className="text-sm text-neutral-500">{label}</span>
-      <span
-        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${pending ? 'text-warning-600' : 'text-success-600'}`}
-      >
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${pending ? 'bg-warning-500' : 'bg-success-500'}`}
-        />
+      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${textColor}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
         {status}
       </span>
     </div>

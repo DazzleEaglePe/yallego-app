@@ -166,7 +166,7 @@ integrationDescribe('Devices backend', () => {
       .get('/internal/v1/config')
       .set('Authorization', `Bearer ${deviceToken}`)
       .expect(200);
-    expect(config.body.heartbeat_interval_seconds).toBe(300);
+    expect(config.body.heartbeat_interval_seconds).toBe(120);
     expect(config.body.ingest_batch_size).toBe(50);
 
     const plinWallet = await request(app.getHttpServer())
@@ -208,6 +208,36 @@ integrationDescribe('Devices backend', () => {
     expect(devices.body[0].app_version).toBe('1.0.1');
 
     const deviceId = devices.body[0].id as string;
+
+    await prisma.withoutTenantScope((tx) =>
+      tx.device.update({
+        where: { id: deviceId },
+        data: { lastSeenAt: new Date(Date.now() - 4 * 60 * 1_000) },
+      }),
+    );
+    const delayedDevice = await request(app.getHttpServer())
+      .get('/v1/devices')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(delayedDevice.body[0].connectivity).toBe('DEGRADED');
+
+    await prisma.withoutTenantScope((tx) =>
+      tx.device.update({
+        where: { id: deviceId },
+        data: { lastSeenAt: new Date(Date.now() - 7 * 60 * 1_000) },
+      }),
+    );
+    const offlineDevice = await request(app.getHttpServer())
+      .get('/v1/devices')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(offlineDevice.body[0].connectivity).toBe('OFFLINE');
+
+    await request(app.getHttpServer())
+      .post('/internal/v1/heartbeat')
+      .set('Authorization', `Bearer ${deviceToken}`)
+      .send({ queue_size: 0 })
+      .expect(200);
 
     await request(app.getHttpServer())
       .delete(`/v1/devices/${deviceId}`)

@@ -11,11 +11,11 @@ import { PrismaService, type ScopedClient } from '../../infrastructure/database/
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import type { TenantContext, TenantResourceContext } from '../../shared/guards/tenant.guard';
 import { TokenService } from '../auth/token.service';
+import { getDeviceConnectivity } from './device-connectivity';
 import { PlanLimitsService } from '../plans/plan-limits.service';
 import { canonicalizePairingCode, generatePairingCode } from './pairing-code.util';
 
 const PAIRING_CODE_TTL_MS = 10 * 60 * 1_000;
-const OFFLINE_THRESHOLD_MS = 15 * 60 * 1_000;
 
 @Injectable()
 export class DevicesService {
@@ -187,10 +187,6 @@ function mapDevice(device: {
   lastSeenAt: Date | null;
   pairedAt: Date;
 }): DeviceSummary {
-  const isOnline = device.lastSeenAt
-    ? Date.now() - device.lastSeenAt.getTime() < OFFLINE_THRESHOLD_MS
-    : false;
-
   return {
     id: device.id,
     label: device.label,
@@ -199,7 +195,7 @@ function mapDevice(device: {
     os_version: device.osVersion,
     app_version: device.appVersion,
     status: device.status,
-    connectivity: isOnline ? 'ONLINE' : 'OFFLINE',
+    connectivity: getDeviceConnectivity(device.lastSeenAt),
     last_seen_at: device.lastSeenAt?.toISOString() ?? null,
     paired_at: device.pairedAt.toISOString(),
   };

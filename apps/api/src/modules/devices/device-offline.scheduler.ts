@@ -4,8 +4,8 @@ import { DeviceStatus } from '@prisma/client';
 
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { MailerService } from '../../infrastructure/mailer/mailer.service';
+import { DEVICE_OFFLINE_THRESHOLD_MS } from './device-connectivity';
 
-const OFFLINE_THRESHOLD_MS = 15 * 60 * 1_000;
 const CHECK_INTERVAL_MS = 60 * 1_000;
 
 /**
@@ -28,7 +28,7 @@ export class DeviceOfflineScheduler {
 
   @Interval(CHECK_INTERVAL_MS)
   async detectOfflineDevices(): Promise<void> {
-    const threshold = new Date(Date.now() - OFFLINE_THRESHOLD_MS);
+    const threshold = new Date(Date.now() - DEVICE_OFFLINE_THRESHOLD_MS);
 
     const newlyOffline = await this.prisma.withoutTenantScope(async (tx) => {
       const candidates = await tx.device.findMany({

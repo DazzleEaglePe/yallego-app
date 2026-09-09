@@ -15,9 +15,22 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import app.yallego.capture.MainActivity
 import app.yallego.capture.R
+import app.yallego.capture.data.local.secure.DeviceCredentialsStore
+import app.yallego.capture.domain.model.DeviceCallResult
+import app.yallego.capture.domain.usecase.SendHeartbeatUseCase
 import app.yallego.capture.worker.HeartbeatWorker
 import app.yallego.capture.worker.NotificationSyncWorker
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * Mantiene el proceso vivo con una notificación persistente, como exige el
@@ -33,6 +46,12 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class CaptureForegroundService : Service() {
 
+    @Inject lateinit var sendHeartbeat: SendHeartbeatUseCase
+    @Inject lateinit var credentialsStore: DeviceCredentialsStore
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var heartbeatJob: Job? = null
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -46,12 +65,35 @@ class CaptureForegroundService : Service() {
         NotificationListenerService.requestRebind(
             ComponentName(this, CaptureNotificationListener::class.java),
         )
-        HeartbeatWorker.scheduleNow(applicationContext)
+        startHeartbeatLoop()
+        HeartbeatWorker.ensureBackupScheduled(applicationContext)
         NotificationSyncWorker.schedule(applicationContext)
         return START_STICKY
     }
 
+    override fun onDestroy() {
+        heartbeatJob?.cancel()
+        serviceScope.cancel()
+        super.onDestroy()
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun startHeartbeatLoop() {
+        if (heartbeatJob?.isActive == true) return
+
+        heartbeatJob = serviceScope.launch {
+            while (isActive && credentialsStore.isPaired) {
+                when (val outcome = sendHeartbeat()) {
+                    is DeviceCallResult.Success ->
+                        Timber.d("Foreground heartbeat sent: %s", outcome.value.serverTimeIso)
+                    is DeviceCallResult.Failure ->
+                        Timber.w("Foreground heartbeat failed: %s", outcome.message)
+                }
+                delay(HEARTBEAT_INTERVAL_MS)
+            }
+        }
+    }
 
     private fun buildNotification(): Notification {
         val openApp = Intent(this, MainActivity::class.java)
@@ -90,6 +132,7 @@ class CaptureForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "yallego_service"
         private const val NOTIFICATION_ID = 1001
+        private const val HEARTBEAT_INTERVAL_MS = 2 * 60 * 1_000L
 
         fun start(context: Context) {
             val intent = Intent(context, CaptureForegroundService::class.java)

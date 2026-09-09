@@ -163,6 +163,30 @@ function DeviceRow({
 }>) {
   const isRevoked = device.status === 'REVOKED';
   const detail = [device.manufacturer, device.model].filter(Boolean).join(' ');
+  const connectivityMeta = {
+    DEGRADED: {
+      dot: 'bg-warning-500',
+      icon: 'wifi' as const,
+      label: device.last_seen_at
+        ? `Señal retrasada · ${formatElapsed(device.last_seen_at)}`
+        : 'Señal retrasada',
+      text: 'text-warning-600',
+    },
+    OFFLINE: {
+      dot: 'bg-neutral-500',
+      icon: 'wifi-off' as const,
+      label: device.last_seen_at
+        ? `Sin conexión · ${formatElapsed(device.last_seen_at)}`
+        : 'Sin señal todavía',
+      text: 'text-neutral-400',
+    },
+    ONLINE: {
+      dot: 'bg-success-500',
+      icon: 'wifi' as const,
+      label: 'En línea',
+      text: 'text-success-500',
+    },
+  }[device.connectivity];
 
   return (
     <div className="grid gap-3 px-5 py-4 transition hover:bg-neutral-50 sm:px-6 md:grid-cols-[minmax(220px,1fr)_170px_90px_170px_130px] md:items-center md:gap-4">
@@ -171,7 +195,7 @@ function DeviceRow({
           <DashboardIcon className="h-4 w-4" name="device" />
           <span
             aria-hidden="true"
-            className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-neutral-950 ${device.connectivity === 'ONLINE' ? 'bg-success-500' : 'bg-neutral-500'}`}
+            className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-neutral-950 ${connectivityMeta.dot}`}
           />
         </span>
         <span className="min-w-0">
@@ -187,14 +211,10 @@ function DeviceRow({
 
       <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-500">
         <DashboardIcon
-          className={`h-3.5 w-3.5 ${device.connectivity === 'ONLINE' ? 'text-success-500' : 'text-neutral-400'}`}
-          name={device.connectivity === 'ONLINE' ? 'wifi' : 'wifi-off'}
+          className={`h-3.5 w-3.5 ${connectivityMeta.text}`}
+          name={connectivityMeta.icon}
         />
-        {device.connectivity === 'ONLINE'
-          ? 'En línea'
-          : device.last_seen_at
-            ? `Sin conexión · ${formatElapsed(device.last_seen_at)}`
-            : 'Sin señal todavía'}
+        {connectivityMeta.label}
       </span>
 
       <span

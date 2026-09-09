@@ -16,7 +16,7 @@ import { TokenService } from '../auth/token.service';
 import { DevicesService } from './devices.service';
 import { canonicalizePairingCode } from './pairing-code.util';
 
-const HEARTBEAT_INTERVAL_SECONDS = 5 * 60;
+const HEARTBEAT_INTERVAL_SECONDS = 2 * 60;
 const INGEST_BATCH_SIZE = 50;
 
 @Injectable()

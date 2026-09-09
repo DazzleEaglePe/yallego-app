@@ -1,6 +1,7 @@
 import { DeviceStatus } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEVICE_OFFLINE_THRESHOLD_MS } from './device-connectivity';
 import { DeviceOfflineScheduler } from './device-offline.scheduler';
 
 describe('DeviceOfflineScheduler', () => {
@@ -52,13 +53,14 @@ describe('DeviceOfflineScheduler', () => {
     await scheduler.detectOfflineDevices();
     await scheduler.detectOfflineDevices();
 
+    const threshold = new Date(Date.now() - DEVICE_OFFLINE_THRESHOLD_MS);
     expect(findDevices).toHaveBeenCalledWith({
       where: {
         status: DeviceStatus.ACTIVE,
         offlineNotifiedAt: null,
         OR: [
-          { lastSeenAt: { lt: new Date('2026-08-29T11:45:00.000Z') } },
-          { lastSeenAt: null, pairedAt: { lt: new Date('2026-08-29T11:45:00.000Z') } },
+          { lastSeenAt: { lt: threshold } },
+          { lastSeenAt: null, pairedAt: { lt: threshold } },
         ],
       },
       include: { tenant: true },

@@ -39,6 +39,6 @@ export interface RealtimeConnectedPayload {
 
 export interface RealtimeDeviceStatusChangedPayload {
   device_id: string;
-  connectivity: 'ONLINE' | 'OFFLINE';
+  connectivity: 'ONLINE' | 'DEGRADED' | 'OFFLINE';
   changed_at: string;
 }

@@ -16,11 +16,9 @@ import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 /**
- * Señal de vida (RF-DEV-006: cada 5 minutos). `PeriodicWorkRequest` de
- * WorkManager tiene un piso de 15 minutos, insuficiente aquí, así que este
- * trabajador se reprograma a sí mismo como trabajo único de 5 minutos al
- * terminar — programado por WorkManager, sobrevive mejor que un bucle atado
- * al ciclo de vida del servicio en primer plano.
+ * Respaldo de la señal de vida. El servicio en primer plano envía el heartbeat
+ * operativo cada 2 minutos; WorkManager despierta la app cada 15 minutos para
+ * recuperar configuración si el servicio fue reiniciado o retrasado por Android.
  */
 @HiltWorker
 class HeartbeatWorker @AssistedInject constructor(
@@ -41,30 +39,29 @@ class HeartbeatWorker @AssistedInject constructor(
         }
 
         if (credentialsStore.isPaired) {
-            scheduleNext(applicationContext)
+            appendNext(applicationContext)
         }
         return Result.success()
     }
 
     companion object {
         private const val UNIQUE_WORK_NAME = "yallego_heartbeat"
-        private const val INTERVAL_MINUTES = 5L
+        private const val BACKUP_INTERVAL_MINUTES = 15L
 
-        fun scheduleNext(context: Context, initialDelayMinutes: Long = INTERVAL_MINUTES) {
+        private fun appendNext(context: Context) {
             val request = OneTimeWorkRequestBuilder<HeartbeatWorker>()
-                .setInitialDelay(initialDelayMinutes, TimeUnit.MINUTES)
+                .setInitialDelay(BACKUP_INTERVAL_MINUTES, TimeUnit.MINUTES)
                 .build()
             WorkManager.getInstance(context)
-                // El worker actual todavía está ejecutándose. Anexar el siguiente evita que
-                // WorkManager cancele esta ejecución justo antes de devolver su resultado.
                 .enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
 
-        /** Primer disparo inmediato: al vincular o al reiniciar el dispositivo. */
-        fun scheduleNow(context: Context) {
-            val request = OneTimeWorkRequestBuilder<HeartbeatWorker>().build()
+        fun ensureBackupScheduled(context: Context) {
+            val request = OneTimeWorkRequestBuilder<HeartbeatWorker>()
+                .setInitialDelay(BACKUP_INTERVAL_MINUTES, TimeUnit.MINUTES)
+                .build()
             WorkManager.getInstance(context)
-                .enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+                .enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, request)
         }
 
         fun cancel(context: Context) {

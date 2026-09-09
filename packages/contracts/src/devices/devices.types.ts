@@ -1,5 +1,5 @@
 export type DeviceStatus = 'ACTIVE' | 'PAUSED' | 'REVOKED';
-export type DeviceConnectivity = 'ONLINE' | 'OFFLINE';
+export type DeviceConnectivity = 'ONLINE' | 'DEGRADED' | 'OFFLINE';
 
 export interface DeviceSummary {
   id: string;
