@@ -457,7 +457,7 @@ function SystemStatusPanel({
       <div className="mt-6 space-y-2">
         <StatusRow label="Panel web" status="Conectado" />
         <StatusRow label="Sesión segura" status="Activa" />
-        <StatusRow label="Android" status={panelStatus.status} tone={panelStatus.tone} />
+        <StatusRow label="Telefono" status={panelStatus.status} tone={panelStatus.tone} />
       </div>
     </Card>
   );
