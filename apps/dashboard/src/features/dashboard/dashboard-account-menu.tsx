@@ -23,7 +23,7 @@ interface DashboardAccountMenuProps {
   compact?: boolean;
 }
 
-const accountLinkLabels = new Set(['Equipo', 'Integraciones', 'Membresía', 'Auditoría']);
+const accountLinkLabels = new Set(['Equipo', 'Integraciones', 'Plan y facturación', 'Auditoría']);
 
 export function DashboardAccountMenu({ compact = false }: DashboardAccountMenuProps) {
   const router = useRouter();

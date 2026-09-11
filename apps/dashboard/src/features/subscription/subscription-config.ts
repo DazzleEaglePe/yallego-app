@@ -58,3 +58,18 @@ export function subscriptionUsageAlert(
   if (ratio >= 0.8) return 'warning';
   return null;
 }
+
+/** Horas enteras restantes hasta `endsAt`, con piso en 0. */
+export function trialHoursRemaining(endsAt: string | null): number {
+  if (!endsAt) return 0;
+  const ms = new Date(endsAt).getTime() - Date.now();
+  return Math.max(0, Math.floor(ms / (60 * 60 * 1_000)));
+}
+
+/** `true` si el trial ya terminó, por tiempo o porque el backend ya lo cerró. */
+export function isTrialEnded(trial: SubscriptionSummary['trial']): boolean {
+  if (!trial) return false;
+  if (trial.ended_at) return true;
+  if (!trial.ends_at) return false;
+  return new Date(trial.ends_at).getTime() <= Date.now();
+}

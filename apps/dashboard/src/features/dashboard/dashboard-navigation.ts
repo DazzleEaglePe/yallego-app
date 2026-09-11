@@ -43,7 +43,7 @@ export const dashboardNavigation = [
   },
   {
     icon: 'ticket',
-    label: 'Membresía',
+    label: 'Plan y facturación',
     href: '/membresia',
     permission: 'subscription:manage',
     section: 'Administración',

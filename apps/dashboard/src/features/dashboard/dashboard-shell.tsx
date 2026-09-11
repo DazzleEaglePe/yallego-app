@@ -206,7 +206,7 @@ function getPageMeta(pathname: string | null): {
     return { icon: 'plug', section: 'Administración', title: 'Integraciones' };
   }
   if (pathname?.startsWith('/membresia')) {
-    return { icon: 'ticket', section: 'Administración', title: 'Membresía' };
+    return { icon: 'ticket', section: 'Administración', title: 'Plan y facturación' };
   }
   if (pathname?.startsWith('/auditoria')) {
     return { icon: 'shield', section: 'Administración', title: 'Auditoría' };

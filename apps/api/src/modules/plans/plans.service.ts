@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import type { Plan } from '@prisma/client';
+import { UsageWindowType, type Plan } from '@prisma/client';
 import type {
   ChangeSubscriptionInput,
   PlanSummary,
@@ -13,6 +13,7 @@ import type {
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import type { TenantResourceContext } from '../../shared/guards/tenant.guard';
+import { EntitlementService } from './entitlement.service';
 import { PlanLimitsService } from './plan-limits.service';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class PlansService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(PlanLimitsService) private readonly planLimits: PlanLimitsService,
+    @Inject(EntitlementService) private readonly entitlementService: EntitlementService,
   ) {}
 
   async listPlans(): Promise<PlanSummary[]> {
@@ -48,19 +50,75 @@ export class PlansService {
       }),
     );
 
+    const isTrialPlan = subscription.plan.code === 'TRIAL';
+    const trialUsage = isTrialPlan
+      ? await this.getTrialUsage(tenant.id, subscription.createdAt)
+      : { today: 0, total: 0 };
+
     return {
       plan: toPlanSummary(subscription.plan),
       billing_cycle: subscription.billingCycle,
       status: subscription.status,
+      access_state: subscription.status,
       period_start: subscription.periodStart.toISOString(),
       period_end: subscription.periodEnd.toISOString(),
       pending_plan: subscription.pendingPlan ? toPlanSummary(subscription.pendingPlan) : null,
+      trial:
+        subscription.status === 'PENDING_TRIAL' ||
+        subscription.status === 'TRIALING' ||
+        subscription.trialStartedAt ||
+        subscription.trialEndedAt
+          ? {
+              started_at: subscription.trialStartedAt?.toISOString() ?? null,
+              ends_at: subscription.trialEndsAt?.toISOString() ?? null,
+              ended_at: subscription.trialEndedAt?.toISOString() ?? null,
+              end_reason: subscription.trialEndReason,
+              transactions_today: trialUsage.today,
+              transactions_total: trialUsage.total,
+            }
+          : null,
       usage: {
         transactions_count: usage?.transactionsCount ?? 0,
         api_calls_count: usage?.apiCallsCount ?? 0,
         webhook_calls_count: usage?.webhookCallsCount ?? 0,
       },
     };
+  }
+
+  /**
+   * Consumo diario/total del trial para GET /v1/subscription (docs/14 §7:
+   * la tarjeta de trial del panel necesita ambos). `usage_buckets` es la
+   * misma fuente de verdad que usa `EntitlementService.reserveQuota` para
+   * imponer los límites, no un contador aparte que pueda desincronizarse.
+   */
+  private async getTrialUsage(
+    tenantId: string,
+    subscriptionCreatedAt: Date,
+  ): Promise<{ today: number; total: number }> {
+    const tenant = await this.prisma.withoutTenantScope((tx) =>
+      tx.tenant.findUnique({ where: { id: tenantId }, select: { timezone: true } }),
+    );
+    const dayWindow = this.entitlementService.resolveDayWindow(
+      tenant?.timezone ?? 'America/Lima',
+      new Date(),
+    );
+
+    const [dayBucket, totalBucket] = await this.prisma.withoutTenantScope((tx) =>
+      Promise.all([
+        tx.usageBucket.findFirst({
+          where: { tenantId, windowType: UsageWindowType.DAY, windowStart: dayWindow.start },
+        }),
+        tx.usageBucket.findFirst({
+          where: {
+            tenantId,
+            windowType: UsageWindowType.SUBSCRIPTION_PERIOD,
+            windowStart: subscriptionCreatedAt,
+          },
+        }),
+      ]),
+    );
+
+    return { today: dayBucket?.used ?? 0, total: totalBucket?.used ?? 0 };
   }
 
   async listHistory(tenant: TenantResourceContext): Promise<SubscriptionChangeHistoryItem[]> {

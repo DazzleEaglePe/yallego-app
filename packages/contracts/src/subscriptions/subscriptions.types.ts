@@ -4,6 +4,9 @@ export interface PlanLimits {
   wallets: number;
   devices: number;
   transactions_per_month: number;
+  transactions_per_period?: number;
+  transactions_per_day?: number;
+  trial_duration_hours?: number;
   users: number;
   webhooks: number;
   websocket_api: boolean;
@@ -37,6 +40,15 @@ export interface SubscriptionSummary {
   period_end: string;
   /** Plan al que se pasará al cierre del período actual (downgrade ya confirmado, pendiente de aplicar). */
   pending_plan: PlanSummary | null;
+  access_state: 'PENDING_TRIAL' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'EXPIRED';
+  trial: {
+    started_at: string | null;
+    ends_at: string | null;
+    ended_at: string | null;
+    end_reason: 'TIME_LIMIT' | 'TOTAL_LIMIT' | 'ADMINISTRATIVE' | null;
+    transactions_today: number;
+    transactions_total: number;
+  } | null;
   usage: SubscriptionUsage;
 }
 

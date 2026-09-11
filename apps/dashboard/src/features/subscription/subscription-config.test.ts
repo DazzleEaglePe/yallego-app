@@ -1,13 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SubscriptionSummary } from '@yallego/contracts';
 
 import {
   canRequestPlanChange,
+  isTrialEnded,
   planLimitLabel,
   planPriceForCycle,
   subscriptionPrice,
   subscriptionUsageAlert,
+  trialHoursRemaining,
   usagePercentage,
   usageTone,
 } from './subscription-config';
@@ -79,5 +81,87 @@ describe('subscriptionUsageAlert', () => {
     expect(subscriptionUsageAlert(80, 100)).toBe('warning');
     expect(subscriptionUsageAlert(100, 100)).toBe('critical');
     expect(subscriptionUsageAlert(20, -1)).toBeNull();
+  });
+});
+
+describe('trialHoursRemaining', () => {
+  const now = new Date('2026-09-11T12:00:00.000Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('redondea hacia abajo las horas enteras restantes', () => {
+    expect(trialHoursRemaining('2026-09-11T14:30:00.000Z')).toBe(2);
+    expect(trialHoursRemaining('2026-09-12T12:00:00.000Z')).toBe(24);
+  });
+
+  it('no baja de cero cuando ya pasó', () => {
+    expect(trialHoursRemaining('2026-09-10T12:00:00.000Z')).toBe(0);
+  });
+
+  it('devuelve cero sin fecha de fin', () => {
+    expect(trialHoursRemaining(null)).toBe(0);
+  });
+});
+
+describe('isTrialEnded', () => {
+  const now = new Date('2026-09-11T12:00:00.000Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('es falso sin objeto de trial', () => {
+    expect(isTrialEnded(null)).toBe(false);
+  });
+
+  it('es verdadero si el backend ya cerró el trial, sin importar la fecha', () => {
+    expect(
+      isTrialEnded({
+        started_at: '2026-09-10T12:00:00.000Z',
+        ends_at: '2026-09-14T12:00:00.000Z',
+        ended_at: '2026-09-11T00:00:00.000Z',
+        end_reason: 'TOTAL_LIMIT',
+        transactions_today: 0,
+        transactions_total: 100,
+      }),
+    ).toBe(true);
+  });
+
+  it('es verdadero cuando ya pasó ends_at aunque el backend no lo haya cerrado todavía', () => {
+    expect(
+      isTrialEnded({
+        started_at: '2026-09-08T12:00:00.000Z',
+        ends_at: now.toISOString(),
+        ended_at: null,
+        end_reason: null,
+        transactions_today: 0,
+        transactions_total: 5,
+      }),
+    ).toBe(true);
+  });
+
+  it('es falso mientras el trial sigue vigente', () => {
+    expect(
+      isTrialEnded({
+        started_at: '2026-09-10T12:00:00.000Z',
+        ends_at: '2026-09-14T12:00:00.000Z',
+        ended_at: null,
+        end_reason: null,
+        transactions_today: 3,
+        transactions_total: 10,
+      }),
+    ).toBe(false);
   });
 });

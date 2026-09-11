@@ -1,15 +1,17 @@
 'use client';
 
-import { can } from '@yallego/contracts';
+import { can, type SubscriptionSummary } from '@yallego/contracts';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 import { PlanComparisonSection } from '@/features/subscription/components/PlanComparisonSection';
+import { TrialStatusCard } from '@/features/subscription/components/TrialStatusCard';
 import { useSubscription } from '@/features/subscription/hooks/use-subscription';
 import {
   billingCycleLabels,
+  isTrialEnded,
   planLimitLabel,
   subscriptionPrice,
   usagePercentage,
@@ -35,13 +37,15 @@ export default function MembershipPage() {
   }
 
   const data = subscription.data;
-  const transactionLimit = data.plan.limits.transactions_per_month;
-  const transactionUsage = data.usage.transactions_count;
+  const transactionLimit = data.trial
+    ? (data.plan.limits.transactions_per_period ?? 0)
+    : data.plan.limits.transactions_per_month;
+  const transactionUsage = data.trial ? data.trial.transactions_total : data.usage.transactions_count;
   const hasUnlimitedTransactions = transactionLimit < 0;
   const percentage = usagePercentage(transactionUsage, transactionLimit);
   const tone = usageTone(percentage);
   const price = formatMoney(subscriptionPrice(data), data.plan.currency);
-  const status = subscriptionStatusMeta(data.status);
+  const status = subscriptionStatusMeta(data.status, data.trial);
 
   return (
     <div className="pb-8">
@@ -52,7 +56,7 @@ export default function MembershipPage() {
             <p className="text-sm font-semibold text-brand-600">Cuenta</p>
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-3xl">
-            Membresía
+            Plan y facturación
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500 sm:text-base">
             Revisa tu plan, el consumo del período y los límites disponibles para tu negocio.
@@ -107,24 +111,28 @@ export default function MembershipPage() {
           </div>
         </article>
 
-        <article className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">
-                Próxima renovación
-              </p>
-              <p className="mt-2 text-2xl font-bold text-neutral-950">
-                {daysUntil(data.period_end)} días
-              </p>
+        {data.trial ? (
+          <TrialStatusCard limits={data.plan.limits} trial={data.trial} />
+        ) : (
+          <article className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                  Próxima renovación
+                </p>
+                <p className="mt-2 text-2xl font-bold text-neutral-950">
+                  {daysUntil(data.period_end)} días
+                </p>
+              </div>
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                <DashboardIcon className="h-5 w-5" name="calendar" />
+              </span>
             </div>
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
-              <DashboardIcon className="h-5 w-5" name="calendar" />
-            </span>
-          </div>
-          <p className="mt-4 text-sm leading-6 text-neutral-500">
-            El contador de consumo se reinicia el {formatDate(data.period_end)}.
-          </p>
-        </article>
+            <p className="mt-4 text-sm leading-6 text-neutral-500">
+              El contador de consumo se reinicia el {formatDate(data.period_end)}.
+            </p>
+          </article>
+        )}
       </section>
 
       <section className="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-7">
@@ -144,7 +152,9 @@ export default function MembershipPage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-neutral-800">Cobros procesados</p>
-              <p className="mt-1 text-xs text-neutral-500">Límite mensual de transacciones</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                {data.trial ? 'Límite total de la prueba' : 'Límite mensual de transacciones'}
+              </p>
             </div>
             <p className="text-right text-sm font-semibold text-neutral-950">
               {formatNumber(transactionUsage)}{' '}
@@ -315,7 +325,10 @@ function daysUntil(value: string): number {
   return Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 86_400_000));
 }
 
-function subscriptionStatusMeta(status: string): {
+function subscriptionStatusMeta(
+  status: string,
+  trial: SubscriptionSummary['trial'],
+): {
   className: string;
   dotClassName: string;
   label: string;
@@ -326,10 +339,24 @@ function subscriptionStatusMeta(status: string): {
     return {
       className: `${baseClassName} bg-success-50 text-success-700`,
       dotClassName: 'h-1.5 w-1.5 rounded-full bg-success-500',
-      label: 'Membresía activa',
+      label: 'Plan activo',
+    };
+  }
+  if (status === 'PENDING_TRIAL') {
+    return {
+      className: `${baseClassName} bg-brand-50 text-brand-700`,
+      dotClassName: 'h-1.5 w-1.5 rounded-full bg-brand-500',
+      label: 'Prueba por comenzar',
     };
   }
   if (status === 'TRIALING') {
+    if (isTrialEnded(trial)) {
+      return {
+        className: `${baseClassName} bg-danger-50 text-danger-700`,
+        dotClassName: 'h-1.5 w-1.5 rounded-full bg-danger-500',
+        label: 'Prueba terminada',
+      };
+    }
     return {
       className: `${baseClassName} bg-brand-50 text-brand-700`,
       dotClassName: 'h-1.5 w-1.5 rounded-full bg-brand-500',
@@ -341,6 +368,13 @@ function subscriptionStatusMeta(status: string): {
       className: `${baseClassName} bg-warning-50 text-warning-700`,
       dotClassName: 'h-1.5 w-1.5 rounded-full bg-warning-500',
       label: 'Pago pendiente',
+    };
+  }
+  if (status === 'EXPIRED' || status === 'CANCELED') {
+    return {
+      className: `${baseClassName} bg-danger-50 text-danger-700`,
+      dotClassName: 'h-1.5 w-1.5 rounded-full bg-danger-500',
+      label: status === 'EXPIRED' ? 'Suscripción vencida' : 'Suscripción cancelada',
     };
   }
   return {

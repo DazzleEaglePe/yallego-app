@@ -13,7 +13,7 @@ describe('getVisibleNavigation', () => {
     },
   );
 
-  it('muestra toda la configuración y la membresía al propietario', () => {
+  it('muestra toda la configuración y el plan y facturación al propietario', () => {
     expect(getVisibleNavigation('OWNER').map((item) => item.label)).toEqual([
       'Inicio',
       'Transacciones',
@@ -21,12 +21,12 @@ describe('getVisibleNavigation', () => {
       'Billeteras',
       'Equipo',
       'Integraciones',
-      'Membresía',
+      'Plan y facturación',
       'Auditoría',
     ]);
   });
 
-  it('oculta la membresía al administrador', () => {
+  it('oculta el plan y facturación al administrador', () => {
     expect(getVisibleNavigation('ADMIN').map((item) => item.label)).toEqual([
       'Inicio',
       'Transacciones',

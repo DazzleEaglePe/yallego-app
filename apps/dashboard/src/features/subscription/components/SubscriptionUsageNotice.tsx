@@ -1,12 +1,21 @@
 'use client';
 
+import type { SubscriptionSummary } from '@yallego/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
 
 import { useSubscription } from '../hooks/use-subscription';
-import { subscriptionUsageAlert } from '../subscription-config';
+import { isTrialEnded, subscriptionUsageAlert, trialHoursRemaining } from '../subscription-config';
+
+interface NoticeDescriptor {
+  level: 'critical' | 'warning';
+  title: string;
+  message: string;
+  /** `null` = aviso persistente, no descartable (mismo criterio que el 100% mensual de siempre). */
+  dismissKey: string | null;
+}
 
 export function SubscriptionUsageNotice({
   enabled,
@@ -17,13 +26,8 @@ export function SubscriptionUsageNotice({
   const [dismissalLoaded, setDismissalLoaded] = useState(false);
 
   const data = subscription.data;
-  const limit = data?.plan.limits.transactions_per_month ?? 0;
-  const current = data?.usage.transactions_count ?? 0;
-  const level = data ? subscriptionUsageAlert(current, limit) : null;
-  const storageKey =
-    level === 'warning' && tenantId && data
-      ? `yallego:usage-warning:${tenantId}:${data.period_start}`
-      : null;
+  const notice = data && tenantId ? computeNotice(data, tenantId) : null;
+  const storageKey = notice?.dismissKey ?? null;
 
   useEffect(() => {
     if (!storageKey) {
@@ -34,10 +38,10 @@ export function SubscriptionUsageNotice({
     setDismissalLoaded(true);
   }, [storageKey]);
 
-  if (!enabled || !data || !level) return null;
-  if (level === 'warning' && (!dismissalLoaded || dismissedKey === storageKey)) return null;
+  if (!enabled || !notice) return null;
+  if (storageKey && (!dismissalLoaded || dismissedKey === storageKey)) return null;
 
-  const isCritical = level === 'critical';
+  const isCritical = notice.level === 'critical';
 
   return (
     <aside
@@ -63,7 +67,7 @@ export function SubscriptionUsageNotice({
             isCritical ? 'text-sm font-bold text-danger-800' : 'text-sm font-bold text-warning-800'
           }
         >
-          {isCritical ? 'Alcanzaste el límite mensual' : 'Estás cerca del límite mensual'}
+          {notice.title}
         </h2>
         <p
           className={
@@ -72,9 +76,7 @@ export function SubscriptionUsageNotice({
               : 'mt-1 text-sm leading-6 text-warning-700'
           }
         >
-          {isCritical
-            ? `Procesaste ${formatNumber(current)} de ${formatNumber(limit)} cobros. El límite se renueva el ${formatDate(data.period_end)} o puedes mejorar tu plan.`
-            : `Ya utilizaste ${formatNumber(current)} de ${formatNumber(limit)} cobros. Revisa tu consumo antes del ${formatDate(data.period_end)}.`}
+          {notice.message}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -86,7 +88,7 @@ export function SubscriptionUsageNotice({
           }
           href="/membresia"
         >
-          Ver membresía
+          Ver plan
         </Link>
         {!isCritical && storageKey && (
           <button
@@ -104,6 +106,86 @@ export function SubscriptionUsageNotice({
       </div>
     </aside>
   );
+}
+
+function computeNotice(data: SubscriptionSummary, tenantId: string): NoticeDescriptor | null {
+  return data.trial
+    ? computeTrialNotice(data.trial, data.plan.limits, tenantId)
+    : computeMonthlyNotice(data, tenantId);
+}
+
+function computeTrialNotice(
+  trial: NonNullable<SubscriptionSummary['trial']>,
+  limits: SubscriptionSummary['plan']['limits'],
+  tenantId: string,
+): NoticeDescriptor | null {
+  if (isTrialEnded(trial)) {
+    return {
+      level: 'critical',
+      title: 'Tu prueba gratuita terminó',
+      message:
+        'Tu cuenta y tu historial siguen disponibles en modo lectura. Elige un plan para volver a procesar cobros.',
+      dismissKey: null,
+    };
+  }
+
+  const totalLimit = limits.transactions_per_period ?? 0;
+  const totalLevel = subscriptionUsageAlert(trial.transactions_total, totalLimit);
+  if (totalLevel) {
+    return {
+      level: totalLevel,
+      title:
+        totalLevel === 'critical'
+          ? 'Alcanzaste el límite de tu prueba'
+          : 'Estás cerca del límite de tu prueba',
+      message: `Procesaste ${formatNumber(trial.transactions_total)} de ${formatNumber(totalLimit)} cobros incluidos en la prueba gratuita.`,
+      dismissKey: totalLevel === 'warning' ? `yallego:trial-total-warning:${tenantId}` : null,
+    };
+  }
+
+  const dailyLimit = limits.transactions_per_day ?? 0;
+  if (dailyLimit > 0 && trial.transactions_today >= dailyLimit) {
+    return {
+      level: 'warning',
+      title: 'Alcanzaste el límite diario',
+      message:
+        'Se reinicia mañana. Mientras tanto, los nuevos cobros quedan en espera en el dispositivo.',
+      dismissKey: `yallego:trial-daily-warning:${tenantId}:${todayKey()}`,
+    };
+  }
+
+  const hoursLeft = trialHoursRemaining(trial.ends_at);
+  if (hoursLeft > 0 && hoursLeft <= 24) {
+    return {
+      level: 'warning',
+      title: 'Tu prueba termina pronto',
+      message: `Quedan ${hoursLeft} horas de tu prueba gratuita. Elige un plan para no perder el servicio.`,
+      dismissKey: `yallego:trial-ending-warning:${tenantId}`,
+    };
+  }
+
+  return null;
+}
+
+function computeMonthlyNotice(data: SubscriptionSummary, tenantId: string): NoticeDescriptor | null {
+  const limit = data.plan.limits.transactions_per_month;
+  const current = data.usage.transactions_count;
+  const level = subscriptionUsageAlert(current, limit);
+  if (!level) return null;
+
+  const isCritical = level === 'critical';
+  return {
+    level,
+    title: isCritical ? 'Alcanzaste el límite mensual' : 'Estás cerca del límite mensual',
+    message: isCritical
+      ? `Procesaste ${formatNumber(current)} de ${formatNumber(limit)} cobros. El límite se renueva el ${formatDate(data.period_end)} o puedes mejorar tu plan.`
+      : `Ya utilizaste ${formatNumber(current)} de ${formatNumber(limit)} cobros. Revisa tu consumo antes del ${formatDate(data.period_end)}.`,
+    dismissKey: isCritical ? null : `yallego:usage-warning:${tenantId}:${data.period_start}`,
+  };
+}
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function formatNumber(value: number): string {
