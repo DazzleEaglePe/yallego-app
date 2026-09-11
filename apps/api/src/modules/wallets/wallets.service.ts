@@ -1,5 +1,4 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { SubscriptionStatus } from '@prisma/client';
 import type {
   ActivateWalletInput,
   TenantWalletSummary,
@@ -10,7 +9,7 @@ import type {
 import { PrismaService, type ScopedClient } from '../../infrastructure/database/prisma.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import type { TenantContext } from '../../shared/guards/tenant.guard';
-import { PlanLimitsService } from '../plans/plan-limits.service';
+import { CURRENT_SUBSCRIPTION_STATUSES, PlanLimitsService } from '../plans/plan-limits.service';
 
 @Injectable()
 export class WalletsService {
@@ -210,7 +209,7 @@ export class WalletsService {
   private async assertWithinWalletLimit(tx: ScopedClient, tenantId: string): Promise<void> {
     const [subscription, enabledCount] = await Promise.all([
       tx.subscription.findFirst({
-        where: { tenantId, status: SubscriptionStatus.ACTIVE },
+        where: { tenantId, status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
         orderBy: { periodStart: 'desc' },
         include: { plan: true },
       }),

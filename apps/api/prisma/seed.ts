@@ -27,6 +27,30 @@ const parserPatternsByWalletCode: Record<string, ParserRules[]> = {
 
 const plans = [
   {
+    code: 'TRIAL',
+    displayName: 'Prueba gratuita',
+    description: 'Prueba de 72 horas, hasta 100 cobros y un único dispositivo.',
+    priceMonthly: 0,
+    priceSemiannual: null,
+    priceAnnual: null,
+    isPublic: false,
+    sortOrder: 0,
+    limits: {
+      wallets: 1,
+      devices: 1,
+      transactions_per_month: 100,
+      transactions_per_period: 100,
+      transactions_per_day: 50,
+      trial_duration_hours: 72,
+      users: 1,
+      webhooks: 0,
+      websocket_api: false,
+      retention_days: 30,
+      rate_limit_per_minute: 0,
+      support: 'community',
+    },
+  },
+  {
     code: 'FREE',
     displayName: 'Free',
     priceMonthly: 0,

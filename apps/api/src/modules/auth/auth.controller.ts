@@ -19,6 +19,7 @@ import {
   loginSchema,
   refreshSchema,
   registerSchema,
+  resendVerificationEmailSchema,
   resetPasswordSchema,
   switchTenantSchema,
   updateProfileSchema,
@@ -28,6 +29,7 @@ import {
   type LoginInput,
   type RefreshInput,
   type RegisterInput,
+  type ResendVerificationEmailInput,
   type ResetPasswordInput,
   type SwitchTenantInput,
   type UpdateProfileInput,
@@ -62,6 +64,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   verifyEmail(@Body(new ZodValidationPipe(verifyEmailSchema)) input: VerifyEmailInput) {
     return this.authService.verifyEmail(input);
+  }
+
+  @Post('resend-verification-email')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  resendVerificationEmail(
+    @Body(new ZodValidationPipe(resendVerificationEmailSchema)) input: ResendVerificationEmailInput,
+  ) {
+    return this.authService.resendVerificationEmail(input);
   }
 
   @Post('login')

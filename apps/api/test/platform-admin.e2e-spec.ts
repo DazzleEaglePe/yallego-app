@@ -423,7 +423,7 @@ integrationDescribe(
           .expect(200);
         expect(response.body).toMatchObject({
           tenant_id: tenantId,
-          from_plan: 'FREE',
+          from_plan: 'TRIAL',
           to_plan: 'COMERCIO',
           immediate: true,
         });

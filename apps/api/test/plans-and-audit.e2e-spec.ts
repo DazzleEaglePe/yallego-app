@@ -148,7 +148,7 @@ integrationDescribe('Plans, usage limits, subscription changes and audit log', (
       .get('/v1/subscription')
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
-    expect(response.body.plan.code).toBe('FREE');
+    expect(response.body.plan.code).toBe('TRIAL');
     expect(response.body.usage).toEqual({
       transactions_count: 0,
       api_calls_count: 0,
@@ -178,7 +178,7 @@ integrationDescribe('Plans, usage limits, subscription changes and audit log', (
       .get('/v1/subscription')
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
-    expect(subscription.body.plan.code).toBe('FREE');
+    expect(subscription.body.plan.code).toBe('TRIAL');
   });
 
   it('rejects a plan change request for a plan that does not exist', async () => {

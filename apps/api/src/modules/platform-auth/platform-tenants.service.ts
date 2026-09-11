@@ -10,6 +10,7 @@ import type {
 
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
+import { CURRENT_SUBSCRIPTION_STATUSES } from '../plans/plan-limits.service';
 import { decodeCursor, encodeCursor } from './tenant-cursor.util';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60_000;
@@ -63,7 +64,7 @@ export class PlatformTenantsService {
         include: {
           memberships: { select: { id: true } },
           subscriptions: {
-            where: { status: 'ACTIVE' },
+            where: { status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
             take: 1,
             orderBy: { periodStart: 'desc' },
             include: { plan: true },
@@ -94,7 +95,7 @@ export class PlatformTenantsService {
         include: {
           memberships: { include: { user: true } },
           subscriptions: {
-            where: { status: 'ACTIVE' },
+            where: { status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
             take: 1,
             orderBy: { periodStart: 'desc' },
             include: { plan: true },
@@ -132,7 +133,7 @@ export class PlatformTenantsService {
   ): Promise<PlatformTenantSummary> {
     const tenantInclude = {
       subscriptions: {
-        where: { status: 'ACTIVE' as const },
+        where: { status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
         take: 1,
         orderBy: { periodStart: 'desc' as const },
         include: { plan: true },

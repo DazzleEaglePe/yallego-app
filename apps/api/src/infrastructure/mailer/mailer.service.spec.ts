@@ -22,7 +22,10 @@ describe('MailerService', () => {
       DASHBOARD_URL: 'https://panel.yallego.app',
       MAIL_FROM: 'no-reply@yallego.app',
       SMTP_HOST: 'localhost',
+      SMTP_PASSWORD: undefined,
       SMTP_PORT: 1025,
+      SMTP_SECURE: false,
+      SMTP_USER: undefined,
     };
     const config = {
       get: (key: keyof typeof values) => values[key],
@@ -37,9 +40,22 @@ describe('MailerService', () => {
       token: 'ev_token-seguro',
     });
 
-    const message = sendMail.mock.calls[0]?.[0] as { html: string; text: string };
+    const message = sendMail.mock.calls[0]?.[0] as {
+      from: { address: string; name: string };
+      headers: Record<string, string>;
+      html: string;
+      subject: string;
+      text: string;
+    };
     expect(message.text).toContain('/verificar-correo#token=ev_token-seguro');
     expect(message.html).not.toContain('?token=');
+    expect(message.html).toContain('Confirmar mi correo');
+    expect(message.html).toContain('Yallegó');
+    expect(message.html).toContain('copia y pega esta dirección completa');
+    expect(message.html).not.toContain('<a href=');
+    expect(message.subject).toBe('Confirma tu correo para empezar en Yallegó');
+    expect(message.from).toEqual({ address: 'no-reply@yallego.app', name: 'Yallegó' });
+    expect(message.headers).toEqual({ 'X-Mailin-Track-Click': '0' });
   });
 
   it('keeps password reset tokens out of server-visible query strings', async () => {
@@ -49,8 +65,33 @@ describe('MailerService', () => {
       token: 'pr_token-seguro',
     });
 
-    const message = sendMail.mock.calls[0]?.[0] as { html: string; text: string };
+    const message = sendMail.mock.calls[0]?.[0] as {
+      headers: Record<string, string>;
+      html: string;
+      text: string;
+    };
     expect(message.text).toContain('/restablecer-clave#token=pr_token-seguro');
     expect(message.html).not.toContain('?token=');
+    expect(message.html).toContain('Crear nueva contraseña');
+    expect(message.html).toContain('vence en 60 minutos');
+    expect(message.headers).toEqual({ 'X-Mailin-Track-Click': '0' });
+  });
+
+  it('escapes user-controlled content in branded emails', async () => {
+    await service.sendInvitationEmail({
+      email: 'invitado@negocio.pe',
+      inviterName: '<script>alert("x")</script>',
+      businessName: 'Tienda & Asociados',
+      token: 'invite_token-seguro',
+    });
+
+    const message = sendMail.mock.calls[0]?.[0] as {
+      headers: Record<string, string>;
+      html: string;
+    };
+    expect(message.html).not.toContain('<script>');
+    expect(message.html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
+    expect(message.html).toContain('Tienda &amp; Asociados');
+    expect(message.headers).toEqual({ 'X-Mailin-Track-Click': '0' });
   });
 });

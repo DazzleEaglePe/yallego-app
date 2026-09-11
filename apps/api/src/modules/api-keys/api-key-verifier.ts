@@ -4,6 +4,7 @@ import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../../infrastructure/cache/redis.module';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { TokenService } from '../auth/token.service';
+import { CURRENT_SUBSCRIPTION_STATUSES } from '../plans/plan-limits.service';
 
 const CACHE_TTL_SECONDS = 60;
 const CACHE_PREFIX = 'api-key:';
@@ -47,7 +48,7 @@ export class ApiKeyVerifier {
           tenant: {
             include: {
               subscriptions: {
-                where: { status: 'ACTIVE' },
+                where: { status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
                 orderBy: { periodStart: 'desc' },
                 take: 1,
                 include: { plan: true },

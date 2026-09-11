@@ -68,6 +68,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
   }
 
   private resolveMessage(exception: unknown, status: number): string {
+    // Las indisponibilidades operativas lanzadas explícitamente contienen un
+    // mensaje público y accionable; los errores 5xx inesperados siguen ocultos.
+    if (status === HttpStatus.SERVICE_UNAVAILABLE && exception instanceof ApiHttpException) {
+      return exception.message;
+    }
     if (status >= 500) return 'Ocurrió un error interno. Inténtalo nuevamente.';
     if (exception instanceof ApiHttpException) return exception.message;
     if (statusToMessage[status]) return statusToMessage[status];

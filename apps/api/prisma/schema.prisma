@@ -71,12 +71,35 @@ enum BillingCycle {
 }
 
 enum SubscriptionStatus {
+  PENDING_TRIAL
+  TRIALING
   ACTIVE
   PAST_DUE
   CANCELED
   EXPIRED
 
   @@map("subscription_status")
+}
+
+enum TrialEndReason {
+  TIME_LIMIT
+  TOTAL_LIMIT
+  ADMINISTRATIVE
+
+  @@map("trial_end_reason")
+}
+
+enum UsageMetric {
+  TRANSACTIONS
+
+  @@map("usage_metric")
+}
+
+enum UsageWindowType {
+  SUBSCRIPTION_PERIOD
+  DAY
+
+  @@map("usage_window_type")
 }
 
 enum OneTimeTokenPurpose {
@@ -113,6 +136,7 @@ model Tenant {
   subscriptions       Subscription[]
   subscriptionChanges SubscriptionChange[]
   usagePeriods        UsagePeriod[]
+  usageBuckets        UsageBucket[]
   manualPayments      ManualPayment[]
   auditEvents         AuditEvent[]
 
@@ -486,21 +510,26 @@ model Plan {
 }
 
 model Subscription {
-  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId          String             @map("tenant_id") @db.Uuid
-  planId            String             @map("plan_id") @db.Uuid
-  billingCycle      BillingCycle       @default(MONTHLY) @map("billing_cycle")
-  status            SubscriptionStatus @default(ACTIVE)
-  periodStart       DateTime           @map("period_start") @db.Timestamptz(6)
-  periodEnd         DateTime           @map("period_end") @db.Timestamptz(6)
-  cancelAtPeriodEnd Boolean            @default(false) @map("cancel_at_period_end")
-  canceledAt        DateTime?          @map("canceled_at") @db.Timestamptz(6)
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String             @map("tenant_id") @db.Uuid
+  planId              String             @map("plan_id") @db.Uuid
+  billingCycle        BillingCycle       @default(MONTHLY) @map("billing_cycle")
+  status              SubscriptionStatus @default(ACTIVE)
+  periodStart         DateTime           @map("period_start") @db.Timestamptz(6)
+  periodEnd           DateTime           @map("period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd   Boolean            @default(false) @map("cancel_at_period_end")
+  canceledAt          DateTime?          @map("canceled_at") @db.Timestamptz(6)
+  trialStartedAt      DateTime?          @map("trial_started_at") @db.Timestamptz(6)
+  trialEndsAt         DateTime?          @map("trial_ends_at") @db.Timestamptz(6)
+  trialEndedAt        DateTime?          @map("trial_ended_at") @db.Timestamptz(6)
+  trialEndReason      TrialEndReason?    @map("trial_end_reason")
+  paidThrough         DateTime?          @map("paid_through") @db.Timestamptz(6)
   // Cambio de plan confirmado pero diferido (downgrade): se aplica en el
   // cierre de período, no de inmediato (docs/10, "Cambio de plan").
-  pendingPlanId       String?       @map("pending_plan_id") @db.Uuid
-  pendingBillingCycle BillingCycle? @map("pending_billing_cycle")
-  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  pendingPlanId       String?            @map("pending_plan_id") @db.Uuid
+  pendingBillingCycle BillingCycle?      @map("pending_billing_cycle")
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   plan           Plan            @relation(fields: [planId], references: [id])
@@ -512,20 +541,20 @@ model Subscription {
 }
 
 model SubscriptionChange {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String        @map("tenant_id") @db.Uuid
-  fromPlanId  String?       @map("from_plan_id") @db.Uuid
-  toPlanId    String        @map("to_plan_id") @db.Uuid
-  fromCycle   BillingCycle? @map("from_cycle")
-  toCycle     BillingCycle  @map("to_cycle")
-  effectiveAt DateTime      @map("effective_at") @db.Timestamptz(6)
-  performedBy String?       @map("performed_by") @db.Uuid
+  id                         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                   String        @map("tenant_id") @db.Uuid
+  fromPlanId                 String?       @map("from_plan_id") @db.Uuid
+  toPlanId                   String        @map("to_plan_id") @db.Uuid
+  fromCycle                  BillingCycle? @map("from_cycle")
+  toCycle                    BillingCycle  @map("to_cycle")
+  effectiveAt                DateTime      @map("effective_at") @db.Timestamptz(6)
+  performedBy                String?       @map("performed_by") @db.Uuid
   // En la práctica todo cambio de plan lo aplica un administrador de
   // plataforma, no un usuario de tenant — `performedBy` (FK a `User`) queda
   // reservado para un eventual flujo de autoservicio que hoy no existe.
-  performedByPlatformAdminId String? @map("performed_by_platform_admin_id") @db.Uuid
-  reason      String?
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  performedByPlatformAdminId String?       @map("performed_by_platform_admin_id") @db.Uuid
+  reason                     String?
+  createdAt                  DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
   tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   fromPlan         Plan?          @relation("SubscriptionFromPlan", fields: [fromPlanId], references: [id])
@@ -538,24 +567,43 @@ model SubscriptionChange {
 }
 
 model UsagePeriod {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId          String   @map("tenant_id") @db.Uuid
-  periodStart       DateTime @map("period_start") @db.Date
-  periodEnd         DateTime @map("period_end") @db.Date
-  transactionsCount Int      @default(0) @map("transactions_count")
-  apiCallsCount     Int      @default(0) @map("api_calls_count")
-  webhookCallsCount Int      @default(0) @map("webhook_calls_count")
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  periodStart       DateTime  @map("period_start") @db.Date
+  periodEnd         DateTime  @map("period_end") @db.Date
+  transactionsCount Int       @default(0) @map("transactions_count")
+  apiCallsCount     Int       @default(0) @map("api_calls_count")
+  webhookCallsCount Int       @default(0) @map("webhook_calls_count")
   // Evita reenviar el mismo aviso de consumo en cada transacción una vez cruzado el umbral (RF-TXN-016).
-  notifiedAt80  DateTime? @map("notified_at_80")
-  notifiedAt100 DateTime? @map("notified_at_100")
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  notifiedAt80      DateTime? @map("notified_at_80")
+  notifiedAt100     DateTime? @map("notified_at_100")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, periodStart])
   @@index([tenantId, periodStart(sort: Desc)])
   @@map("usage_periods")
+}
+
+model UsageBucket {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String          @map("tenant_id") @db.Uuid
+  metric      UsageMetric
+  windowType  UsageWindowType @map("window_type")
+  windowStart DateTime        @map("window_start") @db.Timestamptz(6)
+  windowEnd   DateTime        @map("window_end") @db.Timestamptz(6)
+  used        Int             @default(0)
+  reserved    Int             @default(0)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, metric, windowType, windowStart])
+  @@index([tenantId, metric, windowEnd])
+  @@map("usage_buckets")
 }
 
 model ManualPayment {
@@ -581,24 +629,24 @@ model ManualPayment {
 }
 
 model AuditEvent {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId      String?  @map("tenant_id") @db.Uuid
-  actorUserId   String?  @map("actor_user_id") @db.Uuid
-  actorApiKeyId String?  @map("actor_api_key_id") @db.Uuid
-  actorPlatformAdminId String? @map("actor_platform_admin_id") @db.Uuid
-  actorType     String   @map("actor_type") @db.VarChar(24)
-  action        String   @db.VarChar(128)
-  resourceType  String?  @map("resource_type") @db.VarChar(64)
-  resourceId    String?  @map("resource_id") @db.Uuid
-  metadata      Json?
-  ipAddress     String?  @map("ip_address") @db.Inet
-  userAgent     String?  @map("user_agent")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String?  @map("tenant_id") @db.Uuid
+  actorUserId          String?  @map("actor_user_id") @db.Uuid
+  actorApiKeyId        String?  @map("actor_api_key_id") @db.Uuid
+  actorPlatformAdminId String?  @map("actor_platform_admin_id") @db.Uuid
+  actorType            String   @map("actor_type") @db.VarChar(24)
+  action               String   @db.VarChar(128)
+  resourceType         String?  @map("resource_type") @db.VarChar(64)
+  resourceId           String?  @map("resource_id") @db.Uuid
+  metadata             Json?
+  ipAddress            String?  @map("ip_address") @db.Inet
+  userAgent            String?  @map("user_agent")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  tenant             Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  actorUser          User?           @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
-  actorApiKey        ApiKey?         @relation(fields: [actorApiKeyId], references: [id], onDelete: SetNull)
-  actorPlatformAdmin PlatformAdmin?  @relation(fields: [actorPlatformAdminId], references: [id], onDelete: SetNull)
+  tenant             Tenant?        @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  actorUser          User?          @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorApiKey        ApiKey?        @relation(fields: [actorApiKeyId], references: [id], onDelete: SetNull)
+  actorPlatformAdmin PlatformAdmin? @relation(fields: [actorPlatformAdminId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([tenantId, action, createdAt(sort: Desc), id(sort: Desc)])
@@ -606,19 +654,19 @@ model AuditEvent {
 }
 
 model PlatformAdmin {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email        String    @unique @db.Citext
-  passwordHash String    @map("password_hash") @db.VarChar(255)
-  fullName     String    @map("full_name") @db.VarChar(200)
-  isActive     Boolean   @default(true) @map("is_active")
-  totpSecret   Bytes?    @map("totp_secret") @db.ByteA
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                   String    @unique @db.Citext
+  passwordHash            String    @map("password_hash") @db.VarChar(255)
+  fullName                String    @map("full_name") @db.VarChar(200)
+  isActive                Boolean   @default(true) @map("is_active")
+  totpSecret              Bytes?    @map("totp_secret") @db.ByteA
   // Mismo mecanismo de bloqueo que `User` (docs/07_SEGURIDAD_AUTH.md §2.5):
   // 5 intentos fallidos en 15 minutos.
   failedAttempts          Int       @default(0) @map("failed_attempts") @db.SmallInt
   failedAttemptsStartedAt DateTime? @map("failed_attempts_started_at") @db.Timestamptz(6)
   lockedUntil             DateTime? @map("locked_until") @db.Timestamptz(6)
-  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLoginAt             DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   auditEvents         AuditEvent[]
   subscriptionChanges SubscriptionChange[]

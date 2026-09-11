@@ -61,6 +61,19 @@ export class MetricsService implements OnModuleDestroy {
     registers: [this.registry],
   });
 
+  readonly trialStartedTotal = new Counter({
+    name: 'yallego_trial_started_total',
+    help: 'Trials que arrancaron el reloj al confirmar su primer cobro válido.',
+    registers: [this.registry],
+  });
+
+  readonly trialExpiredTotal = new Counter({
+    name: 'yallego_trial_expired_total',
+    help: 'Trials que terminaron, por motivo.',
+    labelNames: ['reason'] as const,
+    registers: [this.registry],
+  });
+
   constructor() {
     collectDefaultMetrics({ register: this.registry, prefix: 'yallego_' });
   }

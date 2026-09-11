@@ -234,7 +234,7 @@ integrationDescribe('Platform administration: authentication and tenant manageme
         .set('Authorization', `Bearer ${platformToken}`)
         .expect(200);
       expect(detail.body.owner_email).toBe(ownerEmail);
-      expect(detail.body.plan_code).toBe('FREE');
+      expect(detail.body.plan_code).toBe('TRIAL');
       expect(detail.body.member_count).toBe(1);
     });
 

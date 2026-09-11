@@ -1,5 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { DeviceStatus, SubscriptionStatus } from '@prisma/client';
+import { DeviceStatus } from '@prisma/client';
 import type {
   CreatePairingCodeInput,
   DeviceSummary,
@@ -12,7 +12,7 @@ import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import type { TenantContext, TenantResourceContext } from '../../shared/guards/tenant.guard';
 import { TokenService } from '../auth/token.service';
 import { getDeviceConnectivity } from './device-connectivity';
-import { PlanLimitsService } from '../plans/plan-limits.service';
+import { CURRENT_SUBSCRIPTION_STATUSES, PlanLimitsService } from '../plans/plan-limits.service';
 import { canonicalizePairingCode, generatePairingCode } from './pairing-code.util';
 
 const PAIRING_CODE_TTL_MS = 10 * 60 * 1_000;
@@ -159,7 +159,7 @@ export class DevicesService {
   async assertWithinDeviceLimit(tx: ScopedClient, tenantId: string): Promise<void> {
     const [subscription, activeCount] = await Promise.all([
       tx.subscription.findFirst({
-        where: { tenantId, status: SubscriptionStatus.ACTIVE },
+        where: { tenantId, status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
         orderBy: { periodStart: 'desc' },
         include: { plan: true },
       }),

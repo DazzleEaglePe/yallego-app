@@ -39,6 +39,9 @@ export const envSchema = z
     WEBHOOK_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(20).default(8),
     SMTP_HOST: z.string().default('localhost'),
     SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(1025),
+    SMTP_SECURE: z.stringbool().default(false),
+    SMTP_USER: optionalString,
+    SMTP_PASSWORD: optionalString,
     MAIL_FROM: z.email().default('no-reply@yallego.app'),
     STORAGE_ENDPOINT: optionalUrl,
     STORAGE_BUCKET: optionalString,
@@ -85,6 +88,14 @@ export const envSchema = z
         code: 'custom',
         path: ['LOG_LEVEL'],
         message: 'LOG_LEVEL debe ser info, warn, error o fatal en producción.',
+      });
+    }
+
+    if (Boolean(environment.SMTP_USER) !== Boolean(environment.SMTP_PASSWORD)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['SMTP_USER'],
+        message: 'SMTP_USER y SMTP_PASSWORD deben configurarse juntos.',
       });
     }
   });

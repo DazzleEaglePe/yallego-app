@@ -13,6 +13,7 @@ import type {
   ForgotPasswordInput,
   LoginInput,
   RegisterInput,
+  ResendVerificationEmailInput,
   ResetPasswordInput,
   SwitchTenantInput,
   UpdateProfileInput,
@@ -57,8 +58,8 @@ export class AuthService {
 
     try {
       const result = await this.prisma.withoutTenantScope(async (transaction) => {
-        const freePlan = await transaction.plan.findUnique({ where: { code: 'FREE' } });
-        if (!freePlan) {
+        const trialPlan = await transaction.plan.findUnique({ where: { code: 'TRIAL' } });
+        if (!trialPlan) {
           throw new ApiHttpException(
             HttpStatus.SERVICE_UNAVAILABLE,
             'SERVICE_UNAVAILABLE',
@@ -87,14 +88,17 @@ export class AuthService {
             userId: user.id,
           },
         });
-        const periodStart = new Date();
-        const periodEnd = addCalendarMonth(periodStart);
+        // El trial no tiene ciclo de facturación: periodStart/periodEnd solo
+        // satisfacen columnas NOT NULL heredadas de planes pagados. La
+        // ventana real vive en trial_started_at/trial_ends_at, fijada al
+        // primer cobro válido por EntitlementService.commitQuota (docs/14 §2.3).
+        const registeredAt = new Date();
         await transaction.subscription.create({
           data: {
-            periodEnd,
-            periodStart,
-            planId: freePlan.id,
-            status: SubscriptionStatus.ACTIVE,
+            periodEnd: registeredAt,
+            periodStart: registeredAt,
+            planId: trialPlan.id,
+            status: SubscriptionStatus.PENDING_TRIAL,
             tenantId: tenant.id,
           },
         });
@@ -120,11 +124,19 @@ export class AuthService {
         return { tenant, user };
       });
 
-      await this.mailer.sendVerificationEmail({
-        email: result.user.email,
-        fullName: result.user.fullName,
-        token: verificationToken,
-      });
+      try {
+        await this.mailer.sendVerificationEmail({
+          email: result.user.email,
+          fullName: result.user.fullName,
+          token: verificationToken,
+        });
+      } catch {
+        throw new ApiHttpException(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          'SERVICE_UNAVAILABLE',
+          'La cuenta fue creada, pero no pudimos enviar el correo de verificación. Inténtalo nuevamente más tarde.',
+        );
+      }
 
       return {
         user: {
@@ -198,6 +210,45 @@ export class AuthService {
     });
 
     return { message: 'Correo verificado correctamente.' };
+  }
+
+  async resendVerificationEmail(
+    input: ResendVerificationEmailInput,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email: input.email } });
+    if (user && !user.emailVerified) {
+      const rawToken = this.tokenService.createOpaqueToken('ev');
+      const tokenHash = this.tokenService.hashOpaqueToken(rawToken);
+      const now = new Date();
+      await this.prisma.$transaction([
+        this.prisma.oneTimeToken.updateMany({
+          where: {
+            userId: user.id,
+            purpose: OneTimeTokenPurpose.EMAIL_VERIFICATION,
+            consumedAt: null,
+          },
+          data: { consumedAt: now },
+        }),
+        this.prisma.oneTimeToken.create({
+          data: {
+            expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS),
+            purpose: OneTimeTokenPurpose.EMAIL_VERIFICATION,
+            tokenHash,
+            userId: user.id,
+          },
+        }),
+      ]);
+      await this.mailer.sendVerificationEmail({
+        email: user.email,
+        fullName: user.fullName,
+        token: rawToken,
+      });
+    }
+
+    return {
+      message:
+        'Si el correo está registrado y pendiente de verificación, recibirás un nuevo enlace.',
+    };
   }
 
   async login(input: LoginInput, metadata: RequestMetadata): Promise<SessionResult> {
@@ -700,12 +751,6 @@ function slugify(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
-}
-
-function addCalendarMonth(value: Date): Date {
-  const result = new Date(value);
-  result.setUTCMonth(result.getUTCMonth() + 1);
-  return result;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {

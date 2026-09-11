@@ -15,6 +15,7 @@ import {
   TRANSACTION_CREATED_EVENT,
 } from '../../../shared/events/transaction-created.event';
 import { withSpan } from '../../../shared/observability/trace';
+import { EntitlementService } from '../../plans/entitlement.service';
 import { UsageCounterService } from '../../plans/usage-counter.service';
 import { PARSER_CONSTRUCTORS } from '../parser-constructors';
 import {
@@ -33,6 +34,7 @@ export class ParseNotificationUseCase {
     @Inject(EncryptionService) private readonly cipher: EncryptionService,
     @Inject(EventEmitter2) private readonly events: EventEmitter2,
     @Inject(UsageCounterService) private readonly usageCounter: UsageCounterService,
+    @Inject(EntitlementService) private readonly entitlementService: EntitlementService,
     @Inject(MetricsService) private readonly metrics: MetricsService,
   ) {}
 
@@ -58,6 +60,7 @@ export class ParseNotificationUseCase {
     if (!wallet) {
       this.metrics.parsingResultsTotal.inc({ wallet_code: raw.packageName, result: 'unmatched' });
       await this.markUnmatched(
+        raw.tenantId,
         raw.id,
         'No hay una billetera registrada para este paquete de Android.',
       );
@@ -67,7 +70,11 @@ export class ParseNotificationUseCase {
     const ParserCtor = PARSER_CONSTRUCTORS[wallet.code];
     if (!ParserCtor) {
       this.metrics.parsingResultsTotal.inc({ wallet_code: wallet.code, result: 'unmatched' });
-      await this.markUnmatched(raw.id, `Todavía no existe un parser para "${wallet.code}".`);
+      await this.markUnmatched(
+        raw.tenantId,
+        raw.id,
+        `Todavía no existe un parser para "${wallet.code}".`,
+      );
       return;
     }
 
@@ -75,6 +82,7 @@ export class ParseNotificationUseCase {
     if (!activePatterns) {
       this.metrics.parsingResultsTotal.inc({ wallet_code: wallet.code, result: 'unmatched' });
       await this.markUnmatched(
+        raw.tenantId,
         raw.id,
         `No hay patrones activos configurados para "${wallet.code}".`,
       );
@@ -95,6 +103,7 @@ export class ParseNotificationUseCase {
     if (!result) {
       this.metrics.parsingResultsTotal.inc({ wallet_code: wallet.code, result: 'unmatched' });
       await this.markUnmatched(
+        raw.tenantId,
         raw.id,
         'La notificación no coincide con ningún patrón activo.',
         activePatterns.patternId,
@@ -148,6 +157,12 @@ export class ParseNotificationUseCase {
         data: { parseStatus: ParseStatus.PARSED, parserPatternId },
       });
 
+      // Confirma la cuota reservada en la ingesta dentro de la MISMA
+      // transacción que crea la Transaction (docs/14 §4.3); no-op fuera de
+      // TRIAL. El guard de idempotencia en doExecute (parseStatus !==
+      // PENDING) evita un doble commit ante un reintento de BullMQ.
+      await this.entitlementService.commitQuota(tx, tenantId);
+
       return created;
     });
 
@@ -172,6 +187,7 @@ export class ParseNotificationUseCase {
   }
 
   private async markUnmatched(
+    tenantId: string,
     rawNotificationId: string,
     reason: string,
     parserPatternId?: string,
@@ -186,5 +202,8 @@ export class ParseNotificationUseCase {
         },
       }),
     );
+    // Una notificación UNMATCHED nunca genera Transaction: la reserva que
+    // tomó en la ingesta se libera, no debe consumir cuota del trial.
+    await this.entitlementService.releaseQuota(tenantId, 1);
   }
 }

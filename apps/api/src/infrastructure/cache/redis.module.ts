@@ -11,7 +11,14 @@ class RedisLifecycle implements OnModuleDestroy {
   constructor(@Inject(REDIS_CLIENT) private readonly client: Redis) {}
 
   async onModuleDestroy(): Promise<void> {
-    await this.client.quit();
+    if (this.client.status === 'ready') {
+      await this.client.quit();
+      return;
+    }
+
+    // `quit()` sólo es válido con una sesión abierta. Durante un apagado con
+    // Redis caído, forzamos el cierre local para no bloquear el proceso.
+    this.client.disconnect();
   }
 }
 

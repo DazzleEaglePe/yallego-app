@@ -6,6 +6,7 @@ import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { MailerService } from '../../infrastructure/mailer/mailer.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import { addBillingCycle } from './billing-cycle.util';
+import { CURRENT_SUBSCRIPTION_STATUSES } from './plan-limits.service';
 
 export interface ManualPaymentInput {
   amount: number;
@@ -50,7 +51,7 @@ export class PlanChangeApplicationService {
     const notification = await this.prisma.withoutTenantScope(async (tx) => {
       const [subscription, toPlan] = await Promise.all([
         tx.subscription.findFirst({
-          where: { tenantId, status: 'ACTIVE' },
+          where: { tenantId, status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
           orderBy: { periodStart: 'desc' },
           include: { plan: true },
         }),
@@ -71,6 +72,16 @@ export class PlanChangeApplicationService {
 
       const isUpgrade = toPlan.sortOrder > subscription.plan.sortOrder;
       const effectiveAt = isUpgrade ? new Date() : subscription.periodEnd;
+      // Salir del trial hacia un plan pagado no es solo un cambio de
+      // planId: la suscripción no tenía un ciclo de facturación real
+      // (periodStart == periodEnd, ver AuthService.register) y su estado
+      // (PENDING_TRIAL/TRIALING) haría que EntitlementService siguiera
+      // evaluándola como trial y la bloqueara al llegar trial_ends_at pese
+      // a estar pagando (docs/14 §2.3: "el upgrade confirmado cambia a
+      // ACTIVE de inmediato y abre un período pagado nuevo").
+      const isLeavingTrial =
+        subscription.status === 'PENDING_TRIAL' || subscription.status === 'TRIALING';
+      const newPeriodStart = new Date();
 
       await tx.subscription.update({
         where: { id: subscription.id },
@@ -80,6 +91,13 @@ export class PlanChangeApplicationService {
               billingCycle: toBillingCycle,
               pendingPlanId: null,
               pendingBillingCycle: null,
+              ...(isLeavingTrial
+                ? {
+                    status: 'ACTIVE',
+                    periodStart: newPeriodStart,
+                    periodEnd: addBillingCycle(newPeriodStart, toBillingCycle),
+                  }
+                : {}),
             }
           : { pendingPlanId: toPlan.id, pendingBillingCycle: toBillingCycle },
       });
@@ -196,7 +214,7 @@ export class PlanChangeApplicationService {
   ): Promise<ManualPaymentSummary> {
     return this.prisma.withoutTenantScope(async (tx) => {
       const subscription = await tx.subscription.findFirst({
-        where: { tenantId: input.tenantId, status: 'ACTIVE' },
+        where: { tenantId: input.tenantId, status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
       });
       if (!subscription) {
         throw new ApiHttpException(

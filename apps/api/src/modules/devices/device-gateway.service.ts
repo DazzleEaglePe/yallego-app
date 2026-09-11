@@ -15,7 +15,7 @@ import { MailerService } from '../../infrastructure/mailer/mailer.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import type { DeviceContext } from '../../shared/guards/device-token.guard';
 import { TokenService } from '../auth/token.service';
-import type { PlanLimits } from '../plans/plan-limits.service';
+import { CURRENT_SUBSCRIPTION_STATUSES, type PlanLimits } from '../plans/plan-limits.service';
 import { DevicesService } from './devices.service';
 import { canonicalizePairingCode } from './pairing-code.util';
 
@@ -168,7 +168,7 @@ export class DeviceGatewayService {
           orderBy: { enabledAt: 'asc' },
         }),
         tx.subscription.findFirst({
-          where: { tenantId: device.tenantId, status: 'ACTIVE' },
+          where: { tenantId: device.tenantId, status: { in: CURRENT_SUBSCRIPTION_STATUSES } },
           include: { plan: true },
           orderBy: { createdAt: 'desc' },
         }),
