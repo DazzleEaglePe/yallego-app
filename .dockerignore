@@ -17,4 +17,6 @@ apps/android/.kotlin
 apps/android/local.properties
 
 .DS_Store
+._*
+**/._*
 *.iml

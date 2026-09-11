@@ -48,6 +48,9 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Define ENCRYPTION_KEY}
       SMTP_HOST: ${SMTP_HOST:-localhost}
       SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-no-reply@yallego.app}
       PLATFORM_ALLOWED_IPS: ${PLATFORM_ALLOWED_IPS:-}
       SENTRY_DSN: ${SENTRY_DSN:-}

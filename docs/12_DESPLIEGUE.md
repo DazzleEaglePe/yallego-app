@@ -10,9 +10,12 @@ usa su propio dominio, archivo de secretos, proyecto Compose y volúmenes.
 
 ## 1. Arquitectura operativa
 
-Solo Nginx publica `80/443`. Dashboard, API, PostgreSQL y Redis usan redes de
-Docker; la red `data` es interna. Una tarea efímera aplica migraciones antes de
-que la API pueda iniciar.
+Dos variantes conviven en este repositorio, según el host:
+
+**A) Proxy dockerizado (por defecto, `compose.yml` solo).** Solo Nginx
+publica `80/443`. Dashboard, API, PostgreSQL y Redis usan redes de Docker; la
+red `data` es interna. Una tarea efímera aplica migraciones antes de que la
+API pueda iniciar.
 
 ```text
 Internet → Nginx (80/443) → dashboard:3000
@@ -20,11 +23,39 @@ Internet → Nginx (80/443) → dashboard:3000
                                      └→ Redis:6379
 ```
 
+Actualizar con `deploy-zero-downtime.sh` (§8): arranca un candidato de
+api/dashboard con alias de red mientras el canónico sigue sirviendo, y lo
+reemplaza sin ventana sin servicio.
+
+**B) Nginx del host (`compose.yml` + `compose.host-nginx.yml`).** Un Nginx
+instalado directamente en el host (no dockerizado, ver
+`tools/docker/deploy/nginx-host.conf`) termina TLS y hace proxy a api/dashboard
+publicados en `127.0.0.1:${API_HOST_PORT}` / `127.0.0.1:${DASHBOARD_HOST_PORT}`
+— puertos fijos definidos en `compose.host-nginx.yml`.
+
+```text
+Internet → Nginx del host (80/443) → 127.0.0.1:DASHBOARD_HOST_PORT
+                                  └→ 127.0.0.1:API_HOST_PORT → PostgreSQL/Redis
+```
+
+Un host así **no admite el blue/green de `deploy-zero-downtime.sh`**: ese
+puerto solo puede estar enlazado a un contenedor a la vez, así que un
+candidato de calentamiento no puede coexistir con el canónico. Recrear
+api/dashboard usando solo `compose.yml` (sin el archivo host-nginx) tampoco
+sirve: el contenedor nuevo pierde la publicación del puerto, queda
+`healthy` puertas adentro pero el Nginx del host no encuentra upstream
+(502) — así cayó producción el 2026-09-11 por usar el script equivocado en
+un host de este tipo. Actualizar aquí con `deploy-host-nginx.sh` (§8): un
+recreate directo con ambos compose files, sin pretender ser zero-downtime.
+
 Archivos relevantes:
 
-- `tools/docker/deploy/compose.yml`: topología.
+- `tools/docker/deploy/compose.yml`: topología base.
+- `tools/docker/deploy/compose.host-nginx.yml`: variante B, puertos fijos en `127.0.0.1`.
+- `tools/docker/deploy/nginx-host.conf`: configuración del Nginx del host (variante B).
 - `tools/docker/deploy/deploy.env.example`: contrato de configuración.
-- `tools/docker/deploy/scripts/deploy-zero-downtime.sh`: actualización.
+- `tools/docker/deploy/scripts/deploy-zero-downtime.sh`: actualización, variante A.
+- `tools/docker/deploy/scripts/deploy-host-nginx.sh`: actualización, variante B.
 - `tools/docker/deploy/BACKUPS.md`: respaldos, restauración y rollback.
 - `docs/runbook-incidentes.md`: diagnóstico operativo.
 
@@ -219,17 +250,31 @@ No habilitar tráfico real si readiness, TLS, migración o respaldo fallan.
 1. Validar la versión en preproducción.
 2. Crear un respaldo previo al despliegue.
 3. Actualizar los cuatro tags en el archivo del ambiente.
-4. Ejecutar:
+4. Ejecutar, según la variante del host (§1):
 
 ```bash
 ./tools/docker/deploy/scripts/backup-database.sh \
   .env.staging /var/backups/yallego
+
+# Variante A — proxy dockerizado (compose.yml solo)
 ./tools/docker/deploy/scripts/deploy-zero-downtime.sh .env.staging
+
+# Variante B — Nginx del host (compose.yml + compose.host-nginx.yml)
+./tools/docker/deploy/scripts/deploy-host-nginx.sh .env.staging
 ```
 
-El script aplica migraciones, espera candidatos saludables y conserva al menos
-un upstream durante el reemplazo de API/dashboard. Al finalizar, repetir la
-sección de verificación. Si falla, seguir el rollback documentado en
+En la variante A, el script aplica migraciones, espera candidatos saludables
+y conserva al menos un upstream durante el reemplazo de API/dashboard. En la
+variante B no hay candidato posible (puerto fijo en `127.0.0.1`): el script
+aplica migraciones y recrea api/dashboard directamente, con una ventana breve
+(normalmente segundos) sin servicio mientras el contenedor nuevo queda
+healthy — ver §1 para el porqué. Usar `deploy-zero-downtime.sh` en un host de
+variante B recrea los contenedores sin los puertos publicados por
+`compose.host-nginx.yml` y deja al Nginx del host sin upstream (502) aunque
+los contenedores queden healthy.
+
+Al finalizar cualquiera de las dos, repetir la sección de verificación. Si
+falla, seguir el rollback documentado en
 [`BACKUPS.md`](../tools/docker/deploy/BACKUPS.md).
 
 Actualizar el propio proxy o perder el VPS no queda cubierto por el blue/green
