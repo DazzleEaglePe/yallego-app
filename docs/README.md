@@ -29,7 +29,8 @@ Plataforma SaaS multi-tenant que captura las notificaciones de billeteras digita
 | 10  | [Plan de Desarrollo](./10_PLAN_DESARROLLO.md)                          | 8 sprints con listas de verificación y criterios de aceptación                           |
 | 11  | [Estructura del Proyecto](./11_ESTRUCTURA_PROYECTO.md)                 | Monorepo, configuración, convenciones, entorno local, despliegue                         |
 | 12  | [Procedimiento de Despliegue](./12_DESPLIEGUE.md)                      | Imágenes, secretos, DNS/TLS, primer arranque, validación, actualización y operación      |
-| 13  | [Observabilidad y Operación Segura](./13_OBSERVABILIDAD.md)            | Prometheus, Loki, Alloy, Grafana, alertas, acceso seguro y validación                     |
+| 13  | [Observabilidad y Operación Segura](./13_OBSERVABILIDAD.md)            | Prometheus, Loki, Alloy, Grafana, alertas, acceso seguro y validación                    |
+| 14  | [Trial y Prevención de Abuso](./14_TRIAL_Y_PREVENCION_ABUSO.md)        | Prueba gratuita, cuotas atómicas, identidad Android, antifraude y despliegue gradual     |
 
 > La especificación [OpenAPI 3.1](./openapi.yaml) y la [documentación para
 > integradores](./api-publica/README.md) de la API pública (Transacciones,

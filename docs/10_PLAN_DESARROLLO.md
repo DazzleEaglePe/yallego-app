@@ -6,6 +6,8 @@
 
 > **Alcance de salida del MVP (decisión del 2026-09-07):** Yape es la única billetera habilitada y soportada para el lanzamiento inicial. Plin BBVA, Plin Interbank, BIM y las demás billeteras quedan en el roadmap de la versión v0.2 y no bloquean la salida del MVP.
 
+> **Extensión posterior al MVP (decisión propuesta del 2026-09-11):** los Sprints 9–11 para sustituir Free por un trial temporal, aplicar cuotas atómicas y prevenir pruebas repetidas por dispositivo están definidos en [`14_TRIAL_Y_PREVENCION_ABUSO.md`](./14_TRIAL_Y_PREVENCION_ABUSO.md). El Sprint 7 cubre límites por plan, pero no este ciclo de vida ni la identidad Android antifraude.
+
 ---
 
 ## 1. Visión general
