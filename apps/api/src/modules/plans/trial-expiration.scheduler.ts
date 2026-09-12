@@ -25,11 +25,12 @@ export class TrialExpirationScheduler {
 
   @Cron('*/15 * * * *')
   async closeExpiredTrials(): Promise<void> {
+    const now = new Date();
     const due = await this.prisma.withoutTenantScope((tx) =>
       tx.subscription.findMany({
         where: {
           status: SubscriptionStatus.TRIALING,
-          trialEndsAt: { lte: new Date() },
+          trialEndsAt: { lte: now },
           trialEndedAt: null,
         },
         include: { tenant: true },
@@ -37,16 +38,26 @@ export class TrialExpirationScheduler {
     );
     if (due.length === 0) return;
 
+    let closedCount = 0;
     for (const subscription of due) {
-      await this.prisma.withoutTenantScope((tx) =>
-        tx.subscription.update({
-          where: { id: subscription.id },
+      const closed = await this.prisma.withoutTenantScope((tx) =>
+        tx.subscription.updateMany({
+          where: {
+            id: subscription.id,
+            status: SubscriptionStatus.TRIALING,
+            trialEndsAt: { lte: now },
+            trialEndedAt: null,
+          },
           data: {
             trialEndedAt: subscription.trialEndsAt ?? new Date(),
             trialEndReason: TrialEndReason.TIME_LIMIT,
           },
         }),
       );
+      // Only the instance that actually performed the state transition may
+      // emit metrics or notify users. This also protects a concurrent upgrade.
+      if (closed.count !== 1) continue;
+      closedCount += 1;
       this.metrics.trialExpiredTotal.inc({ reason: 'TIME_LIMIT' });
 
       const recipients = await this.prisma.withoutTenantScope((tx) =>
@@ -66,6 +77,6 @@ export class TrialExpirationScheduler {
       );
     }
 
-    this.logger.log(`Closed ${due.length} expired trial(s).`);
+    if (closedCount > 0) this.logger.log(`Closed ${closedCount} expired trial(s).`);
   }
 }

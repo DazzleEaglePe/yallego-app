@@ -30,6 +30,12 @@ data class QueuedNotificationEntity(
     val attemptCount: Int,
     @ColumnInfo(name = "last_error")
     val lastError: String?,
+    @ColumnInfo(name = "blocked_reason")
+    val blockedReason: String? = null,
+    @ColumnInfo(name = "blocked_at_epoch_ms")
+    val blockedAtEpochMs: Long? = null,
+    @ColumnInfo(name = "retry_after_epoch_ms")
+    val retryAfterEpochMs: Long? = null,
 )
 
 @Dao
@@ -37,8 +43,8 @@ interface NotificationQueueDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun enqueue(notification: QueuedNotificationEntity): Long
 
-    @Query("SELECT * FROM queued_notifications ORDER BY created_at_epoch_ms ASC LIMIT :limit")
-    suspend fun nextBatch(limit: Int): List<QueuedNotificationEntity>
+    @Query("SELECT * FROM queued_notifications WHERE retry_after_epoch_ms IS NULL OR retry_after_epoch_ms <= :nowEpochMs ORDER BY created_at_epoch_ms ASC LIMIT :limit")
+    suspend fun nextBatch(limit: Int, nowEpochMs: Long): List<QueuedNotificationEntity>
 
     @Query("DELETE FROM queued_notifications WHERE client_ref IN (:clientRefs)")
     suspend fun deleteConfirmed(clientRefs: List<String>): Int
@@ -52,6 +58,33 @@ interface NotificationQueueDao {
         """,
     )
     suspend fun recordFailure(clientRefs: List<String>, message: String): Int
+
+    @Query(
+        """
+        UPDATE queued_notifications
+        SET attempt_count = attempt_count + 1,
+            last_error = :message,
+            blocked_reason = :reason,
+            blocked_at_epoch_ms = CASE
+                WHEN blocked_reason = :reason THEN blocked_at_epoch_ms
+                ELSE :blockedAtEpochMs
+            END,
+            retry_after_epoch_ms = :retryAfterEpochMs
+        WHERE client_ref IN (:clientRefs)
+        """,
+    )
+    suspend fun defer(
+        clientRefs: List<String>,
+        reason: String,
+        message: String,
+        blockedAtEpochMs: Long,
+        retryAfterEpochMs: Long,
+    ): Int
+
+    @Query(
+        "DELETE FROM queued_notifications WHERE blocked_reason = 'SUBSCRIPTION_REQUIRED' AND blocked_at_epoch_ms <= :cutoffEpochMs",
+    )
+    suspend fun deleteExpiredSubscriptionBlocks(cutoffEpochMs: Long): Int
 
     @Query("SELECT COUNT(*) FROM queued_notifications")
     suspend fun countPending(): Int

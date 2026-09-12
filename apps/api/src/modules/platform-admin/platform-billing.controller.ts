@@ -1,19 +1,25 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   applyTenantSubscriptionSchema,
   grantCourtesyPlanSchema,
+  listTrialIdentityClaimsQuerySchema,
+  overrideTrialIdentityClaimSchema,
   registerManualPaymentSchema,
   type ApplyTenantSubscriptionInput,
   type GrantCourtesyPlanInput,
+  type ListTrialIdentityClaimsQuery,
+  type OverrideTrialIdentityClaimInput,
   type RegisterManualPaymentInput,
   type SubscriptionChangeApplicationResult,
 } from '@yallego/contracts';
@@ -26,6 +32,7 @@ import { CurrentPlatformAdmin } from '../platform-auth/current-platform-admin.de
 import { PlatformAuthGuard, type PlatformAdminContext } from '../platform-auth/platform-auth.guard';
 import { PlatformIpAllowlistGuard } from '../platform-auth/platform-ip-allowlist.guard';
 import { ZodValidationPipe } from '../../shared/pipes/zod-validation.pipe';
+import { PlatformTrialIdentityService } from './platform-trial-identity.service';
 
 function toWireFormat(result: InternalResult): SubscriptionChangeApplicationResult {
   return {
@@ -43,6 +50,8 @@ export class PlatformBillingController {
   constructor(
     @Inject(PlanChangeApplicationService)
     private readonly planChanges: PlanChangeApplicationService,
+    @Inject(PlatformTrialIdentityService)
+    private readonly trialIdentities: PlatformTrialIdentityService,
   ) {}
 
   @Post('payments')
@@ -98,5 +107,24 @@ export class PlatformBillingController {
       input.reason,
     );
     return toWireFormat(result);
+  }
+
+  @Post('trial-identity-claims/:claimId/override')
+  @HttpCode(HttpStatus.OK)
+  overrideTrialIdentityClaim(
+    @CurrentPlatformAdmin() admin: PlatformAdminContext,
+    @Param('claimId') claimId: string,
+    @Body(new ZodValidationPipe(overrideTrialIdentityClaimSchema))
+    input: OverrideTrialIdentityClaimInput,
+  ) {
+    return this.trialIdentities.override(claimId, input.tenant_id, admin.id, input.reason);
+  }
+
+  @Get('trial-identity-claims')
+  listTrialIdentityClaims(
+    @Query(new ZodValidationPipe(listTrialIdentityClaimsQuerySchema))
+    query: ListTrialIdentityClaimsQuery,
+  ) {
+    return this.trialIdentities.list(query);
   }
 }

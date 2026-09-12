@@ -4,6 +4,7 @@ import type { ManualPaymentSummary } from '@yallego/contracts';
 
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { MailerService } from '../../infrastructure/mailer/mailer.service';
+import { MetricsService } from '../../infrastructure/observability/metrics.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import { addBillingCycle } from './billing-cycle.util';
 import { CURRENT_SUBSCRIPTION_STATUSES } from './plan-limits.service';
@@ -38,6 +39,7 @@ export class PlanChangeApplicationService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(MailerService) private readonly mailer: MailerService,
+    @Inject(MetricsService) private readonly metrics: MetricsService,
   ) {}
 
   async applyConfirmedChange(
@@ -81,6 +83,8 @@ export class PlanChangeApplicationService {
       // ACTIVE de inmediato y abre un período pagado nuevo").
       const isLeavingTrial =
         subscription.status === 'PENDING_TRIAL' || subscription.status === 'TRIALING';
+      const isTrialConversion =
+        isLeavingTrial && !['TRIAL', 'FREE', 'LEGACY_FREE'].includes(toPlan.code);
       const newPeriodStart = new Date();
 
       await tx.subscription.update({
@@ -167,9 +171,14 @@ export class PlanChangeApplicationService {
         toPlanCode: toPlan.code,
         fromPlanCode: subscription.plan.code,
         isUpgrade,
+        isTrialConversion,
         effectiveAt,
       };
     });
+
+    if (notification.isTrialConversion) {
+      this.metrics.trialConversionsTotal.inc({ to_plan: notification.toPlanCode });
+    }
 
     await Promise.all(
       notification.recipients.map((membership) =>

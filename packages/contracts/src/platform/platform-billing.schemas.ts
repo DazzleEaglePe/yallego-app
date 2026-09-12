@@ -25,6 +25,19 @@ export const grantCourtesyPlanSchema = z.strictObject({
   reason: z.string().trim().min(1).max(500),
 });
 
+export const overrideTrialIdentityClaimSchema = z.strictObject({
+  tenant_id: z.uuid(),
+  reason: z.string().trim().min(10).max(500),
+});
+
+export const listTrialIdentityClaimsQuerySchema = z.strictObject({
+  tenant_id: z.uuid().optional(),
+  status: z.enum(['CLAIMED', 'CONSUMED', 'DENIED', 'OVERRIDDEN']).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
 export type RegisterManualPaymentInput = z.infer<typeof registerManualPaymentSchema>;
 export type ApplyTenantSubscriptionInput = z.infer<typeof applyTenantSubscriptionSchema>;
 export type GrantCourtesyPlanInput = z.infer<typeof grantCourtesyPlanSchema>;
+export type OverrideTrialIdentityClaimInput = z.infer<typeof overrideTrialIdentityClaimSchema>;
+export type ListTrialIdentityClaimsQuery = z.infer<typeof listTrialIdentityClaimsQuerySchema>;

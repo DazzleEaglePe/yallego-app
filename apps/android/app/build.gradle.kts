@@ -32,7 +32,7 @@ fun requireHttpsBaseUrl(value: String): String {
 }
 
 val releaseApiBaseUrl = requireHttpsBaseUrl(
-    localProperty("API_BASE_URL_RELEASE", "https://api.yallego.app/"),
+    localProperty("API_BASE_URL_RELEASE", "https://pay.ecabot.site/"),
 )
 
 android {
@@ -77,8 +77,8 @@ android {
                 "API_BASE_URL",
                 "\"$releaseApiBaseUrl\"",
             )
-            buildConfigField("String", "DASHBOARD_URL", "\"https://app.yallego.app/membresia\"")
-            buildConfigField("String", "ACCOUNT_URL", "\"https://app.yallego.app/cuenta\"")
+            buildConfigField("String", "DASHBOARD_URL", "\"https://pay.ecabot.site/membresia\"")
+            buildConfigField("String", "ACCOUNT_URL", "\"https://pay.ecabot.site/cuenta\"")
         }
     }
 

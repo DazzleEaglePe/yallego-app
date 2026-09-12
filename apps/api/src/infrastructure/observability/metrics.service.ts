@@ -74,6 +74,20 @@ export class MetricsService implements OnModuleDestroy {
     registers: [this.registry],
   });
 
+  readonly trialIdentityPairingsTotal = new Counter({
+    name: 'yallego_trial_identity_pairings_total',
+    help: 'Pairings de trial evaluados por el rollout de identidad y resultado.',
+    labelNames: ['mode', 'outcome'] as const,
+    registers: [this.registry],
+  });
+
+  readonly trialConversionsTotal = new Counter({
+    name: 'yallego_trial_conversions_total',
+    help: 'Trials que cambiaron a un plan pagado confirmado.',
+    labelNames: ['to_plan'] as const,
+    registers: [this.registry],
+  });
+
   constructor() {
     collectDefaultMetrics({ register: this.registry, prefix: 'yallego_' });
   }

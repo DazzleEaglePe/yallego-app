@@ -28,6 +28,11 @@ y compila directamente con Android Studio / Gradle.
 3. Con el backend corriendo (`pnpm dev:api` desde la raíz del repositorio),
    ejecuta la app en un emulador o dispositivo.
 
+La variante `release` usa `https://pay.ecabot.site/` para la API y abre las
+vistas de membresía y cuenta en el mismo dominio HTTPS. El valor puede
+sobrescribirse con `API_BASE_URL_RELEASE` en `local.properties` o en el entorno
+de compilación.
+
 ## Estado de este módulo
 
 Verificado con Gradle 8.10.2/JDK 21 y probado en un Xiaomi M2101K7BL (Android

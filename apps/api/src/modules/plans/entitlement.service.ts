@@ -26,6 +26,7 @@ export interface EntitlementDecision {
 export type QuotaReservationResult = {
   reservedCount: number;
   blockedReason: 'DAILY_LIMIT_EXCEEDED' | 'PLAN_LIMIT_EXCEEDED' | null;
+  dailyWindowStart: Date | null;
 };
 
 const TRIAL_PLAN_CODE = 'TRIAL';
@@ -123,11 +124,11 @@ export class EntitlementService {
     tenantId: string,
     count: number,
   ): Promise<QuotaReservationResult> {
-    if (count <= 0) return { reservedCount: 0, blockedReason: null };
+    if (count <= 0) return { reservedCount: 0, blockedReason: null, dailyWindowStart: null };
 
     const subscription = await this.findSubscriptionWithTenant(tx, tenantId);
     if (!subscription || subscription.plan.code !== TRIAL_PLAN_CODE) {
-      return { reservedCount: count, blockedReason: null };
+      return { reservedCount: count, blockedReason: null, dailyWindowStart: null };
     }
 
     const limits = subscription.plan.limits as PlanLimits;
@@ -137,13 +138,25 @@ export class EntitlementService {
     const periodWindow = resolvePeriodWindow(subscription.createdAt);
 
     await ensureBucket(tx, tenantId, UsageWindowType.DAY, dayWindow.start, dayWindow.end);
-    await ensureBucket(tx, tenantId, UsageWindowType.SUBSCRIPTION_PERIOD, periodWindow.start, periodWindow.end);
+    await ensureBucket(
+      tx,
+      tenantId,
+      UsageWindowType.SUBSCRIPTION_PERIOD,
+      periodWindow.start,
+      periodWindow.end,
+    );
 
     let reservedCount = 0;
     let blockedReason: QuotaReservationResult['blockedReason'] = null;
 
     for (let i = 0; i < count; i += 1) {
-      const gotDay = await tryReserveOne(tx, tenantId, UsageWindowType.DAY, dayWindow.start, dailyLimit);
+      const gotDay = await tryReserveOne(
+        tx,
+        tenantId,
+        UsageWindowType.DAY,
+        dayWindow.start,
+        dailyLimit,
+      );
       if (!gotDay) {
         blockedReason = 'DAILY_LIMIT_EXCEEDED';
         break;
@@ -163,7 +176,7 @@ export class EntitlementService {
       reservedCount += 1;
     }
 
-    return { reservedCount, blockedReason };
+    return { reservedCount, blockedReason, dailyWindowStart: dayWindow.start };
   }
 
   /**
@@ -171,20 +184,24 @@ export class EntitlementService {
    * transacción que crea la `Transaction` real. Si es el primer cobro
    * válido, arranca el reloj del trial; si el total se agota, lo cierra.
    */
-  async commitQuota(tx: ScopedClient, tenantId: string): Promise<void> {
+  async commitQuota(
+    tx: ScopedClient,
+    tenantId: string,
+    reservationDayWindowStart: Date | null,
+  ): Promise<void> {
     const subscription = await this.findSubscriptionWithTenant(tx, tenantId);
     if (!subscription || subscription.plan.code !== TRIAL_PLAN_CODE) return;
 
     const now = new Date();
-    const dayWindow = this.resolveDayWindow(subscription.tenant.timezone, now);
     const periodWindow = resolvePeriodWindow(subscription.createdAt);
 
-    // Nota: si una notificación se reservó justo antes de medianoche local
-    // y se confirma después, el consumo se registra contra el bucket del
-    // día en que se confirma, no el que reservó — deja una reserva
-    // huérfana de 1 unidad en el bucket del día anterior, ya cerrado, sin
-    // efecto sobre cuotas futuras.
-    await commitOne(tx, tenantId, UsageWindowType.DAY, dayWindow.start);
+    // A notification belongs to the local day in which it was reserved, not
+    // necessarily to the day in which its asynchronous parser completes.
+    // Null is retained only as a compatibility fallback for rows received
+    // before the additive migration was applied.
+    const dayWindowStart =
+      reservationDayWindowStart ?? this.resolveDayWindow(subscription.tenant.timezone, now).start;
+    await commitOne(tx, tenantId, UsageWindowType.DAY, dayWindowStart);
     const periodUsed = await commitOne(
       tx,
       tenantId,
@@ -219,7 +236,11 @@ export class EntitlementService {
   }
 
   /** Libera 1 unidad reservada que no llegó a confirmarse (notificación UNMATCHED). */
-  async releaseQuota(tenantId: string, count: number): Promise<void> {
+  async releaseQuota(
+    tenantId: string,
+    count: number,
+    reservationDayWindowStart: Date | null,
+  ): Promise<void> {
     if (count <= 0) return;
 
     await this.prisma.withoutTenantScope(async (tx) => {
@@ -230,11 +251,13 @@ export class EntitlementService {
       });
       if (!subscription || subscription.plan.code !== TRIAL_PLAN_CODE) return;
 
-      const dayWindow = this.resolveDayWindow(subscription.tenant.timezone, new Date());
       const periodWindow = resolvePeriodWindow(subscription.createdAt);
+      const dayWindowStart =
+        reservationDayWindowStart ??
+        this.resolveDayWindow(subscription.tenant.timezone, new Date()).start;
 
       for (let i = 0; i < count; i += 1) {
-        await releaseOne(tx, tenantId, UsageWindowType.DAY, dayWindow.start);
+        await releaseOne(tx, tenantId, UsageWindowType.DAY, dayWindowStart);
         await releaseOne(tx, tenantId, UsageWindowType.SUBSCRIPTION_PERIOD, periodWindow.start);
       }
     });
@@ -295,7 +318,9 @@ function offsetMsAt(timeZone: string, instant: Date): number {
     second: '2-digit',
     hourCycle: 'h23',
   });
-  const parts = Object.fromEntries(formatter.formatToParts(instant).map((part) => [part.type, part.value]));
+  const parts = Object.fromEntries(
+    formatter.formatToParts(instant).map((part) => [part.type, part.value]),
+  );
   const wallClockAsUtc = Date.UTC(
     Number(parts.year),
     Number(parts.month) - 1,
@@ -328,8 +353,14 @@ function zonedMidnight(timeZone: string, instant: Date): Date {
     month: '2-digit',
     day: '2-digit',
   });
-  const parts = Object.fromEntries(dateFormatter.formatToParts(instant).map((part) => [part.type, part.value]));
-  const localMidnightAsUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+  const parts = Object.fromEntries(
+    dateFormatter.formatToParts(instant).map((part) => [part.type, part.value]),
+  );
+  const localMidnightAsUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+  );
 
   const initialGuess = new Date(localMidnightAsUtc - offsetMsAt(timeZone, instant));
   return new Date(localMidnightAsUtc - offsetMsAt(timeZone, initialGuess));

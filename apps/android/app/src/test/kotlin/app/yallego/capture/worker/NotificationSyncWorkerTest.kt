@@ -20,16 +20,50 @@ class NotificationSyncWorkerTest {
         val queue = FakeNotificationQueueDao(notification)
         val response = Response.error<IngestNotificationsResponseDto>(
             422,
-            """{"error":{"code":"PLAN_LIMIT_EXCEEDED"}}""".toResponseBody(),
+            """{"error":{"code":"PLAN_LIMIT_EXCEEDED","message":"Límite alcanzado"}}""".toResponseBody(),
         )
 
         val result = handleIngestResponse(queue, listOf(notification), response)
 
         assertEquals(BatchSyncResult.RETRY, result)
         assertTrue(queue.deletedClientRefs.isEmpty())
-        assertEquals(listOf("cobro-limite"), queue.nextBatch(10).map { it.clientRef })
-        assertEquals(1, queue.nextBatch(10).single().attemptCount)
-        assertEquals("Ingesta HTTP 422", queue.nextBatch(10).single().lastError)
+        assertEquals(listOf("cobro-limite"), queue.all().map { it.clientRef })
+        assertEquals(1, queue.all().single().attemptCount)
+        assertEquals("PLAN_LIMIT_EXCEEDED", queue.all().single().lastError)
+    }
+
+    @Test
+    fun `suscripción requerida pausa la cola durante la ventana de recuperación`() = runBlocking {
+        val notification = queuedNotification("cobro-suscripcion")
+        val queue = FakeNotificationQueueDao(notification)
+        val response = Response.error<IngestNotificationsResponseDto>(
+            402,
+            """{"error":{"code":"SUBSCRIPTION_REQUIRED","message":"Elige un plan"}}""".toResponseBody(),
+        )
+
+        val result = handleIngestResponse(queue, listOf(notification), response)
+
+        assertEquals(BatchSyncResult.SUBSCRIPTION_PAUSED, result)
+        assertEquals(SUBSCRIPTION_REQUIRED, queue.all().single().blockedReason)
+        assertTrue(queue.all().single().blockedAtEpochMs != null)
+        assertTrue(queue.all().single().retryAfterEpochMs!! > System.currentTimeMillis())
+    }
+
+    @Test
+    fun `límite diario aplaza la cola sin marcar suscripción requerida`() = runBlocking {
+        val notification = queuedNotification("cobro-diario")
+        val queue = FakeNotificationQueueDao(notification)
+        val response = Response.success(
+            IngestNotificationsResponseDto(
+                accepted = emptyList(),
+                rejected = listOf(app.yallego.capture.data.remote.dto.IngestRejectedItemDto("cobro-diario", DAILY_LIMIT_EXCEEDED)),
+            ),
+        )
+
+        val result = handleIngestResponse(queue, listOf(notification), response)
+
+        assertEquals(BatchSyncResult.DAILY_DEFERRED, result)
+        assertEquals(DAILY_LIMIT_EXCEEDED, queue.all().single().blockedReason)
     }
 
     private fun queuedNotification(clientRef: String) = QueuedNotificationEntity(
@@ -55,8 +89,11 @@ private class FakeNotificationQueueDao(
         return pending.size.toLong()
     }
 
-    override suspend fun nextBatch(limit: Int): List<QueuedNotificationEntity> =
-        pending.values.sortedBy { it.createdAtEpochMs }.take(limit)
+    override suspend fun nextBatch(limit: Int, nowEpochMs: Long): List<QueuedNotificationEntity> =
+        pending.values
+            .filter { it.retryAfterEpochMs == null || it.retryAfterEpochMs <= nowEpochMs }
+            .sortedBy { it.createdAtEpochMs }
+            .take(limit)
 
     override suspend fun deleteConfirmed(clientRefs: List<String>): Int {
         deletedClientRefs += clientRefs
@@ -77,7 +114,44 @@ private class FakeNotificationQueueDao(
         return updated
     }
 
+    override suspend fun defer(
+        clientRefs: List<String>,
+        reason: String,
+        message: String,
+        blockedAtEpochMs: Long,
+        retryAfterEpochMs: Long,
+    ): Int {
+        var updated = 0
+        clientRefs.forEach { clientRef ->
+            pending.computeIfPresent(clientRef) { _, notification ->
+                updated += 1
+                notification.copy(
+                    attemptCount = notification.attemptCount + 1,
+                    lastError = message,
+                    blockedReason = reason,
+                    blockedAtEpochMs = if (notification.blockedReason == reason) {
+                        notification.blockedAtEpochMs
+                    } else {
+                        blockedAtEpochMs
+                    },
+                    retryAfterEpochMs = retryAfterEpochMs,
+                )
+            }
+        }
+        return updated
+    }
+
+    override suspend fun deleteExpiredSubscriptionBlocks(cutoffEpochMs: Long): Int {
+        val expired = pending.values
+            .filter { it.blockedReason == SUBSCRIPTION_REQUIRED && (it.blockedAtEpochMs ?: Long.MAX_VALUE) <= cutoffEpochMs }
+            .map { it.clientRef }
+        expired.forEach(pending::remove)
+        return expired.size
+    }
+
     override suspend fun countPending(): Int = pending.size
 
     override fun observePendingCount(): Flow<Int> = flowOf(pending.size)
+
+    fun all(): List<QueuedNotificationEntity> = pending.values.toList()
 }

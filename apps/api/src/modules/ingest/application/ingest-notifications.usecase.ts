@@ -101,10 +101,20 @@ export class IngestNotificationsUseCase {
             where: { id: { in: rejectedRows.map((row) => row.id) } },
           });
         }
+        if (reservation.dailyWindowStart && reservation.reservedCount > 0) {
+          await tx.rawNotification.updateMany({
+            where: {
+              id: { in: insertedRows.slice(0, reservation.reservedCount).map((row) => row.id) },
+            },
+            data: { quotaWindowStart: reservation.dailyWindowStart },
+          });
+        }
 
         return {
           insertedByHash: new Map(
-            insertedRows.slice(0, reservation.reservedCount).map((row) => [row.dedupe_hash, row.id]),
+            insertedRows
+              .slice(0, reservation.reservedCount)
+              .map((row) => [row.dedupe_hash, row.id]),
           ),
           quotaRejectedHashes: new Set(rejectedRows.map((row) => row.dedupe_hash)),
           blockedReason: reservation.blockedReason,
@@ -127,7 +137,10 @@ export class IngestNotificationsUseCase {
         continue;
       }
       if (quotaRejectedHashes.has(item.dedupeHash)) {
-        rejected.push({ client_ref: item.clientRef, reason: blockedReason ?? 'PLAN_LIMIT_EXCEEDED' });
+        rejected.push({
+          client_ref: item.clientRef,
+          reason: blockedReason ?? 'PLAN_LIMIT_EXCEEDED',
+        });
         continue;
       }
       const existing = await this.prisma.withTenant(device.tenantId, (tx) =>

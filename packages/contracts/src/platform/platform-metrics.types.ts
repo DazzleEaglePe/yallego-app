@@ -21,4 +21,10 @@ export interface PlatformMetrics {
     deliveries_last_30_days: number;
     failed_deliveries_last_30_days: number;
   };
+  trial_rollout: {
+    identity_claims_last_7_days: number;
+    reuse_observed_last_7_days: number;
+    overrides_last_7_days: number;
+    conversions_last_7_days: number;
+  };
 }

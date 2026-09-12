@@ -144,13 +144,16 @@ function computeTrialNotice(
   }
 
   const dailyLimit = limits.transactions_per_day ?? 0;
-  if (dailyLimit > 0 && trial.transactions_today >= dailyLimit) {
+  const dailyLevel = subscriptionUsageAlert(trial.transactions_today, dailyLimit);
+  if (dailyLevel) {
+    const reachedDailyLimit = dailyLevel === 'critical';
     return {
-      level: 'warning',
-      title: 'Alcanzaste el límite diario',
-      message:
-        'Se reinicia mañana. Mientras tanto, los nuevos cobros quedan en espera en el dispositivo.',
-      dismissKey: `yallego:trial-daily-warning:${tenantId}:${todayKey()}`,
+      level: dailyLevel,
+      title: reachedDailyLimit ? 'Alcanzaste el límite diario' : 'Estás cerca del límite diario',
+      message: reachedDailyLimit
+        ? 'Se reinicia mañana. Mientras tanto, los nuevos cobros quedan en espera en el dispositivo.'
+        : `Procesaste ${formatNumber(trial.transactions_today)} de ${formatNumber(dailyLimit)} cobros disponibles hoy.`,
+      dismissKey: reachedDailyLimit ? null : `yallego:trial-daily-warning:${tenantId}:${todayKey()}`,
     };
   }
 

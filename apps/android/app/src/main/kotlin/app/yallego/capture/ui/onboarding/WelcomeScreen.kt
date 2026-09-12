@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,7 +52,6 @@ fun WelcomeScreen(onStart: () -> Unit) {
                 .navigationBarsPadding()
                 .padding(horizontal = 22.dp, vertical = 18.dp),
         ) {
-            YallegoBrandHeader(trailingLabel = stringResource(R.string.mobile_label))
             Spacer(Modifier.height(40.dp))
             ScreenEyebrow(stringResource(R.string.onboarding_eyebrow))
             Spacer(Modifier.height(14.dp))
@@ -79,7 +77,6 @@ fun WelcomeScreen(onStart: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             SupportNote(
                 text = stringResource(R.string.onboarding_private_note),
-                icon = Icons.Rounded.Shield,
             )
             Spacer(Modifier.height(8.dp))
         }

@@ -14,6 +14,7 @@ import { DeviceGatewayService } from './device-gateway.service';
 import { DeviceOfflineScheduler } from './device-offline.scheduler';
 import { DevicesController } from './devices.controller';
 import { DevicesService } from './devices.service';
+import { TrialIdentityRolloutService } from './trial-identity-rollout.service';
 
 @Module({
   imports: [MailerModule, CryptoModule, AuthModule, ApiKeysModule, PlansModule],
@@ -26,6 +27,7 @@ import { DevicesService } from './devices.service';
     PublicApiAuthGuard,
     ApiKeyRateLimitGuard,
     AccessPolicyGuard,
+    TrialIdentityRolloutService,
   ],
 })
 export class DevicesModule {}

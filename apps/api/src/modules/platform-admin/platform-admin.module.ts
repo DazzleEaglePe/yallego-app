@@ -16,6 +16,7 @@ import { PlatformParsersController } from './platform-parsers.controller';
 import { PlatformParsersService } from './platform-parsers.service';
 import { PlatformWalletsController } from './platform-wallets.controller';
 import { PlatformWalletsService } from './platform-wallets.service';
+import { PlatformTrialIdentityService } from './platform-trial-identity.service';
 
 @Module({
   imports: [PlatformAuthModule, AuthModule, QueueModule, ParsingModule, PlansModule],
@@ -31,6 +32,7 @@ import { PlatformWalletsService } from './platform-wallets.service';
     PlatformNotificationsService,
     PlatformWalletsService,
     PlatformMetricsService,
+    PlatformTrialIdentityService,
     PlatformAuthGuard,
     PlatformIpAllowlistGuard,
   ],

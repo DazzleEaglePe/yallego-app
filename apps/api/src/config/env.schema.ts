@@ -69,6 +69,9 @@ export const envSchema = z
     // ya varios minutos de backlog al ritmo del plan más alto (1000/min),
     // una señal razonable de que el worker no da abasto o está caído.
     WEBHOOK_QUEUE_DEPTH_ALERT_THRESHOLD: z.coerce.number().int().positive().default(200),
+    TRIAL_IDENTITY_ROLLOUT_MODE: z.enum(['OFF', 'OBSERVE', 'ENFORCE']).default('OFF'),
+    TRIAL_IDENTITY_ROLLOUT_PERCENT: z.coerce.number().int().min(0).max(100).default(0),
+    TRIAL_IDENTITY_INTERNAL_TENANT_IDS: optionalString,
   })
   .superRefine((environment, context) => {
     if (environment.NODE_ENV !== 'production') return;

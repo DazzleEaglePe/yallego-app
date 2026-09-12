@@ -136,6 +136,12 @@ integrationDescribe(
           support: 'email',
         });
 
+        await request(app.getHttpServer())
+          .post('/v1/wallets')
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send({ wallet_code: 'YAPE' })
+          .expect(201);
+
         const pairingCode = await request(app.getHttpServer())
           .post('/v1/devices/pairing-codes')
           .set('Authorization', `Bearer ${ownerToken}`)

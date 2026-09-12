@@ -45,9 +45,18 @@ data class MobileSubscription(
     val planCode: String,
     val planName: String,
     val status: String,
+    val accessState: String,
     val periodEndIso: String,
     val transactionsUsed: Int,
     val transactionsLimit: Int,
+    val trial: MobileTrial? = null,
+)
+
+data class MobileTrial(
+    val endsAtIso: String?,
+    val transactionsToday: Int,
+    val transactionsTotal: Int,
+    val dailyResetAtIso: String?,
 )
 
 data class MobileTransaction(

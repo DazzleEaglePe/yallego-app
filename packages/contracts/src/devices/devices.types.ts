@@ -58,9 +58,16 @@ export interface DeviceMobileOverviewResponse {
     plan_code: string;
     plan_name: string;
     status: string;
+    access_state: 'PENDING_TRIAL' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'EXPIRED';
     period_end: string;
     transactions_used: number;
     transactions_limit: number;
+    trial: {
+      ends_at: string | null;
+      transactions_today: number;
+      transactions_total: number;
+      daily_reset_at: string | null;
+    } | null;
   } | null;
   recent_activity: DeviceMobileActivityItem[];
 }

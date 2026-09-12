@@ -32,6 +32,8 @@ integrationDescribe('Devices backend', () => {
     sendDeviceRecoveredEmail: vi.fn().mockResolvedValue(undefined),
   };
   let ownerToken: string;
+  let tenantId: string;
+  const planCode = `TEST_DEVICES_${suffix}`;
 
   beforeAll(async () => {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', {
@@ -74,6 +76,29 @@ integrationDescribe('Devices backend', () => {
       .send({ email: ownerEmail, password })
       .expect(200);
     ownerToken = login.body.access_token as string;
+    tenantId = login.body.tenants[0].id as string;
+
+    // El trial limita billeteras a una; este archivo prueba la propagación de
+    // varias billeteras, pero conserva el límite de un solo dispositivo.
+    await prisma.withoutTenantScope(async (tx) => {
+      const plan = await tx.plan.create({
+        data: {
+          code: planCode,
+          displayName: 'Plan de prueba de dispositivos',
+          sortOrder: 99,
+          isPublic: false,
+          limits: {
+            wallets: 3,
+            devices: 1,
+            transactions_per_month: 1_000,
+            users: 3,
+            webhooks: 5,
+            retention_days: 90,
+          },
+        },
+      });
+      await tx.subscription.updateMany({ where: { tenantId }, data: { planId: plan.id } });
+    });
   }, 30_000);
 
   afterAll(async () => {
@@ -88,6 +113,7 @@ integrationDescribe('Devices backend', () => {
         await tx.tenant.delete({ where: { id: tenantId } });
       }
       await tx.user.delete({ where: { id: user.id } });
+      await tx.plan.deleteMany({ where: { code: planCode } });
     });
     await app.close();
   });

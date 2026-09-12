@@ -1,10 +1,10 @@
 # 14 — Prueba gratuita, cuotas y prevención de abuso
 
-> **Estado:** implementación en curso; ciclo de vida y cuotas atómicas del Sprint 9 completados localmente (ver checklist §8). Falta identidad Android/Play Integrity (Sprint 10), panel/Android (fuera de este backend) y lanzamiento gradual (Sprint 11).
+> **Estado:** Sprints 9 y base técnica de los Sprints 10–11 desplegados en producción el 2026-09-12. La identidad Android está disponible detrás del rollout `OFF`/`OBSERVE`/`ENFORCE`; Play Integrity, Device Recall, pruebas físicas y la activación gradual siguen pendientes (ver checklist §8).
 > **Fecha de decisión:** 2026-09-11.
 > **Alcance:** sustituir el plan Free permanente por una prueba gratuita limitada para nuevos tenants, sin afectar retroactivamente a los tenants existentes.
 
-> **Control de activación:** los registros nuevos ya crean la suscripción en `TRIAL/PENDING_TRIAL` (`AuthService.register`); el consumo atómico, las ventanas por zona horaria y la concurrencia están implementados y verificados localmente (`test/entitlement-quota.e2e-spec.ts`). Los tenants existentes antes de este cambio no se tocan (sin backfill, docs/14 §11). Sigue pendiente el lanzamiento gradual con feature flag descrito en el Sprint 11 antes de considerar esto listo para producción.
+> **Control de activación:** los registros nuevos crean la suscripción en `TRIAL/PENDING_TRIAL` (`AuthService.register`); el consumo atómico, las ventanas por zona horaria y la concurrencia están implementados y verificados (`test/entitlement-quota.e2e-spec.ts`). Los tenants existentes fueron migrados de forma aditiva a `LEGACY_FREE`. En producción, la prevención de repetición se desplegó con `TRIAL_IDENTITY_ROLLOUT_MODE=OFF` y porcentaje `0`; la activación `OBSERVE` → `ENFORCE` continúa siendo una tarea operativa del Sprint 11.
 
 ---
 
@@ -276,7 +276,7 @@ No se exponen hashes, verdicts completos ni razones antifraude detalladas a clie
 - [x] Iniciar el trial con el primer cobro válido _(Claude)_ — `EntitlementService.commitQuota` transiciona `PENDING_TRIAL` → `TRIALING` con `trial_started_at`/`trial_ends_at` dentro de la misma transacción que confirma el primer cobro.
 - [x] Expirar por tiempo o límite total sin renovación automática _(Claude)_ — `trial_ended_at` es la única fuente de verdad que usa `evaluate()`: `commitQuota` lo fija con `TOTAL_LIMIT` al agotar el total, y el nuevo `TrialExpirationScheduler` (cada 15 min) lo fija con `TIME_LIMIT` una vez pasado `trial_ends_at` — aunque `evaluate()` ya bloquea por tiempo sin depender del scheduler, que solo persiste el motivo y dispara el aviso una vez.
 - [x] Implementar respuestas de API, correos y métricas _(Claude)_ — `DAILY_LIMIT_EXCEEDED`/`PLAN_LIMIT_EXCEEDED` por ítem en la respuesta de ingesta (`rejected[]`, ya contemplado en el contrato); `MailerService.sendTrialEndedEmail`; métricas `yallego_trial_started_total` y `yallego_trial_expired_total{reason}`.
-- [ ] Actualizar panel y Android con estados de trial, sin Play Integrity todavía — fuera de alcance de este cambio (backend).
+- [x] Actualizar panel y Android con estados de trial, sin Play Integrity todavía — panel con horas/cuotas/avisos/CTA y Android con errores diferenciados, cola de 24 h y reanudación tras upgrade.
 
 **Hallazgo no previsto:** habilitar el trial expuso que varios puntos del código (`WalletsService`, `DevicesService`, `PlanChangeApplicationService`, `ApiKeyVerifier`, vistas de administración de plataforma, `DeviceGatewayService`) resolvían "la suscripción vigente" del tenant con `status: 'ACTIVE'` codificado a mano en vez de reutilizar `PlanLimitsService.getActiveSubscription` — coherente con el §4.1 de este documento, pero no implementado hasta ahora. Con el registro entregando `PENDING_TRIAL` en vez de `ACTIVE`, esto bloqueaba con 503/429 acciones básicas de onboarding (activar billetera, vincular dispositivo, usar una API key) para todo tenant nuevo. Se centralizó en `CURRENT_SUBSCRIPTION_STATUSES` (`plan-limits.service.ts`) y se corrigieron los ocho puntos; `PlanChangeApplicationService.applyConfirmedChange` también fue ajustado para que un upgrade confirmado desde el trial fije `status: ACTIVE` y un período de facturación real, no solo el `planId`.
 
@@ -286,13 +286,13 @@ No se exponen hashes, verdicts completos ni razones antifraude detalladas a clie
 
 **Objetivo:** una misma identidad Android no obtiene un trial nuevo usando otro correo o reinstalando la app.
 
-- [ ] Implementar GUID, Keystore y firma en Android.
+- [x] Implementar GUID, Keystore y firma en Android.
 - [ ] Integrar Play Integrity Standard con `requestHash`.
-- [ ] Implementar HMAC versionado de identificadores secundarios.
-- [ ] Crear `trial_identity_claims` y reclamar señales atómicamente.
-- [ ] Permitir revinculación al mismo tenant sin reiniciar el trial.
-- [ ] Bloquear un tenant diferente con `TRIAL_ALREADY_USED`.
-- [ ] Crear excepción administrativa auditada.
+- [x] Implementar HMAC versionado de identificadores secundarios (`v1:`; valores nunca expuestos por administración).
+- [x] Crear `trial_identity_claims` y reclamar señales atómicamente (`INSERT ... ON CONFLICT DO NOTHING` dentro del pairing).
+- [x] Permitir revinculación al mismo tenant sin reiniciar el trial.
+- [x] Bloquear un tenant diferente con `TRIAL_ALREADY_USED` en modo `ENFORCE`.
+- [x] Crear excepción administrativa auditada, con tenant destino explícito.
 - [ ] Solicitar acceso e integrar Device Recall detrás de feature flag.
 - [ ] Actualizar Data Safety y borradores legales.
 - [ ] Ejecutar pruebas en al menos tres fabricantes y escenarios de reinstalación.
@@ -302,13 +302,17 @@ No se exponen hashes, verdicts completos ni razones antifraude detalladas a clie
 ### Sprint 11 — Lanzamiento gradual y optimización (1 semana)
 
 - [ ] Desplegar primero con feature flag y modo observación.
-- [ ] Mantener tenants actuales en `LEGACY_FREE`.
+- [x] Mantener tenants actuales en `LEGACY_FREE` mediante migración aditiva; las altas nuevas siguen entrando a `TRIAL`.
 - [ ] Habilitar el trial para empleados y tenants de prueba.
 - [ ] Habilitar al 10%, 50% y 100% de registros nuevos.
 - [ ] Revisar falsos positivos, errores y conversión en cada etapa.
 - [ ] Retirar compatibilidad `transactions_per_month` cuando todos los consumidores usen el contrato nuevo.
 
 **Criterio de salida:** siete días al 100% sin sobreconsumo, drift, pérdida de colas ni falsos positivos críticos.
+
+**Preparación incorporada:** el rollout de identidad inicia en `OFF`, admite `OBSERVE`/`ENFORCE`, allowlist de tenants internos y selección determinista de 0–100%. Prometheus expone resultados de pairing (incluidos faltantes, firmas inválidas y reutilización rechazada), y `GET /platform/v1/metrics` resume reclamos, reutilización observada, excepciones y conversiones de los últimos siete días. La activación real y la observación durante siete días siguen siendo tareas operativas, no se consideran completadas por agregar el código.
+
+**Despliegue del 2026-09-12:** API, dashboard y las cuatro migraciones aditivas quedaron activos en producción. Las cuatro suscripciones preexistentes quedaron en `LEGACY_FREE`; la API se verificó saludable y el control de identidad permanece explícitamente en `OFF`/`0%`, por lo que este despliegue no rechaza vinculaciones por identidad.
 
 ---
 

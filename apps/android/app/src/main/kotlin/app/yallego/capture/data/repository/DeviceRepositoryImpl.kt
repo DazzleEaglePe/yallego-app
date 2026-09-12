@@ -6,11 +6,14 @@ import app.yallego.capture.data.remote.dto.DeviceMetadataDto
 import app.yallego.capture.data.remote.dto.HeartbeatPermissionsDto
 import app.yallego.capture.data.remote.dto.HeartbeatRequestDto
 import app.yallego.capture.data.remote.dto.PairDeviceRequestDto
+import app.yallego.capture.data.remote.dto.PairingIdentityDto
+import app.yallego.capture.data.local.secure.InstallationIdentity
 import app.yallego.capture.domain.model.DeviceCallResult
 import app.yallego.capture.domain.model.DeviceMetadata
 import app.yallego.capture.domain.model.HeartbeatOutcome
 import app.yallego.capture.domain.model.MobileOverview
 import app.yallego.capture.domain.model.MobileSubscription
+import app.yallego.capture.domain.model.MobileTrial
 import app.yallego.capture.domain.model.MobileTransaction
 import app.yallego.capture.domain.model.MobileWallet
 import app.yallego.capture.domain.model.PairingResult
@@ -27,10 +30,25 @@ import javax.inject.Inject
 class DeviceRepositoryImpl @Inject constructor(
     private val api: InternalApi,
     private val json: Json,
+    private val installationIdentity: InstallationIdentity,
 ) : DeviceRepository {
 
     override suspend fun pair(code: String, metadata: DeviceMetadata): DeviceCallResult<PairingResult> =
         safeCall {
+            val installationId = installationIdentity.installationId()
+            val androidId = installationIdentity.androidId()
+            val publicKey = installationIdentity.publicKey()
+            val signaturePayload = listOf(
+                "v1",
+                code,
+                installationId,
+                androidId,
+                publicKey,
+                metadata.manufacturer.orEmpty(),
+                metadata.model.orEmpty(),
+                metadata.osVersion.orEmpty(),
+                metadata.appVersion.orEmpty(),
+            ).joinToString("\n")
             api.pairDevice(
                 PairDeviceRequestDto(
                     code = code,
@@ -39,6 +57,12 @@ class DeviceRepositoryImpl @Inject constructor(
                         model = metadata.model,
                         osVersion = metadata.osVersion,
                         appVersion = metadata.appVersion,
+                    ),
+                    identity = PairingIdentityDto(
+                        installationId = installationId,
+                        androidId = androidId,
+                        publicKey = publicKey,
+                        requestSignature = installationIdentity.sign(signaturePayload),
                     ),
                 ),
             )
@@ -91,9 +115,18 @@ class DeviceRepositoryImpl @Inject constructor(
                         planCode = it.planCode,
                         planName = it.planName,
                         status = it.status,
+                        accessState = it.accessState,
                         periodEndIso = it.periodEnd,
                         transactionsUsed = it.transactionsUsed,
                         transactionsLimit = it.transactionsLimit,
+                        trial = it.trial?.let { trial ->
+                            MobileTrial(
+                                endsAtIso = trial.endsAt,
+                                transactionsToday = trial.transactionsToday,
+                                transactionsTotal = trial.transactionsTotal,
+                                dailyResetAtIso = trial.dailyResetAt,
+                            )
+                        },
                     )
                 },
                 recentActivity = body.recentActivity.map {

@@ -15,7 +15,7 @@
 
     <string name="onboarding_eyebrow">Cobros en tiempo real</string>
     <string name="onboarding_welcome_title">Tus cobros, en un solo lugar.</string>
-    <string name="onboarding_welcome_body">Conecta este celular y recibe cada confirmación directamente en tu panel.</string>
+    <string name="onboarding_welcome_body">Conecta tu teléfono y recibe cada confirmación directamente en tu panel.</string>
     <string name="onboarding_welcome_cta">Configurar este celular</string>
     <string name="onboarding_private_note">Tus mensajes personales se mantienen privados</string>
     <string name="preview_live_title">Últimos cobros</string>
@@ -156,6 +156,10 @@
     <string name="more_plan_renews">Período vigente hasta %1$s</string>
     <string name="more_plan_usage">Transacciones del período</string>
     <string name="more_plan_unlimited">%1$d · sin límite</string>
+    <string name="more_trial_active">Prueba gratuita activa</string>
+    <string name="more_trial_ended">Prueba terminada · elige un plan para reanudar</string>
+    <string name="more_trial_ends">Termina el %1$s</string>
+    <string name="more_trial_usage">Hoy %1$d · Total %2$d</string>
     <string name="more_manage_plan">Administrar plan</string>
     <string name="more_settings_title">Configuración del dispositivo</string>
     <string name="more_account">Cuenta y seguridad</string>

@@ -102,6 +102,25 @@ enum UsageWindowType {
   @@map("usage_window_type")
 }
 
+enum TrialIdentityKind {
+  ANDROID_ID
+  INSTALLATION_KEY
+  PLAY_RECALL
+  PHONE
+  TAX_ID
+
+  @@map("trial_identity_kind")
+}
+
+enum TrialIdentityClaimStatus {
+  CLAIMED
+  CONSUMED
+  DENIED
+  OVERRIDDEN
+
+  @@map("trial_identity_claim_status")
+}
+
 enum OneTimeTokenPurpose {
   EMAIL_VERIFICATION
   PASSWORD_RESET
@@ -139,6 +158,7 @@ model Tenant {
   usageBuckets        UsageBucket[]
   manualPayments      ManualPayment[]
   auditEvents         AuditEvent[]
+  trialIdentityClaims TrialIdentityClaim[]
 
   @@map("tenants")
 }
@@ -245,24 +265,29 @@ model OneTimeToken {
 }
 
 model Device {
-  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId          String       @map("tenant_id") @db.Uuid
-  tokenHash         String       @unique @map("token_hash") @db.VarChar(255)
-  label             String       @db.VarChar(120)
-  manufacturer      String?      @db.VarChar(64)
-  model             String?      @db.VarChar(120)
-  osVersion         String?      @map("os_version") @db.VarChar(32)
-  appVersion        String?      @map("app_version") @db.VarChar(32)
-  lastSeenAt        DateTime?    @map("last_seen_at") @db.Timestamptz(6)
-  lastIngestAt      DateTime?    @map("last_ingest_at") @db.Timestamptz(6)
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String       @map("tenant_id") @db.Uuid
+  tokenHash           String       @unique @map("token_hash") @db.VarChar(255)
+  label               String       @db.VarChar(120)
+  manufacturer        String?      @db.VarChar(64)
+  model               String?      @db.VarChar(120)
+  osVersion           String?      @map("os_version") @db.VarChar(32)
+  appVersion          String?      @map("app_version") @db.VarChar(32)
+  installationIdHash  String?      @map("installation_id_hash") @db.VarChar(128)
+  androidIdHash       String?      @map("android_id_hash") @db.VarChar(128)
+  publicKeyThumbprint String?      @map("public_key_thumbprint") @db.VarChar(128)
+  integrityLevel      String?      @map("integrity_level") @db.VarChar(64)
+  integrityCheckedAt  DateTime?    @map("integrity_checked_at") @db.Timestamptz(6)
+  lastSeenAt          DateTime?    @map("last_seen_at") @db.Timestamptz(6)
+  lastIngestAt        DateTime?    @map("last_ingest_at") @db.Timestamptz(6)
   // Marca cuándo se avisó al tenant que el dispositivo dejó de reportar; se
   // limpia al recuperarse, para poder avisar de nuevo en la próxima caída
   // sin reenviar el aviso en cada ciclo del programador (RF-DEV-008).
-  offlineNotifiedAt DateTime?    @map("offline_notified_at") @db.Timestamptz(6)
-  status            DeviceStatus @default(ACTIVE)
-  pairedAt          DateTime     @default(now()) @map("paired_at") @db.Timestamptz(6)
-  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  offlineNotifiedAt   DateTime?    @map("offline_notified_at") @db.Timestamptz(6)
+  status              DeviceStatus @default(ACTIVE)
+  pairedAt            DateTime     @default(now()) @map("paired_at") @db.Timestamptz(6)
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   pairingCodes     PairingCode[]
@@ -272,6 +297,24 @@ model Device {
   @@index([tenantId])
   @@index([lastSeenAt])
   @@map("devices")
+}
+
+model TrialIdentityClaim {
+  id         String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kind       TrialIdentityKind
+  valueHash  String                   @map("value_hash") @db.VarChar(128)
+  tenantId   String                   @map("tenant_id") @db.Uuid
+  status     TrialIdentityClaimStatus @default(CLAIMED)
+  claimedAt  DateTime                 @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  lastSeenAt DateTime                 @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  expiresAt  DateTime?                @map("expires_at") @db.Timestamptz(6)
+  metadata   Json?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, valueHash])
+  @@index([tenantId])
+  @@map("trial_identity_claims")
 }
 
 model PairingCode {
@@ -350,19 +393,20 @@ model ParserPattern {
 }
 
 model RawNotification {
-  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String      @map("tenant_id") @db.Uuid
-  deviceId        String      @map("device_id") @db.Uuid
-  packageName     String      @map("package_name") @db.VarChar(255)
-  title           String?
-  body            String?
-  dedupeHash      String      @map("dedupe_hash") @db.VarChar(64)
-  postedAt        DateTime    @map("posted_at") @db.Timestamptz(6)
-  receivedAt      DateTime    @default(now()) @map("received_at") @db.Timestamptz(6)
-  parseStatus     ParseStatus @default(PENDING) @map("parse_status")
-  parseError      String?     @map("parse_error")
-  parserPatternId String?     @map("parser_pattern_id") @db.Uuid
-  archivedAt      DateTime?   @map("archived_at") @db.Timestamptz(6)
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String      @map("tenant_id") @db.Uuid
+  deviceId         String      @map("device_id") @db.Uuid
+  packageName      String      @map("package_name") @db.VarChar(255)
+  title            String?
+  body             String?
+  dedupeHash       String      @map("dedupe_hash") @db.VarChar(64)
+  postedAt         DateTime    @map("posted_at") @db.Timestamptz(6)
+  receivedAt       DateTime    @default(now()) @map("received_at") @db.Timestamptz(6)
+  parseStatus      ParseStatus @default(PENDING) @map("parse_status")
+  parseError       String?     @map("parse_error")
+  parserPatternId  String?     @map("parser_pattern_id") @db.Uuid
+  quotaWindowStart DateTime?   @map("quota_window_start") @db.Timestamptz(6)
+  archivedAt       DateTime?   @map("archived_at") @db.Timestamptz(6)
 
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   device        Device         @relation(fields: [deviceId], references: [id], onDelete: Cascade)

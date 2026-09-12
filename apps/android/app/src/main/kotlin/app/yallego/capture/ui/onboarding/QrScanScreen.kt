@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -293,7 +292,6 @@ private fun CameraPermissionFallback() {
             Spacer(Modifier.height(18.dp))
             SupportNote(
                 text = stringResource(R.string.scanner_private_note),
-                icon = Icons.Rounded.Shield,
             )
             Spacer(Modifier.weight(1f))
         }

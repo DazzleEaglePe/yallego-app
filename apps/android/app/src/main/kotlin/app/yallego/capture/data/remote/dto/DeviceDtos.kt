@@ -17,6 +17,15 @@ data class DeviceMetadataDto(
 data class PairDeviceRequestDto(
     val code: String,
     val device: DeviceMetadataDto,
+    val identity: PairingIdentityDto,
+)
+
+@Serializable
+data class PairingIdentityDto(
+    @SerialName("installation_id") val installationId: String,
+    @SerialName("android_id") val androidId: String,
+    @SerialName("public_key") val publicKey: String,
+    @SerialName("request_signature") val requestSignature: String,
 )
 
 @Serializable
@@ -93,9 +102,19 @@ data class MobileSubscriptionDto(
     @SerialName("plan_code") val planCode: String,
     @SerialName("plan_name") val planName: String,
     val status: String,
+    @SerialName("access_state") val accessState: String,
     @SerialName("period_end") val periodEnd: String,
     @SerialName("transactions_used") val transactionsUsed: Int,
     @SerialName("transactions_limit") val transactionsLimit: Int,
+    val trial: MobileTrialDto? = null,
+)
+
+@Serializable
+data class MobileTrialDto(
+    @SerialName("ends_at") val endsAt: String? = null,
+    @SerialName("transactions_today") val transactionsToday: Int,
+    @SerialName("transactions_total") val transactionsTotal: Int,
+    @SerialName("daily_reset_at") val dailyResetAt: String? = null,
 )
 
 @Serializable

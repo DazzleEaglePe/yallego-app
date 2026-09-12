@@ -1,5 +1,6 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { TenantStatus } from '@prisma/client';
+import { createPublicKey, verify } from 'node:crypto';
+import { TenantStatus, TrialIdentityKind, UsageWindowType } from '@prisma/client';
 import type {
   DeviceConfigResponse,
   DeviceHeartbeatInput,
@@ -12,12 +13,15 @@ import type {
 import { EncryptionService } from '../../infrastructure/crypto/encryption.service';
 import { PrismaService, type ScopedClient } from '../../infrastructure/database/prisma.service';
 import { MailerService } from '../../infrastructure/mailer/mailer.service';
+import { MetricsService } from '../../infrastructure/observability/metrics.service';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
 import type { DeviceContext } from '../../shared/guards/device-token.guard';
 import { TokenService } from '../auth/token.service';
+import { EntitlementService } from '../plans/entitlement.service';
 import { CURRENT_SUBSCRIPTION_STATUSES, type PlanLimits } from '../plans/plan-limits.service';
 import { DevicesService } from './devices.service';
 import { canonicalizePairingCode } from './pairing-code.util';
+import { TrialIdentityRolloutService } from './trial-identity-rollout.service';
 
 const HEARTBEAT_INTERVAL_SECONDS = 2 * 60;
 const INGEST_BATCH_SIZE = 50;
@@ -30,6 +34,10 @@ export class DeviceGatewayService {
     @Inject(DevicesService) private readonly devicesService: DevicesService,
     @Inject(MailerService) private readonly mailer: MailerService,
     @Inject(EncryptionService) private readonly cipher: EncryptionService,
+    @Inject(EntitlementService) private readonly entitlementService: EntitlementService,
+    @Inject(TrialIdentityRolloutService)
+    private readonly identityRollout: TrialIdentityRolloutService,
+    @Inject(MetricsService) private readonly metrics: MetricsService,
   ) {}
 
   async pairDevice(input: PairDeviceInput): Promise<PairDeviceResponse> {
@@ -55,6 +63,7 @@ export class DeviceGatewayService {
       }
 
       await this.devicesService.assertWithinDeviceLimit(tx, pairingCode.tenantId);
+      await this.claimTrialIdentities(tx, pairingCode.tenantId, input);
 
       const deviceToken = this.tokenService.createOpaqueToken('dvt');
       const tokenHash = this.tokenService.hashOpaqueToken(deviceToken);
@@ -72,6 +81,15 @@ export class DeviceGatewayService {
           model: input.device.model,
           osVersion: input.device.os_version,
           appVersion: input.device.app_version,
+          // Las señales entran ya solo durante pairing y se persisten como
+          // HMAC: ni el GUID, ANDROID_ID ni la clave pública quedan en claro.
+          installationIdHash: input.identity
+            ? this.hashIdentitySignal(input.identity.installation_id)
+            : null,
+          androidIdHash: input.identity ? this.hashIdentitySignal(input.identity.android_id) : null,
+          publicKeyThumbprint: input.identity
+            ? this.hashIdentitySignal(input.identity.public_key)
+            : null,
         },
       });
 
@@ -110,6 +128,160 @@ export class DeviceGatewayService {
       tenant: { id: result.tenant.id, business_name: result.tenant.businessName },
       monitored_packages: monitoredPackages,
     };
+  }
+
+  private assertIdentitySignature(input: PairDeviceInput): void {
+    if (!input.identity) return;
+    try {
+      const publicKey = createPublicKey({
+        key: Buffer.from(input.identity.public_key, 'base64'),
+        format: 'der',
+        type: 'spki',
+      });
+      const payload = Buffer.from(
+        [
+          'v1',
+          input.code,
+          input.identity.installation_id,
+          input.identity.android_id,
+          input.identity.public_key,
+          input.device.manufacturer ?? '',
+          input.device.model ?? '',
+          input.device.os_version ?? '',
+          input.device.app_version ?? '',
+        ].join('\n'),
+        'utf8',
+      );
+      const valid = verify(
+        'sha256',
+        payload,
+        publicKey,
+        Buffer.from(input.identity.request_signature, 'base64'),
+      );
+      if (!valid) throw new Error('invalid signature');
+    } catch {
+      throw new ApiHttpException(
+        HttpStatus.FORBIDDEN,
+        'DEVICE_INTEGRITY_REQUIRED',
+        'No pudimos validar la identidad de este dispositivo.',
+      );
+    }
+  }
+
+  private hashIdentitySignal(value: string): string {
+    return `v1:${this.tokenService.hashOpaqueToken(value)}`;
+  }
+
+  /** Reclama señales solo para tenants en trial. Un reclamo propio permite reinstalar;
+   * uno de otro tenant evita que un correo nuevo consiga un segundo trial. */
+  private async claimTrialIdentities(
+    tx: ScopedClient,
+    tenantId: string,
+    input: PairDeviceInput,
+  ): Promise<void> {
+    const mode = this.identityRollout.modeFor(tenantId);
+    if (mode === 'OFF') return;
+
+    // El control ant-abuso solo pertenece al alta de un trial. Una cuenta que
+    // ya paga no puede quedar bloqueada por un cliente Android antiguo.
+    const subscription = await tx.subscription.findFirst({
+      where: { tenantId },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (subscription?.plan.code !== 'TRIAL') return;
+
+    const identity = input.identity;
+    if (!identity) {
+      this.metrics.trialIdentityPairingsTotal.inc({ mode, outcome: 'missing_identity' });
+      if (mode === 'ENFORCE') {
+        throw new ApiHttpException(
+          HttpStatus.FORBIDDEN,
+          'DEVICE_INTEGRITY_REQUIRED',
+          'Actualiza la aplicación para validar la identidad de este dispositivo.',
+        );
+      }
+      return;
+    }
+    try {
+      this.assertIdentitySignature(input);
+    } catch (error) {
+      this.metrics.trialIdentityPairingsTotal.inc({ mode, outcome: 'invalid_signature' });
+      throw error;
+    }
+
+    const signals: Array<{ kind: TrialIdentityKind; valueHash: string }> = [
+      {
+        kind: TrialIdentityKind.ANDROID_ID,
+        valueHash: this.hashIdentitySignal(identity.android_id),
+      },
+      {
+        kind: TrialIdentityKind.INSTALLATION_KEY,
+        valueHash: this.hashIdentitySignal(identity.public_key),
+      },
+    ];
+    const [androidSignal, keySignal] = signals;
+    const inserted = await tx.$queryRaw<Array<{ id: string }>>`
+      INSERT INTO "trial_identity_claims" ("kind", "value_hash", "tenant_id")
+      VALUES
+        (${androidSignal!.kind}::"trial_identity_kind", ${androidSignal!.valueHash}, ${tenantId}::uuid),
+        (${keySignal!.kind}::"trial_identity_kind", ${keySignal!.valueHash}, ${tenantId}::uuid)
+      ON CONFLICT ("kind", "value_hash") DO NOTHING
+      RETURNING "id"
+    `;
+    if (inserted.length === signals.length) {
+      this.metrics.trialIdentityPairingsTotal.inc({ mode, outcome: 'accepted' });
+      return;
+    }
+
+    const existing = await tx.trialIdentityClaim.findMany({
+      where: { OR: signals },
+    });
+    const conflicting = existing.filter((claim) => claim.tenantId !== tenantId);
+    if (conflicting.length > 0 && mode === 'ENFORCE') {
+      this.metrics.trialIdentityPairingsTotal.inc({ mode, outcome: 'reuse_rejected' });
+      throw new ApiHttpException(
+        HttpStatus.FORBIDDEN,
+        'TRIAL_ALREADY_USED',
+        'No podemos habilitar otra prueba gratuita para esta cuenta.',
+      );
+    }
+    if (conflicting.length > 0) {
+      // No conservar la otra señal si solo una chocó: una observación nunca
+      // debe crear propiedad parcial que bloquee después al tenant legítimo.
+      if (inserted.length > 0) {
+        await tx.trialIdentityClaim.deleteMany({
+          where: { id: { in: inserted.map((claim) => claim.id) } },
+        });
+      }
+      await Promise.all(
+        conflicting.map((claim) =>
+          tx.auditEvent.create({
+            data: {
+              tenantId,
+              action: 'trial.identity_reuse_observed',
+              actorType: 'DEVICE',
+              resourceType: 'trial_identity_claim',
+              resourceId: claim.id,
+              metadata: { kind: claim.kind },
+            },
+          }),
+        ),
+      );
+      this.metrics.trialIdentityPairingsTotal.inc({ mode, outcome: 'reuse_observed' });
+      return;
+    }
+
+    const ownExistingIds = existing
+      .filter((claim) => !inserted.some((created) => created.id === claim.id))
+      .map((claim) => claim.id);
+    if (ownExistingIds.length > 0) {
+      await tx.trialIdentityClaim.updateMany({
+        where: { id: { in: ownExistingIds } },
+        data: { lastSeenAt: new Date() },
+      });
+    }
+    this.metrics.trialIdentityPairingsTotal.inc({ mode, outcome: 'accepted' });
   }
 
   async heartbeat(device: DeviceContext, input: DeviceHeartbeatInput): Promise<HeartbeatResponse> {
@@ -191,6 +363,29 @@ export class DeviceGatewayService {
           })
         : null;
       const limits = subscription?.plan.limits as PlanLimits | undefined;
+      const isTrial = subscription?.plan.code === 'TRIAL';
+      const trialWindow = isTrial
+        ? this.entitlementService.resolveDayWindow(tenant.timezone, new Date())
+        : null;
+      const [trialDayUsage, trialTotalUsage] =
+        isTrial && subscription && trialWindow
+          ? await Promise.all([
+              tx.usageBucket.findFirst({
+                where: {
+                  tenantId: device.tenantId,
+                  windowType: UsageWindowType.DAY,
+                  windowStart: trialWindow.start,
+                },
+              }),
+              tx.usageBucket.findFirst({
+                where: {
+                  tenantId: device.tenantId,
+                  windowType: UsageWindowType.SUBSCRIPTION_PERIOD,
+                  windowStart: subscription.createdAt,
+                },
+              }),
+            ])
+          : [null, null];
 
       return {
         tenant: { id: tenant.id, business_name: tenant.businessName },
@@ -204,9 +399,19 @@ export class DeviceGatewayService {
               plan_code: subscription.plan.code,
               plan_name: subscription.plan.displayName,
               status: subscription.status,
+              access_state: subscription.status,
               period_end: subscription.periodEnd.toISOString(),
               transactions_used: usage?.transactionsCount ?? 0,
               transactions_limit: limits?.transactions_per_month ?? -1,
+              trial:
+                isTrial && trialWindow
+                  ? {
+                      ends_at: subscription.trialEndsAt?.toISOString() ?? null,
+                      transactions_today: trialDayUsage?.used ?? 0,
+                      transactions_total: trialTotalUsage?.used ?? 0,
+                      daily_reset_at: trialWindow.end.toISOString(),
+                    }
+                  : null,
             }
           : null,
         recent_activity: recentActivity.map((transaction) => ({

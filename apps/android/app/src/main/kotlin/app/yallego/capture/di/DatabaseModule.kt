@@ -21,6 +21,7 @@ object DatabaseModule {
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "yallego.db")
             .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_2_3)
             .build()
 
     @Provides
@@ -48,6 +49,18 @@ object DatabaseModule {
                     "ON queued_notifications(created_at_epoch_ms)",
             )
             db.execSQL("DROP TABLE IF EXISTS _database_marker")
+        }
+    }
+
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE queued_notifications ADD COLUMN blocked_reason TEXT")
+            db.execSQL("ALTER TABLE queued_notifications ADD COLUMN blocked_at_epoch_ms INTEGER")
+            db.execSQL("ALTER TABLE queued_notifications ADD COLUMN retry_after_epoch_ms INTEGER")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_queued_notifications_retry_after_epoch_ms " +
+                    "ON queued_notifications(retry_after_epoch_ms)",
+            )
         }
     }
 }

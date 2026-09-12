@@ -23,6 +23,15 @@ const deviceMetadataSchema = z.strictObject({
 export const pairDeviceSchema = z.strictObject({
   code: z.string().trim().min(6).max(16),
   device: deviceMetadataSchema,
+  identity: z
+    .strictObject({
+      installation_id: z.string().uuid(),
+      android_id: z.string().trim().min(8).max(128),
+      public_key: z.string().trim().min(32).max(2_048),
+      request_signature: z.string().trim().min(32).max(1_024),
+      integrity_token: z.string().trim().min(32).max(20_000).optional(),
+    })
+    .optional(),
 });
 
 export const deviceHeartbeatSchema = z.strictObject({

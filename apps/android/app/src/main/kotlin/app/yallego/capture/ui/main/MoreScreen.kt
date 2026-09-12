@@ -273,6 +273,7 @@ private fun PlanCard(
             fontWeight = FontWeight.SemiBold,
         )
         if (subscription != null) {
+            val trial = subscription.trial
             val unlimited = subscription.transactionsLimit < 0
             val progress = if (unlimited || subscription.transactionsLimit == 0) {
                 0f
@@ -281,10 +282,35 @@ private fun PlanCard(
             }
             Spacer(Modifier.height(5.dp))
             Text(
-                stringResource(R.string.more_plan_renews, formatPlanDate(subscription.periodEndIso)),
+                if (trial?.endsAtIso != null) {
+                    stringResource(R.string.more_trial_ends, formatPlanDate(trial.endsAtIso))
+                } else {
+                    stringResource(R.string.more_plan_renews, formatPlanDate(subscription.periodEndIso))
+                },
                 color = AppTextSecondary,
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (trial != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (subscription.accessState == "EXPIRED" || subscription.accessState == "CANCELED") {
+                        stringResource(R.string.more_trial_ended)
+                    } else {
+                        stringResource(R.string.more_trial_active)
+                    },
+                    color = if (subscription.accessState == "EXPIRED" || subscription.accessState == "CANCELED") AppTextSecondary else AppBlueBright,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Text(
+                    stringResource(
+                        R.string.more_trial_usage,
+                        trial.transactionsToday,
+                        trial.transactionsTotal,
+                    ),
+                    color = AppTextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Spacer(Modifier.height(18.dp))
             Row {
                 Text(

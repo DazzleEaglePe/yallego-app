@@ -63,6 +63,7 @@ export class ParseNotificationUseCase {
         raw.tenantId,
         raw.id,
         'No hay una billetera registrada para este paquete de Android.',
+        raw.quotaWindowStart,
       );
       return;
     }
@@ -74,6 +75,7 @@ export class ParseNotificationUseCase {
         raw.tenantId,
         raw.id,
         `Todavía no existe un parser para "${wallet.code}".`,
+        raw.quotaWindowStart,
       );
       return;
     }
@@ -85,6 +87,7 @@ export class ParseNotificationUseCase {
         raw.tenantId,
         raw.id,
         `No hay patrones activos configurados para "${wallet.code}".`,
+        raw.quotaWindowStart,
       );
       return;
     }
@@ -106,6 +109,7 @@ export class ParseNotificationUseCase {
         raw.tenantId,
         raw.id,
         'La notificación no coincide con ningún patrón activo.',
+        raw.quotaWindowStart,
         activePatterns.patternId,
       );
       return;
@@ -116,6 +120,7 @@ export class ParseNotificationUseCase {
       raw.tenantId,
       raw.deviceId,
       raw.id,
+      raw.quotaWindowStart,
       wallet.id,
       activePatterns.patternId,
       result,
@@ -126,6 +131,7 @@ export class ParseNotificationUseCase {
     tenantId: string,
     deviceId: string,
     rawNotificationId: string,
+    quotaWindowStart: Date | null,
     walletId: string,
     parserPatternId: string,
     result: NormalizedTransaction,
@@ -161,7 +167,7 @@ export class ParseNotificationUseCase {
       // transacción que crea la Transaction (docs/14 §4.3); no-op fuera de
       // TRIAL. El guard de idempotencia en doExecute (parseStatus !==
       // PENDING) evita un doble commit ante un reintento de BullMQ.
-      await this.entitlementService.commitQuota(tx, tenantId);
+      await this.entitlementService.commitQuota(tx, tenantId, quotaWindowStart);
 
       return created;
     });
@@ -190,6 +196,7 @@ export class ParseNotificationUseCase {
     tenantId: string,
     rawNotificationId: string,
     reason: string,
+    quotaWindowStart: Date | null,
     parserPatternId?: string,
   ): Promise<void> {
     await this.prisma.withoutTenantScope((tx) =>
@@ -204,6 +211,6 @@ export class ParseNotificationUseCase {
     );
     // Una notificación UNMATCHED nunca genera Transaction: la reserva que
     // tomó en la ingesta se libera, no debe consumir cuota del trial.
-    await this.entitlementService.releaseQuota(tenantId, 1);
+    await this.entitlementService.releaseQuota(tenantId, 1, quotaWindowStart);
   }
 }

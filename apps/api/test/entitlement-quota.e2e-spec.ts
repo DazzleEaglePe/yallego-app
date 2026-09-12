@@ -24,6 +24,7 @@ integrationDescribe('EntitlementService quota reservation under concurrency', ()
   let app: INestApplication;
   let prisma: PrismaService;
   let entitlementService: EntitlementService;
+  let reservationDayWindowStart: Date;
   const suffix = randomUUID().slice(0, 8);
   const ownerEmail = `dueno-quota-${suffix}@negocio.pe`;
   const password = 'clave-super-segura-1';
@@ -110,5 +111,30 @@ integrationDescribe('EntitlementService quota reservation under concurrency', ()
     );
     expect(bucket?.reserved).toBe(dailyLimit);
     expect(bucket?.used).toBe(0);
+    reservationDayWindowStart = results.find(
+      (result) => result.reservedCount === 1,
+    )!.dailyWindowStart!;
+  }, 30_000);
+
+  it('commits a delayed parse into the day in which it reserved quota', async () => {
+    // Simula que BullMQ procesa una notificación recién pasada la medianoche
+    // local. La confirmación debe consumir la reserva del día anterior, no
+    // crear o modificar un bucket del día nuevo.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(reservationDayWindowStart.getTime() + 26 * 60 * 60 * 1_000));
+    try {
+      await prisma.withTenant(tenantId, (tx) =>
+        entitlementService.commitQuota(tx, tenantId, reservationDayWindowStart),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const reservedDay = await prisma.withoutTenantScope((tx) =>
+      tx.usageBucket.findFirst({
+        where: { tenantId, windowType: 'DAY', windowStart: reservationDayWindowStart },
+      }),
+    );
+    expect(reservedDay).toMatchObject({ used: 1, reserved: 49 });
   }, 30_000);
 });
