@@ -89,7 +89,7 @@ export default function TransactionsPage() {
       </section>
 
       <section className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        <div className="hidden grid-cols-[minmax(190px,1fr)_110px_130px_92px_112px_170px] gap-4 border-b border-neutral-200 bg-neutral-50 px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500 xl:grid">
+        <div className="hidden grid-cols-[minmax(180px,1fr)_100px_110px_80px_116px_210px] gap-3 border-b border-neutral-200 bg-neutral-50 px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500 xl:grid">
           <span>Remitente</span>
           <span>Billetera</span>
           <span className="text-right">Importe</span>

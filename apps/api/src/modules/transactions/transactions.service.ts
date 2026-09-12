@@ -29,6 +29,25 @@ const DISPUTABLE_STATUSES: TransactionStatus[] = [
   TransactionStatus.CAPTURED,
   TransactionStatus.CONFIRMED,
 ];
+const SUMMARY_DEFAULT_DAYS = 14;
+const SUMMARY_FUTURE_TOLERANCE_MS = 5 * 60 * 1_000;
+
+/**
+ * Android entrega la hora publicada por el dispositivo. Un reloj adelantado unos
+ * segundos no debe dejar un cobro recién detectado fuera de los indicadores.
+ */
+export function resolveTransactionsSummaryPeriod(
+  query: TransactionsSummaryQuery,
+  now = new Date(),
+): { from: Date; to: Date } {
+  const to = query.to ? new Date(query.to) : new Date(now.getTime() + SUMMARY_FUTURE_TOLERANCE_MS);
+  const reference = query.to ? to : now;
+  const from = query.from
+    ? new Date(query.from)
+    : new Date(reference.getTime() - (SUMMARY_DEFAULT_DAYS - 1) * 24 * 60 * 60 * 1_000);
+
+  return { from, to };
+}
 
 /** Quien confirma o disputa: un usuario del panel, o una integración autenticada por API key. */
 export type TransactionActor =
@@ -174,10 +193,7 @@ export class TransactionsService {
     tenant: TenantResourceContext,
     query: TransactionsSummaryQuery,
   ): Promise<TransactionsSummaryResponse> {
-    const to = query.to ? new Date(query.to) : new Date();
-    const from = query.from
-      ? new Date(query.from)
-      : new Date(to.getTime() - 13 * 24 * 60 * 60 * 1_000);
+    const { from, to } = resolveTransactionsSummaryPeriod(query);
 
     return this.prisma.withTenant(tenant.id, async (tx) => {
       const occurredAt = { gte: from, lte: to };

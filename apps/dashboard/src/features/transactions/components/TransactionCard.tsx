@@ -31,9 +31,9 @@ export function TransactionCard({
     canReview && transaction.status !== 'DISPUTED' && transaction.status !== 'VOIDED';
 
   return (
-    <div className="grid gap-3 px-4 py-4 transition hover:bg-neutral-50 sm:px-5 lg:px-6 xl:grid-cols-[minmax(0,1fr)_170px] xl:items-center xl:gap-4">
+    <div className="grid gap-3 px-4 py-4 transition hover:bg-neutral-50 sm:px-5 lg:px-6 xl:grid-cols-[minmax(0,1fr)_210px] xl:items-center">
       <button
-        className="grid min-w-0 gap-3 text-left outline-none focus-visible:rounded-lg xl:grid-cols-[minmax(190px,1fr)_110px_130px_92px_112px] xl:items-center xl:gap-4"
+        className="grid min-w-0 gap-3 text-left outline-none focus-visible:rounded-lg xl:grid-cols-[minmax(180px,1fr)_100px_110px_80px_116px] xl:items-center"
         onClick={() => onSelect(transaction)}
         type="button"
       >
@@ -65,15 +65,15 @@ export function TransactionCard({
           {transaction.security_code ?? '—'}
         </span>
 
-        <span className="w-fit xl:justify-self-end">
+        <span className="w-fit whitespace-nowrap xl:justify-self-end">
           <StatusBadge status={transaction.status} />
         </span>
       </button>
 
-      <div className="flex items-center gap-1 xl:justify-end">
+      <div className="flex flex-wrap items-center gap-2 xl:flex-nowrap xl:justify-end">
         {canConfirm && (
           <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-success-500 px-3 py-2 text-xs font-semibold text-neutral-950 transition hover:brightness-110 disabled:opacity-50"
+            className="inline-flex whitespace-nowrap items-center gap-1.5 rounded-lg bg-success-500 px-3 py-2 text-xs font-semibold text-neutral-950 transition hover:brightness-110 disabled:opacity-50"
             disabled={isBusy}
             onClick={() => onConfirm(transaction)}
             type="button"
@@ -85,7 +85,7 @@ export function TransactionCard({
         {canDispute && (
           <button
             aria-label={`Disputar cobro de ${transaction.sender_name ?? 'remitente no identificado'}`}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
+            className="inline-flex whitespace-nowrap items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
             disabled={isBusy}
             onClick={() => onDispute(transaction)}
             type="button"
