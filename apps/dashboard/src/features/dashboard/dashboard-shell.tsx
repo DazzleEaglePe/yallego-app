@@ -27,11 +27,12 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
   const page = getPageMeta(pathname);
 
   return (
-    <div className="dashboard-minimal-theme min-h-screen bg-[#f7f7f8] text-neutral-950 lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
-      <aside className="hidden h-screen flex-col border-r border-neutral-200/80 bg-white px-3.5 py-5 lg:sticky lg:top-0 lg:flex">
+    <div className="dashboard-noir-theme relative min-h-screen overflow-x-clip bg-[#09090a] text-neutral-100 lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+      <div aria-hidden="true" className="dashboard-ambient" />
+      <aside className="relative z-10 hidden h-screen flex-col border-r border-white/[0.07] bg-[#0a0a0b]/95 px-3 py-5 lg:sticky lg:top-0 lg:flex">
         <div className="px-1">
-          <BrandMark />
-          <div className="mt-6 border-b border-neutral-200 pb-5">
+          <BrandMark inverse />
+          <div className="mt-6 border-b border-white/[0.07] pb-5">
             <TenantSwitcher />
           </div>
         </div>
@@ -43,10 +44,10 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
 
             return (
               <div
-                className="border-t border-neutral-100 py-4 first:border-t-0 first:pt-0"
+                className="border-t border-white/[0.055] py-4 first:border-t-0 first:pt-0"
                 key={section}
               >
-                <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                <p className="px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
                   {section}
                 </p>
                 <div className="mt-2 space-y-1">
@@ -59,14 +60,14 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                         aria-current={isActive ? 'page' : undefined}
                         className={
                           isActive
-                            ? 'flex items-center gap-3 rounded-lg bg-neutral-100 px-3 py-2.5 text-sm font-semibold text-neutral-950 outline-none ring-offset-white transition focus-visible:ring-2 focus-visible:ring-brand-500'
-                            : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-500 outline-none ring-offset-white transition hover:bg-neutral-50 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-brand-500'
+                            ? 'flex items-center gap-3 rounded-lg border border-white/[0.08] bg-white/[0.075] px-3 py-2.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] outline-none ring-offset-[#0a0a0b] transition focus-visible:ring-2 focus-visible:ring-brand-500'
+                            : 'flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-neutral-500 outline-none ring-offset-[#0a0a0b] transition hover:border-white/[0.05] hover:bg-white/[0.035] hover:text-neutral-200 focus-visible:ring-2 focus-visible:ring-brand-500'
                         }
                         href={item.href}
                         key={item.label}
                       >
                         <DashboardIcon
-                          className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-brand-600' : ''}`}
+                          className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-brand-400' : ''}`}
                           name={item.icon}
                         />
                         <span>{item.label}</span>
@@ -79,15 +80,38 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           })}
         </nav>
 
-        <div className="mt-auto border-t border-neutral-200 px-1 pt-4">
+        {canManageSubscription && (
+          <Link
+            className="group mb-3 block overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-br from-white/[0.07] to-white/[0.025] p-3.5 transition hover:border-brand-400/35 hover:from-brand-500/10"
+            href="/membresia"
+          >
+            <span className="flex items-center justify-between">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/15 text-brand-300">
+                <DashboardIcon className="h-4 w-4" name="ticket" />
+              </span>
+              <DashboardIcon
+                className="h-3.5 w-3.5 text-neutral-600 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-300"
+                name="arrow-up-right"
+              />
+            </span>
+            <span className="mt-3 block text-xs font-semibold text-neutral-100">
+              Plan y consumo
+            </span>
+            <span className="mt-1 block text-[11px] leading-4 text-neutral-500">
+              Revisa límites y facturación
+            </span>
+          </Link>
+        )}
+
+        <div className="mt-auto border-t border-white/[0.07] px-1 pt-4">
           <DashboardAccountMenu />
         </div>
       </aside>
 
-      <div className="min-w-0 bg-[#f7f7f8]">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-neutral-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+      <div className="relative z-10 min-w-0 bg-[#0d0d0f]/90">
+        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-3 border-b border-white/[0.07] bg-[#0d0d0f]/85 px-4 backdrop-blur-2xl sm:px-6 lg:px-8">
           <div className="lg:hidden">
-            <BrandMark compact />
+            <BrandMark compact inverse />
           </div>
 
           <div className="min-w-0 flex-1 sm:hidden">
@@ -95,27 +119,27 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           </div>
 
           <div className="hidden items-center gap-3 text-sm lg:flex">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-neutral-100 text-neutral-600">
+            <span className="grid h-8 w-8 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.045] text-neutral-400">
               <DashboardIcon className="h-4 w-4" name={page.icon} />
             </span>
             <span className="text-neutral-500">{page.section}</span>
-            <span className="text-neutral-300">/</span>
-            <span className="font-medium text-neutral-700">{page.title}</span>
+            <span className="text-white/20">/</span>
+            <span className="font-medium text-neutral-200">{page.title}</span>
           </div>
 
           <span className="ml-auto hidden min-w-0 items-center gap-3 sm:flex">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-50 text-[10px] font-bold text-neutral-700">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.09] bg-white/[0.055] text-[10px] font-bold text-neutral-200">
               {getInitials(tenant?.business_name)}
             </span>
             <span className="min-w-0">
               <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
                 Administrando
               </span>
-              <span className="block max-w-48 truncate text-sm font-semibold text-neutral-900">
+              <span className="block max-w-48 truncate text-sm font-semibold text-neutral-100">
                 {tenant?.business_name ?? 'Mi negocio'}
               </span>
             </span>
-            <span className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[10px] font-semibold text-neutral-500">
+            <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[10px] font-semibold text-neutral-400">
               {formatRoleLabel(tenant?.role)}
             </span>
           </span>
@@ -126,7 +150,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
 
         <nav
           aria-label="Navegación móvil"
-          className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-xl border border-neutral-200 bg-white/95 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.10)] backdrop-blur-xl lg:hidden"
+          className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-around rounded-2xl border border-white/[0.1] bg-[#171719]/95 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.5)] backdrop-blur-2xl lg:hidden"
         >
           {primaryMobileNavigation.map((item) => {
             const isActive = item.href !== null && pathname?.startsWith(item.href);
@@ -135,8 +159,8 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                 aria-current={isActive ? 'page' : undefined}
                 className={
                   isActive
-                    ? 'inline-flex min-w-16 flex-col items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-[10px] font-semibold text-white'
-                    : 'inline-flex min-w-16 flex-col items-center gap-1 rounded-lg px-3 py-2 text-[10px] font-medium text-neutral-500'
+                    ? 'inline-flex min-w-16 flex-col items-center gap-1 rounded-xl bg-[#f4f4f5] px-3 py-2 text-[10px] font-semibold text-[#0b0b0c]'
+                    : 'inline-flex min-w-16 flex-col items-center gap-1 rounded-xl px-3 py-2 text-[10px] font-medium text-neutral-500'
                 }
                 href={item.href}
                 key={item.label}
@@ -152,7 +176,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                 <DashboardIcon className="h-[18px] w-[18px]" name="menu" />
                 Más
               </summary>
-              <div className="absolute bottom-[calc(100%+12px)] right-0 w-56 overflow-hidden rounded-xl border border-neutral-200 bg-white p-2 shadow-xl">
+              <div className="absolute bottom-[calc(100%+12px)] right-0 w-56 overflow-hidden rounded-xl border border-white/[0.1] bg-[#19191c] p-2 shadow-2xl">
                 {secondaryMobileNavigation.map((item) => {
                   const isActive = item.href !== null && pathname?.startsWith(item.href);
                   return item.href ? (
@@ -160,8 +184,8 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
                       aria-current={isActive ? 'page' : undefined}
                       className={
                         isActive
-                          ? 'flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2.5 text-sm font-semibold text-white'
-                          : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-neutral-600 hover:bg-neutral-50'
+                          ? 'flex items-center gap-3 rounded-lg bg-[#f4f4f5] px-3 py-2.5 text-sm font-semibold text-[#0b0b0c]'
+                          : 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-neutral-400 hover:bg-white/[0.05] hover:text-white'
                       }
                       href={item.href}
                       key={item.label}
@@ -176,7 +200,7 @@ export function DashboardShell({ children }: Readonly<{ children: ReactNode }>) 
           )}
         </nav>
 
-        <main className="mx-auto max-w-[1440px] px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
+        <main className="mx-auto max-w-[1540px] px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-12 lg:pt-9">
           <SubscriptionUsageNotice enabled={canManageSubscription} tenantId={tenant?.id} />
           <DashboardMotion routeKey={pathname}>{children}</DashboardMotion>
         </main>

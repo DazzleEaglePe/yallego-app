@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { getActiveTenant, useAuthSession } from '@/features/auth/auth-session';
-import { DashboardIcon } from '@/features/dashboard/dashboard-icon';
+import { DashboardIcon, type DashboardIconName } from '@/features/dashboard/dashboard-icon';
 import { PairDeviceDialog } from '@/features/devices/components/PairDeviceDialog';
 import { useDevices } from '@/features/devices/hooks/use-devices';
 import { fetchTransactions } from '@/features/transactions/api/transactions';
@@ -115,12 +115,19 @@ export default function DashboardHomePage() {
   const maxActivity = Math.max(...activityDays.map((day) => day.amount), 0);
   const activityTotal = activityDays.reduce((sum, day) => sum + day.amount, 0);
 
-  const metrics = [
+  const metrics: Array<{
+    detail: string;
+    icon: DashboardIconName;
+    label: string;
+    signal?: boolean;
+    value: string;
+  }> = [
     {
       detail:
         confirmedTotals && confirmedTotals.count > 0
           ? `${confirmedTotals.count} cobro${confirmedTotals.count === 1 ? '' : 's'} confirmado${confirmedTotals.count === 1 ? '' : 's'}`
           : 'Sin cobros confirmados',
+      icon: 'wallet',
       label: `Cobrado (${DASHBOARD_PERIOD_DAYS} días)`,
       signal: true,
       value: confirmedTotals
@@ -134,6 +141,7 @@ export default function DashboardHomePage() {
             ? `${disputedCount} disputada${disputedCount === 1 ? '' : 's'}`
             : 'Sin disputas'
           : 'Esperando el primer cobro',
+      icon: 'activity',
       label: 'Transacciones detectadas',
       value: String(totals?.count ?? 0),
     },
@@ -142,6 +150,7 @@ export default function DashboardHomePage() {
         confirmedTotals && confirmedTotals.count > 0
           ? 'Promedio de cobros confirmados'
           : 'Se calcula con el primer cobro confirmado',
+      icon: 'ticket',
       label: 'Ticket promedio',
       value:
         confirmedTotals && confirmedTotals.count > 0
@@ -152,6 +161,7 @@ export default function DashboardHomePage() {
       detail: hasAnyDevice
         ? `${onlineDevices.length} en línea${degradedDevices.length ? ` · ${degradedDevices.length} con señal retrasada` : ''} · ${activeDevices.length} activo${activeDevices.length === 1 ? '' : 's'}`
         : 'Vincula tu primer Android',
+      icon: 'device',
       label: 'Dispositivos',
       value: `${activeDevices.length} / ${deviceList.length}`,
     },
@@ -164,12 +174,17 @@ export default function DashboardHomePage() {
         data-animate
       >
         <div>
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-neutral-500">
-            <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-neutral-500">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-400 opacity-40" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-success-400" />
+            </span>
             <span className="first-letter:uppercase">{today}</span>
+            <span className="text-white/20">/</span>
+            <span>Operación en vivo</span>
           </div>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-neutral-950 sm:text-4xl">
-            {getGreeting()}, {firstName}
+          <h1 className="mt-4 max-w-3xl text-3xl font-semibold tracking-[-0.045em] text-neutral-950 sm:text-4xl lg:text-[42px] lg:leading-[1.08]">
+            {getGreeting()}, <span className="text-neutral-500">{firstName}.</span>
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
             Una vista clara de los cobros y del estado operativo de tu negocio.
@@ -206,22 +221,32 @@ export default function DashboardHomePage() {
         className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
       >
         {metrics.map((metric) => (
-          <Card className="px-5 py-5" data-animate key={metric.label}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-              {metric.label}
-            </p>
+          <Card
+            className="noir-kpi group relative overflow-hidden px-5 py-5"
+            data-animate
+            key={metric.label}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                {metric.label}
+              </p>
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/[0.07] bg-white/[0.035] text-neutral-500 transition duration-300 group-hover:border-brand-400/25 group-hover:text-brand-300">
+                <DashboardIcon className="h-4 w-4" name={metric.icon} />
+              </span>
+            </div>
             <p
-              className={`financial-value mt-3 text-2xl font-semibold ${metric.signal ? 'signal-value' : 'text-neutral-950'}`}
+              className={`financial-value mt-5 text-3xl font-semibold tracking-[-0.045em] ${metric.signal ? 'signal-value' : 'text-neutral-950'}`}
             >
               {metric.value}
             </p>
-            <p className="mt-1.5 text-xs text-neutral-500">{metric.detail}</p>
+            <p className="mt-2 min-h-4 text-xs text-neutral-500">{metric.detail}</p>
+            <span className="absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-gradient-to-r from-brand-500/70 to-transparent transition-transform duration-500 group-hover:scale-x-100" />
           </Card>
         ))}
       </section>
 
       <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.65fr)]">
-        <Card className="overflow-hidden" data-animate>
+        <Card className="noir-panel overflow-hidden" data-animate>
           <div className="flex flex-col gap-3 border-b border-neutral-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
               <h2 className="text-base font-semibold text-neutral-950">Actividad de cobros</h2>
@@ -240,7 +265,7 @@ export default function DashboardHomePage() {
               className="absolute inset-x-6 bottom-12 top-7 flex flex-col justify-between"
             >
               {[0, 1, 2, 3].map((line) => (
-                <span className="block border-t border-dashed border-neutral-200" key={line} />
+                <span className="block border-t border-dashed border-white/[0.065]" key={line} />
               ))}
             </div>
 
@@ -272,7 +297,7 @@ export default function DashboardHomePage() {
                   >
                     <div className="relative flex h-[calc(100%-28px)] items-end justify-center">
                       <span
-                        className={`w-full max-w-8 rounded-t-md transition-colors ${day.amount > 0 ? 'bg-success-500/80 group-hover:bg-success-500' : 'bg-neutral-800'}`}
+                        className={`w-full max-w-8 rounded-t-md transition-all duration-300 ${day.amount > 0 ? 'noir-bar group-hover:brightness-125' : 'bg-white/[0.065]'}`}
                         style={{ height }}
                         title={formatCurrency(day.amount.toFixed(2), 'PEN')}
                       />
@@ -298,7 +323,7 @@ export default function DashboardHomePage() {
         )}
       </section>
 
-      <Card className="mt-4 overflow-hidden" data-animate>
+      <Card className="noir-panel mt-4 overflow-hidden" data-animate>
         <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-base font-semibold text-neutral-950">Últimas transacciones</h2>
@@ -382,7 +407,7 @@ function OnboardingPanel({
   hasFirstTransaction: boolean;
 }>) {
   return (
-    <Card className="p-5 sm:p-6" data-animate id="primer-dispositivo">
+    <Card className="noir-panel p-5 sm:p-6" data-animate id="primer-dispositivo">
       <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-700">
         Puesta en marcha
       </span>
@@ -424,7 +449,7 @@ function SystemStatusPanel({
           : { badge: 'Configuración', status: 'Por vincular', tone: 'warning' as const };
 
   return (
-    <Card className="p-5 sm:p-6" data-animate>
+    <Card className="noir-panel p-5 sm:p-6" data-animate>
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
