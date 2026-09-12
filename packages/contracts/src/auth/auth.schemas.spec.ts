@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { registerSchema } from './auth.schemas';
+import { registerSchema, updateProfileSchema } from './auth.schemas';
 
 describe('registerSchema', () => {
   it('normalizes an email and accepts the approved registration contract', () => {
@@ -24,5 +24,17 @@ describe('registerSchema', () => {
         role: 'OWNER',
       }),
     ).toThrow();
+  });
+});
+
+describe('updateProfileSchema', () => {
+  it('normaliza el nombre visible', () => {
+    expect(updateProfileSchema.parse({ full_name: '  María Quispe  ' })).toEqual({
+      full_name: 'María Quispe',
+    });
+  });
+
+  it('rechaza nombres demasiado cortos', () => {
+    expect(updateProfileSchema.safeParse({ full_name: 'M' }).success).toBe(false);
   });
 });

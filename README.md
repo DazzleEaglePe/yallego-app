@@ -16,20 +16,32 @@ Este repositorio es un monorepo de `pnpm` y Turborepo. Contiene el backend NestJ
 corepack enable
 corepack pnpm install
 cp .env.example .env
-# Copia en .env las tres líneas generadas por:
-./tools/scripts/generate-jwt-keys.sh
+# Añade las claves al final; dotenv se queda con la última aparición de cada
+# variable, así que no hace falta editar las líneas vacías de arriba.
+./tools/scripts/generate-jwt-keys.sh >> .env
 corepack pnpm docker:up
+corepack pnpm db:migrate
+corepack pnpm db:seed
+
+# `apps/api` y `apps/dashboard` arrancan con el directorio de cada paquete
+# como working directory (tanto `turbo run dev` como `pnpm --filter`), así
+# que necesitan ver el `.env` de la raíz ahí también.
+ln -s ../../.env apps/api/.env
+ln -s ../../.env apps/dashboard/.env
+
 corepack pnpm dev:stack
 ```
 
 Servicios locales:
 
-| Servicio         | URL                               |
-| ---------------- | --------------------------------- |
-| Panel            | <http://localhost:3000>           |
-| API              | <http://localhost:3001>           |
-| Estado de la API | <http://localhost:3001/v1/health> |
-| Mailpit          | <http://localhost:8025>           |
+| Servicio                    | URL                                     |
+| --------------------------- | --------------------------------------- |
+| Panel                       | <http://localhost:3000>                 |
+| API                         | <http://localhost:3001>                 |
+| Estado de la API (liveness) | <http://localhost:3001/v1/health>       |
+| Estado de la API (DB+Redis) | <http://localhost:3001/v1/health/ready> |
+| Métricas (Prometheus)       | <http://localhost:3001/metrics>         |
+| Mailpit                     | <http://localhost:8025>                 |
 
 ## Comandos
 
@@ -44,6 +56,8 @@ corepack pnpm format:check
 ## Documentación
 
 La definición funcional y técnica aprobada está en [docs/README.md](./docs/README.md). El trabajo se ordena por los ocho sprints descritos en [docs/10_PLAN_DESARROLLO.md](./docs/10_PLAN_DESARROLLO.md).
+
+Para integrar contra la API pública, ver [docs/api-publica](./docs/api-publica/README.md) y la especificación [OpenAPI](./docs/openapi.yaml). Para operar el sistema, ver el [runbook de incidentes](./docs/runbook-incidentes.md), el [procedimiento de despliegue](./docs/12_DESPLIEGUE.md) y la [referencia de contenedores](./tools/docker/README.md).
 
 ## Convenciones
 

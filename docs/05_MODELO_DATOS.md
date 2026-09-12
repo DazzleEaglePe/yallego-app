@@ -751,11 +751,11 @@ INSERT INTO plans (code, display_name, price_monthly, price_semiannual, price_an
 ```sql
 INSERT INTO wallets (code, display_name, provider, issuer, android_package) VALUES
 ('YAPE',            'Yape',            'YAPE', 'BCP',        'com.bcp.innovacxion.yapeapp'),
-('PLIN_BBVA',       'Plin · BBVA',     'PLIN', 'BBVA',       'com.bbva.nxtapp'),
+('PLIN_BBVA',       'Plin · BBVA',     'PLIN', 'BBVA',       'com.bbva.nxt_peru'),
 ('PLIN_INTERBANK',  'Plin · Interbank','PLIN', 'INTERBANK',  'pe.com.interbank.mobilebanking'),
 ('PLIN_SCOTIABANK', 'Plin · Scotiabank','PLIN','SCOTIABANK', 'com.scotiabank.scotiabankperu'),
 ('PLIN_BANBIF',     'Plin · BanBif',   'PLIN', 'BANBIF',     'pe.banbif.mobilebanking'),
-('BIM',             'BIM',             'BIM',  'PDP',        'pe.pagoefectivo.bim');
+('BIM',             'BIM',             'BIM',  'PDP',        'com.pdp.bim');
 ```
 
 > ⚠️ **Verificación requerida:** los nombres de paquete deben confirmarse en un dispositivo Android real antes del despliegue. Se documenta el procedimiento en el plan de desarrollo (Sprint 3).

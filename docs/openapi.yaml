@@ -1,0 +1,584 @@
+openapi: 3.1.0
+info:
+  title: Yallegó — API pública
+  version: '1.0'
+  description: |
+    API pública de Yallegó para integradores externos (RF-API, docs/02_REQUERIMIENTOS_FUNCIONALES.md §8;
+    contrato completo en docs/06_API_CONTRACT.md).
+
+    Cubre únicamente las rutas bajo `/v1` que aceptan una **clave de API**
+    (`Authorization: Bearer yk_live_...`), además de una sesión del panel —
+    ambas comparten la misma base `/v1` (docs/06 §1.1). No incluye:
+    - `/internal/v1/*` — exclusivo de la app Android, autenticado con token de dispositivo.
+    - `/platform/v1/*` — administración interna de Yallegó, no es una superficie pública.
+    - Rutas de `/v1` que solo aceptan sesión de panel (auth, miembros, catálogo de
+      billeteras, suscripción): un integrador con clave de API no puede llamarlas.
+
+    Cada respuesta autenticada por clave de API incluye cabeceras de límite de
+    tasa (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`),
+    ver docs/06 §15.
+  contact:
+    name: Yallegó
+    url: https://yallego.app
+servers:
+  - url: https://api.yallego.app/v1
+    description: Producción
+  - url: http://localhost:3001/v1
+    description: Desarrollo local
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Transacciones
+    description: Consulta y confirmación de cobros capturados (docs/06 §7).
+  - name: Webhooks
+    description: Configuración y entrega de eventos salientes (docs/06 §9).
+  - name: Dispositivos
+    description: Estado de los dispositivos de captura vinculados (docs/06 §5, solo lectura).
+
+paths:
+  /transactions:
+    get:
+      tags: [Transacciones]
+      summary: Lista transacciones con filtros compuestos y paginación por cursor
+      security: [{ bearerAuth: [transactions:read] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: wallet_code, in: query, schema: { type: string } }
+        - { name: device_id, in: query, schema: { type: string, format: uuid } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TransactionStatus' } }
+        - { name: min_amount, in: query, schema: { type: number, minimum: 0 } }
+        - { name: max_amount, in: query, schema: { type: number, minimum: 0 } }
+        - {
+            name: search,
+            in: query,
+            schema: { type: string },
+            description: Coincide contra el nombre del remitente.,
+          }
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
+          }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Página de transacciones
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, pagination]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Transaction' } }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /transactions/summary:
+    get:
+      tags: [Transacciones]
+      summary: Totales agregados por período, billetera y día
+      security: [{ bearerAuth: [transactions:read] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Resumen del período
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: object
+                    properties:
+                      {
+                        from: { type: string, format: date-time },
+                        to: { type: string, format: date-time },
+                      }
+                  totals:
+                    type: object
+                    properties:
+                      count: { type: integer }
+                      amount: { type: string, example: '1250.00' }
+                      currency: { type: string, example: PEN }
+                      average: { type: string, example: '35.71' }
+                  by_wallet:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        {
+                          wallet_code: { type: string },
+                          count: { type: integer },
+                          amount: { type: string },
+                        }
+                  by_day:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        {
+                          date: { type: string, format: date },
+                          count: { type: integer },
+                          amount: { type: string },
+                        }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /transactions/export:
+    post:
+      tags: [Transacciones]
+      summary: Exporta las transacciones filtradas como CSV
+      security: [{ bearerAuth: [transactions:read] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: wallet_code, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TransactionStatus' } }
+      responses:
+        '200':
+          description: Archivo CSV
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /transactions/{id}:
+    get:
+      tags: [Transacciones]
+      summary: Detalle de una transacción
+      security: [{ bearerAuth: [transactions:read] }]
+      parameters: [{ $ref: '#/components/parameters/TransactionId' }]
+      responses:
+        '200':
+          description: Transacción
+          content: { application/json: { schema: { $ref: '#/components/schemas/Transaction' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /transactions/{id}/confirm:
+    post:
+      tags: [Transacciones]
+      summary: Confirma una transacción capturada
+      security: [{ bearerAuth: [transactions:write] }]
+      parameters: [{ $ref: '#/components/parameters/TransactionId' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { note: { type: string, maxLength: 500 } }
+      responses:
+        '200':
+          description: Transacción confirmada
+          content: { application/json: { schema: { $ref: '#/components/schemas/Transaction' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Solo una transacción capturada puede confirmarse
+          content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+
+  /transactions/{id}/dispute:
+    post:
+      tags: [Transacciones]
+      summary: Marca una transacción como disputada
+      security: [{ bearerAuth: [transactions:write] }]
+      parameters: [{ $ref: '#/components/parameters/TransactionId' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { note: { type: string, maxLength: 500 } }
+      responses:
+        '200':
+          description: Transacción disputada
+          content: { application/json: { schema: { $ref: '#/components/schemas/Transaction' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Una transacción anulada o ya disputada no puede volver a disputarse
+          content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+
+  /webhooks:
+    get:
+      tags: [Webhooks]
+      summary: Lista los endpoints de webhook del negocio
+      security: [{ bearerAuth: [webhooks:read] }]
+      responses:
+        '200':
+          description: Endpoints configurados
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/WebhookEndpoint' } }
+    post:
+      tags: [Webhooks]
+      summary: Registra un endpoint de webhook
+      security: [{ bearerAuth: [webhooks:write] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, subscribed_events]
+              properties:
+                url: { type: string, format: uri, description: 'Debe ser https://' }
+                subscribed_events:
+                  type: array
+                  minItems: 1
+                  items: { $ref: '#/components/schemas/WebhookEventType' }
+                description: { type: string, maxLength: 500 }
+            example:
+              url: https://mi-sistema.pe/hooks/yallego
+              subscribed_events: [transaction.created, device.offline]
+              description: Integración con sistema de ventas
+      responses:
+        '201':
+          description: Endpoint creado — `secret` se muestra una única vez
+          content:
+            {
+              application/json: { schema: { $ref: '#/components/schemas/WebhookEndpointCreated' } },
+            }
+        '400':
+          description: URL inválida, no HTTPS, o apunta a una red interna
+          content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+        '422': { $ref: '#/components/responses/PlanLimitExceeded' }
+
+  /webhooks/{id}:
+    get:
+      tags: [Webhooks]
+      summary: Detalle de un endpoint de webhook
+      security: [{ bearerAuth: [webhooks:read] }]
+      parameters: [{ $ref: '#/components/parameters/WebhookId' }]
+      responses:
+        '200':
+          {
+            description: Endpoint,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/WebhookEndpoint' } } },
+          }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Webhooks]
+      summary: Actualiza los eventos suscritos, la descripción o si está habilitado
+      security: [{ bearerAuth: [webhooks:write] }]
+      parameters: [{ $ref: '#/components/parameters/WebhookId' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subscribed_events:
+                  { type: array, items: { $ref: '#/components/schemas/WebhookEventType' } }
+                description: { type: string, maxLength: 500, nullable: true }
+                is_enabled: { type: boolean }
+      responses:
+        '200':
+          {
+            description: Endpoint actualizado,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/WebhookEndpoint' } } },
+          }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Webhooks]
+      summary: Elimina un endpoint de webhook
+      security: [{ bearerAuth: [webhooks:write] }]
+      parameters: [{ $ref: '#/components/parameters/WebhookId' }]
+      responses:
+        '204': { description: Eliminado }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /webhooks/{id}/test:
+    post:
+      tags: [Webhooks]
+      summary: Envía un evento `transaction.created` de prueba con datos ficticios
+      security: [{ bearerAuth: [webhooks:write] }]
+      parameters: [{ $ref: '#/components/parameters/WebhookId' }]
+      responses:
+        '200':
+          description: Entrega de prueba encolada
+          content:
+            application/json:
+              schema: { type: object, properties: { delivery_id: { type: string, format: uuid } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /webhooks/{id}/rotate-secret:
+    post:
+      tags: [Webhooks]
+      summary: Rota el secreto de firma con ventana de transición de 24h
+      description: |
+        Durante 24 horas tras la rotación, las entregas se firman con AMBOS
+        secretos: `X-Yallego-Signature` (el nuevo) y `X-Yallego-Signature-Previous`
+        (el anterior) — extensión no estándar sobre docs/06 §9.2, pensada para
+        no perder entregas mientras el integrador actualiza su verificación.
+      security: [{ bearerAuth: [webhooks:write] }]
+      parameters: [{ $ref: '#/components/parameters/WebhookId' }]
+      responses:
+        '200':
+          description: Nuevo secreto — se muestra una única vez
+          content:
+            {
+              application/json: { schema: { $ref: '#/components/schemas/WebhookEndpointCreated' } },
+            }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /webhooks/{id}/deliveries:
+    get:
+      tags: [Webhooks]
+      summary: Historial de entregas de un endpoint
+      security: [{ bearerAuth: [webhooks:read] }]
+      parameters:
+        - { $ref: '#/components/parameters/WebhookId' }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/DeliveryStatus' } }
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 20 },
+          }
+      responses:
+        '200':
+          description: Entregas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  { data: { type: array, items: { $ref: '#/components/schemas/WebhookDelivery' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /webhooks/{id}/deliveries/{deliveryId}/retry:
+    post:
+      tags: [Webhooks]
+      summary: Reintenta manualmente una entrega fallida o abandonada
+      security: [{ bearerAuth: [webhooks:write] }]
+      parameters:
+        - { $ref: '#/components/parameters/WebhookId' }
+        - { name: deliveryId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Reintento encolado
+          content:
+            application/json:
+              schema: { type: object, properties: { delivery_id: { type: string, format: uuid } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Solo se puede reintentar una entrega fallida o abandonada
+          content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+
+  /devices:
+    get:
+      tags: [Dispositivos]
+      summary: Lista los dispositivos de captura vinculados al negocio
+      security: [{ bearerAuth: [devices:read] }]
+      responses:
+        '200':
+          description: Dispositivos
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Device' } }
+
+  /devices/{id}:
+    get:
+      tags: [Dispositivos]
+      summary: Estado de un dispositivo
+      security: [{ bearerAuth: [devices:read] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          {
+            description: Dispositivo,
+            content: { application/json: { schema: { $ref: '#/components/schemas/Device' } } },
+          }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Acepta DOS credenciales sobre el mismo esquema `Authorization: Bearer <valor>`
+        (docs/06 §1.1, docs/07_SEGURIDAD_AUTH.md §3):
+        - **Clave de API**: `yk_live_...`, autorización por alcance (`scopes`
+          en la creación de la clave, `GET/POST /v1/api-keys` desde el panel).
+        - **Sesión del panel**: JWT de acceso, autorización por rol de membresía.
+
+        Las anotaciones `security` de cada operación listan el **alcance**
+        requerido cuando la credencial es una clave de API; una sesión de
+        panel se autoriza por rol (ADMIN u OPERATOR según la operación) en
+        vez de por alcance — ver docs/06 §1.1 y la tabla de cada recurso.
+
+  parameters:
+    TransactionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    WebhookId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthenticated:
+      description: Credencial ausente o inválida
+      content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+    Forbidden:
+      description: Sin permiso para el recurso, o la clave no tiene el alcance requerido
+      content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+    NotFound:
+      description: Recurso inexistente o fuera del tenant de la credencial
+      content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+    RateLimited:
+      description: Se superó el límite de solicitudes del plan
+      headers:
+        Retry-After: { schema: { type: integer }, description: Segundos hasta poder reintentar. }
+      content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+    PlanLimitExceeded:
+      description: Se alcanzó el límite del plan actual para este recurso
+      content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+
+  schemas:
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+              enum:
+                [
+                  VALIDATION_ERROR,
+                  UNAUTHENTICATED,
+                  TOKEN_EXPIRED,
+                  FORBIDDEN,
+                  PLAN_FEATURE_UNAVAILABLE,
+                  NOT_FOUND,
+                  CONFLICT,
+                  DUPLICATE_RESOURCE,
+                  PLAN_LIMIT_EXCEEDED,
+                  RATE_LIMIT_EXCEEDED,
+                  INTERNAL_ERROR,
+                  SERVICE_UNAVAILABLE,
+                ]
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+            request_id: { type: string, format: uuid }
+
+    Pagination:
+      type: object
+      required: [has_more, next_cursor, limit]
+      properties:
+        has_more: { type: boolean }
+        next_cursor: { type: string, nullable: true }
+        limit: { type: integer }
+
+    TransactionStatus:
+      type: string
+      enum: [CAPTURED, CONFIRMED, DISPUTED, VOIDED]
+
+    Transaction:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        wallet:
+          type: object
+          properties:
+            { code: { type: string, example: YAPE }, display_name: { type: string, example: Yape } }
+        sender_name: { type: string, nullable: true, example: 'JUAN CARLOS PEREZ R.' }
+        amount: { type: string, example: '35.50' }
+        currency: { type: string, example: PEN }
+        security_code: { type: string, nullable: true, example: '247' }
+        approval_code: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/TransactionStatus' }
+        occurred_at: { type: string, format: date-time }
+        confirmed_at: { type: string, format: date-time, nullable: true }
+        confirmed_by:
+          {
+            type: string,
+            format: uuid,
+            nullable: true,
+            description: 'Nulo si confirmó una integración por clave de API, no un usuario.',
+          }
+        device:
+          type: object
+          properties: { id: { type: string, format: uuid }, label: { type: string } }
+
+    WebhookEventType:
+      type: string
+      enum:
+        [
+          transaction.created,
+          transaction.confirmed,
+          transaction.disputed,
+          device.offline,
+          device.online,
+          notification.unmatched,
+        ]
+
+    WebhookEndpoint:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string, format: uri }
+        subscribed_events: { type: array, items: { $ref: '#/components/schemas/WebhookEventType' } }
+        description: { type: string, nullable: true }
+        is_enabled: { type: boolean }
+        consecutive_failures: { type: integer }
+        last_success_at: { type: string, format: date-time, nullable: true }
+        last_failure_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    WebhookEndpointCreated:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEndpoint'
+        - type: object
+          properties:
+            secret:
+              {
+                type: string,
+                example: 'whsec_3f6a8c2e1b5d7f9a3c6e9f8c2a1e4b7d',
+                description: 'Solo en esta respuesta; no se puede recuperar después.',
+              }
+
+    DeliveryStatus:
+      type: string
+      enum: [PENDING, IN_PROGRESS, DELIVERED, FAILED, ABANDONED]
+
+    WebhookDelivery:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        event_id: { type: string, format: uuid }
+        event_type: { $ref: '#/components/schemas/WebhookEventType' }
+        status: { $ref: '#/components/schemas/DeliveryStatus' }
+        attempts: { type: integer }
+        max_attempts: { type: integer, example: 8 }
+        next_attempt_at: { type: string, format: date-time, nullable: true }
+        last_attempt_at: { type: string, format: date-time, nullable: true }
+        last_status_code: { type: integer, nullable: true }
+        last_error: { type: string, nullable: true }
+        delivered_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    Device:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string }
+        manufacturer: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        os_version: { type: string, nullable: true }
+        app_version: { type: string, nullable: true }
+        status: { type: string, enum: [ACTIVE, PAUSED, REVOKED] }
+        connectivity: { type: string, enum: [ONLINE, OFFLINE] }
+        last_seen_at: { type: string, format: date-time, nullable: true }
+        paired_at: { type: string, format: date-time }

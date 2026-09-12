@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Patch,
   Post,
   Req,
   Res,
@@ -18,14 +19,20 @@ import {
   loginSchema,
   refreshSchema,
   registerSchema,
+  resendVerificationEmailSchema,
   resetPasswordSchema,
+  switchTenantSchema,
+  updateProfileSchema,
   verifyEmailSchema,
   type ChangePasswordInput,
   type ForgotPasswordInput,
   type LoginInput,
   type RefreshInput,
   type RegisterInput,
+  type ResendVerificationEmailInput,
   type ResetPasswordInput,
+  type SwitchTenantInput,
+  type UpdateProfileInput,
   type VerifyEmailInput,
 } from '@yallego/contracts';
 import type { Request, Response } from 'express';
@@ -59,6 +66,15 @@ export class AuthController {
     return this.authService.verifyEmail(input);
   }
 
+  @Post('resend-verification-email')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  resendVerificationEmail(
+    @Body(new ZodValidationPipe(resendVerificationEmailSchema)) input: ResendVerificationEmailInput,
+  ) {
+    return this.authService.resendVerificationEmail(input);
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -84,7 +100,11 @@ export class AuthController {
     if (!refreshToken) {
       throw new ApiHttpException(401, 'UNAUTHENTICATED', 'La sesión no es válida o expiró.');
     }
-    const session = await this.authService.refresh(refreshToken, requestMetadata(request));
+    const session = await this.authService.refresh(
+      refreshToken,
+      requestMetadata(request),
+      input.tenant_id,
+    );
     this.setRefreshCookie(response, session);
     return sessionResponse(session);
   }
@@ -133,6 +153,25 @@ export class AuthController {
     return this.authService.getProfile(session);
   }
 
+  @Patch('me')
+  @UseGuards(AccessTokenGuard)
+  updateProfile(
+    @CurrentSession() session: AccessTokenPayload,
+    @Body(new ZodValidationPipe(updateProfileSchema)) input: UpdateProfileInput,
+  ) {
+    return this.authService.updateProfile(session, input);
+  }
+
+  @Post('switch-tenant')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AccessTokenGuard)
+  switchTenant(
+    @CurrentSession() session: AccessTokenPayload,
+    @Body(new ZodValidationPipe(switchTenantSchema)) input: SwitchTenantInput,
+  ) {
+    return this.authService.switchTenant(session, input);
+  }
+
   private setRefreshCookie(response: Response, session: SessionResult): void {
     response.cookie(REFRESH_COOKIE, session.refreshToken, {
       ...this.cookieOptions(),
@@ -160,6 +199,7 @@ function requestMetadata(request: Request): RequestMetadata {
 function sessionResponse(session: SessionResult) {
   return {
     access_token: session.accessToken,
+    active_tenant_id: session.activeTenantId,
     expires_in: session.accessTokenExpiresIn,
     user: {
       id: session.user.id,

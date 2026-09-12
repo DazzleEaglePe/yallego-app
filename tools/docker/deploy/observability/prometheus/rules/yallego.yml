@@ -1,0 +1,57 @@
+groups:
+  - name: yallego-availability
+    rules:
+      - alert: YallegoApiUnavailable
+        expr: up{job="yallego-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: La API de Yallegó no responde al scraping
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHighServerErrorRate
+        expr: |
+          sum(rate(yallego_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(yallego_http_requests_total[5m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Más del 5% de solicitudes termina en error 5xx
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(yallego_http_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: La latencia HTTP p95 supera 500 ms
+          runbook: docs/runbook-incidentes.md
+
+  - name: yallego-domain-signals
+    rules:
+      - alert: YallegoParsingSuccessLow
+        expr: yallego_parsing_success_rate < 0.95
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: La tasa de parsing de una billetera está por debajo de 95%
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoWebhookQueueBacklog
+        expr: yallego_webhook_queue_depth > 200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: La cola de webhooks supera 200 trabajos pendientes
+          runbook: docs/runbook-incidentes.md

@@ -135,7 +135,7 @@ X-RateLimit-Reset: 1747051200
 // 200 OK
 {
   "access_token": "eyJhbGciOi...",
-  "refresh_token": "rt_9f8c2a1e...",
+  "active_tenant_id": "9f8c2a1e-...",
   "expires_in": 900,
   "user": { "id": "...", "email": "...", "full_name": "..." },
   "tenants": [
@@ -148,11 +148,20 @@ X-RateLimit-Reset: 1747051200
 
 ```json
 // Solicitud
-{ "refresh_token": "rt_9f8c2a1e..." }
+{ "tenant_id": "9f8c2a1e-..." }
 
 // 200 OK
-{ "access_token": "...", "refresh_token": "rt_nuevo...", "expires_in": 900 }
+{
+  "access_token": "...",
+  "active_tenant_id": "9f8c2a1e-...",
+  "expires_in": 900,
+  "user": { "id": "...", "email": "...", "full_name": "..." },
+  "tenants": []
+}
 ```
+
+El refresh token rota mediante una cookie `HttpOnly`; el cuerpo puede incluir `tenant_id` para
+conservar el negocio activo durante la renovación.
 
 ### Endpoints complementarios
 
@@ -163,7 +172,9 @@ X-RateLimit-Reset: 1747051200
 | `POST` | `/v1/auth/forgot-password` | Solicita enlace de recuperación        |
 | `POST` | `/v1/auth/reset-password`  | Establece nueva contraseña con token   |
 | `POST` | `/v1/auth/change-password` | Cambia contraseña con sesión activa    |
+| `POST` | `/v1/auth/switch-tenant`   | Cambia el negocio activo de la sesión  |
 | `GET`  | `/v1/auth/me`              | Perfil del usuario y tenants asociados |
+| `PATCH`| `/v1/auth/me`              | Actualiza el nombre visible del usuario|
 
 ---
 
@@ -271,7 +282,7 @@ X-RateLimit-Reset: 1747051200
 }
 ```
 
-> `connectivity` se deriva de `last_seen_at`: `ONLINE` si el último heartbeat ocurrió hace menos de 15 minutos; `OFFLINE` en caso contrario.
+> `connectivity` se deriva de `last_seen_at`: `ONLINE` durante los primeros 3 minutos, `DELAYED` entre 3 y 6 minutos y `OFFLINE` después de 6 minutos sin heartbeat.
 
 ---
 
@@ -622,7 +633,7 @@ const socket = io('wss://api.yallego.app/v1/realtime', {
   "tenant": { "id": "...", "business_name": "Bodega Santa Rosa" },
   "monitored_packages": [
     "com.bcp.innovacxion.yapeapp",
-    "com.bbva.nxtapp"
+    "com.bbva.nxt_peru"
   ]
 }
 ```
@@ -675,7 +686,7 @@ const socket = io('wss://api.yallego.app/v1/realtime', {
 // 200 OK
 {
   "server_time": "2026-05-14T18:37:12Z",
-  "monitored_packages": ["com.bcp.innovacxion.yapeapp", "com.bbva.nxtapp"],
+  "monitored_packages": ["com.bcp.innovacxion.yapeapp", "com.bbva.nxt_peru"],
   "config_version": 7
 }
 ```
@@ -683,6 +694,40 @@ const socket = io('wss://api.yallego.app/v1/realtime', {
 ### `GET /internal/v1/config`
 
 Devuelve la configuración vigente: paquetes a monitorear, intervalo de heartbeat, tamaño de lote. Permite ajustar comportamiento sin actualizar la aplicación.
+
+### `GET /internal/v1/mobile-overview`
+
+Devuelve la información operativa que necesita la navegación principal de la
+app Android: negocio y dispositivo vinculados, billeteras habilitadas, resumen
+del plan vigente y las últimas 20 transacciones capturadas por ese dispositivo.
+Requiere el token del dispositivo y nunca expone actividad de otros celulares
+del negocio.
+
+```json
+// 200 OK
+{
+  "tenant": { "id": "...", "business_name": "Bodega Santa Rosa" },
+  "device": { "id": "...", "label": "Celular caja principal" },
+  "wallets": [{ "code": "YAPE", "display_name": "Yape" }],
+  "subscription": {
+    "plan_name": "Emprendedor",
+    "period_end": "2026-10-01T00:00:00Z",
+    "transactions_used": 124,
+    "transactions_limit": 1000
+  },
+  "recent_activity": [
+    {
+      "id": "...",
+      "wallet_name": "Yape",
+      "sender_name": "JUAN PEREZ",
+      "amount": "35.50",
+      "currency": "PEN",
+      "status": "CONFIRMED",
+      "occurred_at": "2026-09-09T13:40:00Z"
+    }
+  ]
+}
+```
 
 ---
 

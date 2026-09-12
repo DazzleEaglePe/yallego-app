@@ -1,0 +1,6 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Respaldo diario a las 03:00 UTC. Conserva 14 días en el VPS; la réplica
+# externa debe configurarse por separado para cubrir la pérdida del servidor.
+0 3 * * * root cd /opt/yallego/app && ./tools/docker/deploy/scripts/backup-database.sh /opt/yallego/config/production.env /var/backups/yallego >> /var/log/yallego-backup.log 2>&1 && find /var/backups/yallego -type f -name 'yallego-production-*.dump' -mtime +14 -delete
