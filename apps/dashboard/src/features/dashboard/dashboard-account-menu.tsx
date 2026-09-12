@@ -88,11 +88,11 @@ export function DashboardAccountMenu({ compact = false }: DashboardAccountMenuPr
         side={compact ? 'bottom' : 'right'}
       >
         <div className="flex items-center gap-3 px-2.5 py-2.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500/15 text-sm font-semibold text-brand-200 ring-1 ring-brand-400/20">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-sm font-semibold text-brand-700 ring-1 ring-brand-200">
             {initials}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-neutral-100">
+            <span className="block truncate text-sm font-semibold text-neutral-900">
               {session.user.full_name}
             </span>
             <span className="block truncate text-xs text-neutral-500">{session.user.email}</span>
@@ -111,12 +111,12 @@ export function DashboardAccountMenu({ compact = false }: DashboardAccountMenuPr
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Empresa administrada</DropdownMenuLabel>
-        <div className="mx-1 mb-1 flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.035] px-2.5 py-2.5">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-white/[0.045] text-xs font-bold text-neutral-200">
+        <div className="mx-1 mb-1 flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-2.5">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-white text-xs font-bold text-neutral-700">
             {getInitials(tenant.business_name)}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold text-neutral-100">
+            <span className="block truncate text-sm font-semibold text-neutral-900">
               {tenant.business_name}
             </span>
             <span className="block text-xs text-neutral-500">{formatRoleLabel(tenant.role)}</span>
@@ -148,7 +148,7 @@ export function DashboardAccountMenu({ compact = false }: DashboardAccountMenuPr
 
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="text-danger-400 focus:bg-danger-500/10 focus:text-danger-300"
+          className="text-danger-600 focus:bg-danger-50 focus:text-danger-600"
           onSelect={() => void handleLogout()}
         >
           <DashboardIcon className="h-4 w-4" name="logout" />

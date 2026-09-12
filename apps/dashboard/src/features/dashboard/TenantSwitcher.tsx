@@ -109,21 +109,21 @@ export function TenantSwitcher({ compact = false }: TenantSwitcherProps) {
                   className={cn(
                     'grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-xs font-bold',
                     isActive
-                      ? 'border-brand-400/25 bg-brand-500/15 text-brand-200'
-                      : 'border-white/[0.08] bg-white/[0.035] text-neutral-400',
+                      ? 'border-brand-200 bg-brand-50 text-brand-700'
+                      : 'border-neutral-200 bg-neutral-50 text-neutral-600',
                   )}
                 >
                   {getInitials(tenant.business_name)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-neutral-100">
+                  <span className="block truncate font-semibold text-neutral-900">
                     {tenant.business_name}
                   </span>
                   <span className="block text-xs text-neutral-500">
                     {formatRoleLabel(tenant.role)}
                   </span>
                 </span>
-                {isActive && <Check className="h-4 w-4 shrink-0 text-brand-300" />}
+                {isActive && <Check className="h-4 w-4 shrink-0 text-brand-600" />}
               </DropdownMenuItem>
             );
           })}

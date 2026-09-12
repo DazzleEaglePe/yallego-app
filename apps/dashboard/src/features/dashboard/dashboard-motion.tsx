@@ -35,10 +35,10 @@ export function DashboardMotion({
         if (items?.length) {
           timeline.fromTo(
             items,
-            { autoAlpha: 0, filter: 'blur(4px)', scale: 0.995, y: 12 },
+            { autoAlpha: 0, y: 10 },
             {
               autoAlpha: 1,
-              clearProps: 'filter,opacity,visibility,transform',
+              clearProps: 'opacity,visibility,transform',
               duration: 0.4,
               force3D: true,
               scale: 1,
