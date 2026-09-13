@@ -13,7 +13,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "id": 1,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_tenants{status=\"ACTIVE\"}", "legendFormat": "Negocios activos", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_tenants{status=\"ACTIVE\"}", "legendFormat": "Negocios activos", "range": true, "refId": "A" }],
       "title": "Negocios activos",
       "type": "stat"
     },
@@ -23,7 +23,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
       "id": 2,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_users{segment=\"logged_in_7d\"}", "legendFormat": "Sesión últimos 7 días", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_users{segment=\"logged_in_7d\"}", "legendFormat": "Sesión últimos 7 días", "range": true, "refId": "A" }],
       "title": "Usuarios activos · 7 días",
       "type": "stat"
     },
@@ -33,7 +33,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
       "id": 3,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_devices{connectivity=\"online\"}", "legendFormat": "Con señal reciente", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_devices{connectivity=\"online\"}", "legendFormat": "Con señal reciente", "range": true, "refId": "A" }],
       "title": "Dispositivos en línea",
       "type": "stat"
     },
@@ -43,7 +43,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
       "id": 4,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_transactions{window=\"24h\",status=\"CONFIRMED\"}", "legendFormat": "Confirmados", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_transactions{window=\"24h\",status=\"CONFIRMED\"}", "legendFormat": "Confirmados", "range": true, "refId": "A" }],
       "title": "Cobros confirmados · 24 h",
       "type": "stat"
     },
@@ -53,7 +53,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
       "id": 5,
       "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_users{segment=~\"logged_in_(24h|7d|30d)|verified|total\"}", "legendFormat": "{{segment}}", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_users{segment=~\"logged_in_(24h|7d|30d)|verified|total\"}", "legendFormat": "{{segment}}", "range": true, "refId": "A" }],
       "title": "Usuarios y actividad de sesión",
       "type": "timeseries"
     },
@@ -63,7 +63,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
       "id": 6,
       "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_devices", "legendFormat": "{{connectivity}}", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_devices", "legendFormat": "{{connectivity}}", "range": true, "refId": "A" }],
       "title": "Conectividad de dispositivos",
       "type": "timeseries"
     },
@@ -73,7 +73,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
       "id": 7,
       "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_transactions{window=\"24h\",status!=\"all\"}", "legendFormat": "{{status}}", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_transactions{window=\"24h\",status!=\"all\"}", "legendFormat": "{{status}}", "range": true, "refId": "A" }],
       "title": "Cobros por estado · 24 h",
       "type": "timeseries"
     },
@@ -83,7 +83,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
       "id": 8,
       "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "editorMode": "code", "expr": "yallego_product_transaction_amount_pen{status=\"all\"}", "legendFormat": "{{window}}", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "yallego_product_transaction_amount_pen{status=\"all\"}", "legendFormat": "{{window}}", "range": true, "refId": "A" }],
       "title": "Monto procesado por ventana",
       "type": "timeseries"
     },
@@ -93,7 +93,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
       "id": 9,
       "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "editorMode": "code", "expr": "sum by (route) (rate(yallego_http_requests_total{route=~\"^/v1/.*\"}[5m]))", "legendFormat": "{{route}}", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "sum by (route) (rate(yallego_http_requests_total{route=~\"^/v1/.*\"}[5m]))", "legendFormat": "{{route}}", "range": true, "refId": "A" }],
       "title": "Tráfico por endpoint público · 5 min",
       "type": "timeseries"
     },
@@ -103,7 +103,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
       "id": 10,
       "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "editorMode": "code", "expr": "histogram_quantile(0.95, sum by (le, route) (rate(yallego_http_request_duration_seconds_bucket{route=~\"^/v1/.*\"}[5m])))", "legendFormat": "{{route}}", "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "histogram_quantile(0.95, sum by (le, route) (rate(yallego_http_request_duration_seconds_bucket{route=~\"^/v1/.*\"}[5m])))", "legendFormat": "{{route}}", "range": true, "refId": "A" }],
       "title": "Latencia p95 por endpoint público · 5 min",
       "type": "timeseries"
     }
