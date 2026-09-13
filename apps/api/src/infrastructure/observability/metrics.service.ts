@@ -88,6 +88,51 @@ export class MetricsService implements OnModuleDestroy {
     registers: [this.registry],
   });
 
+  /**
+   * Snapshots agregados de producto. Sus etiquetas tienen un conjunto pequeño
+   * y fijo de valores; nunca incluyen tenant, usuario, correo o dispositivo.
+   */
+  readonly productTenants = new Gauge({
+    name: 'yallego_product_tenants',
+    help: 'Negocios por estado, calculados desde la base de datos.',
+    labelNames: ['status'] as const,
+    registers: [this.registry],
+  });
+
+  readonly productUsers = new Gauge({
+    name: 'yallego_product_users',
+    help: 'Usuarios agregados por segmento de actividad o verificación.',
+    labelNames: ['segment'] as const,
+    registers: [this.registry],
+  });
+
+  readonly productDevices = new Gauge({
+    name: 'yallego_product_devices',
+    help: 'Dispositivos activos agrupados por conectividad.',
+    labelNames: ['connectivity'] as const,
+    registers: [this.registry],
+  });
+
+  readonly productTransactions = new Gauge({
+    name: 'yallego_product_transactions',
+    help: 'Cobros agregados por ventana y estado.',
+    labelNames: ['window', 'status'] as const,
+    registers: [this.registry],
+  });
+
+  readonly productTransactionAmountPen = new Gauge({
+    name: 'yallego_product_transaction_amount_pen',
+    help: 'Monto de cobros en PEN, agregado por ventana y estado.',
+    labelNames: ['window', 'status'] as const,
+    registers: [this.registry],
+  });
+
+  readonly productMetricsLastSuccessUnix = new Gauge({
+    name: 'yallego_product_metrics_last_success_unixtime',
+    help: 'Marca de tiempo de la última actualización exitosa de métricas de producto.',
+    registers: [this.registry],
+  });
+
   constructor() {
     collectDefaultMetrics({ register: this.registry, prefix: 'yallego_' });
   }
