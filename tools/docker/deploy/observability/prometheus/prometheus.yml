@@ -16,3 +16,7 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['api:3001']
+
+  - job_name: yallego-host
+    static_configs:
+      - targets: ['node-exporter:9100']

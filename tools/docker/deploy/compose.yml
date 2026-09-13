@@ -119,6 +119,9 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
+    # Límite con margen sobre el consumo actual; evita que observabilidad opaque
+    # a la API o PostgreSQL si una consulta o retención crece inesperadamente.
+    mem_limit: 256m
     networks: [edge, observability]
 
   loki:
@@ -128,6 +131,7 @@ services:
       - ./observability/loki/config.yml:/etc/loki/config.yml:ro
       - loki-data:/loki
     restart: unless-stopped
+    mem_limit: 256m
     networks: [observability]
 
   docker-socket-proxy:
@@ -170,6 +174,7 @@ services:
       - loki
       - docker-socket-proxy
     restart: unless-stopped
+    mem_limit: 192m
     networks: [observability, docker-socket]
 
   grafana:
@@ -198,7 +203,22 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
+    mem_limit: 256m
     networks: [edge, observability]
+
+  # Métricas del host: disponibilidad de memoria, CPU y disco. No publica
+  # puertos al exterior; Prometheus lo consulta por la red interna.
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.12.1
+    command:
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+)($|/)
+    volumes:
+      - /:/host:ro,rslave
+    read_only: true
+    restart: unless-stopped
+    mem_limit: 64m
+    networks: [observability]
 
 volumes:
   postgres-data:
