@@ -20,6 +20,17 @@ class SendHeartbeatUseCase @Inject constructor(
     private val checkBatteryOptimization: CheckBatteryOptimizationUseCase,
     private val queueDao: NotificationQueueDao,
 ) {
+    /**
+     * Evita que el worker de respaldo y el servicio activo envíen el mismo
+     * heartbeat en paralelo. La ventana es deliberadamente corta: no sustituye
+     * la cadencia operativa de dos minutos ni retrasa un reintento posterior.
+     */
+    suspend fun tryAcquireSlot(): Boolean =
+        remoteConfigPreferences.tryAcquireHeartbeatSlot(
+            nowEpochMs = System.currentTimeMillis(),
+            minimumIntervalMs = HEARTBEAT_DEDUPLICATION_WINDOW_MS,
+        )
+
     suspend operator fun invoke(): DeviceCallResult<HeartbeatOutcome> {
         val permissions = PermissionSnapshot(
             notificationAccessGranted = checkNotificationAccess(),
@@ -39,5 +50,9 @@ class SendHeartbeatUseCase @Inject constructor(
         }
 
         return result
+    }
+
+    private companion object {
+        const val HEARTBEAT_DEDUPLICATION_WINDOW_MS = 30_000L
     }
 }

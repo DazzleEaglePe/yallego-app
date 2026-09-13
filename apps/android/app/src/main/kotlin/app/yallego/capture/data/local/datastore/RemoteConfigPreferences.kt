@@ -49,6 +49,33 @@ class RemoteConfigPreferences @Inject constructor(private val dataStore: DataSto
         dataStore.edit { preferences -> preferences[LAST_HEARTBEAT_AT] = epochMs }
     }
 
+    /**
+     * Reserva de forma atómica el siguiente envío de heartbeat.
+     *
+     * El servicio en primer plano y WorkManager viven en procesos de planificación
+     * distintos; sin esta reserva ambos pueden arrancar la misma petición a la vez.
+     * La marca representa un intento, no un envío exitoso: [recordHeartbeat] sigue
+     * siendo la fuente de verdad de la última señal confirmada por el servidor.
+     */
+    suspend fun tryAcquireHeartbeatSlot(
+        nowEpochMs: Long,
+        minimumIntervalMs: Long,
+    ): Boolean {
+        var acquired = false
+        dataStore.edit { preferences ->
+            val lastAttempt = preferences[LAST_HEARTBEAT_ATTEMPT_AT]
+            val elapsed = lastAttempt?.let { nowEpochMs - it }
+
+            // Si el reloj del equipo se ajustó hacia atrás, liberamos la reserva
+            // para no bloquear la captura hasta que alcance la hora anterior.
+            if (elapsed == null || elapsed < 0 || elapsed >= minimumIntervalMs) {
+                preferences[LAST_HEARTBEAT_ATTEMPT_AT] = nowEpochMs
+                acquired = true
+            }
+        }
+        return acquired
+    }
+
     suspend fun clear() {
         dataStore.edit { it.clear() }
     }
@@ -58,6 +85,7 @@ class RemoteConfigPreferences @Inject constructor(private val dataStore: DataSto
         val CONFIG_VERSION = intPreferencesKey("config_version")
         val INGEST_BATCH_SIZE = intPreferencesKey("ingest_batch_size")
         val LAST_HEARTBEAT_AT = longPreferencesKey("last_heartbeat_at")
+        val LAST_HEARTBEAT_ATTEMPT_AT = longPreferencesKey("last_heartbeat_attempt_at")
         const val DEFAULT_INGEST_BATCH_SIZE = 50
         const val MAX_INGEST_BATCH_SIZE = 50
     }

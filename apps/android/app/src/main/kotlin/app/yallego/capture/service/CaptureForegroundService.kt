@@ -84,11 +84,15 @@ class CaptureForegroundService : Service() {
 
         heartbeatJob = serviceScope.launch {
             while (isActive && credentialsStore.isPaired) {
-                when (val outcome = sendHeartbeat()) {
-                    is DeviceCallResult.Success ->
-                        Timber.d("Foreground heartbeat sent: %s", outcome.value.serverTimeIso)
-                    is DeviceCallResult.Failure ->
-                        Timber.w("Foreground heartbeat failed: %s", outcome.message)
+                if (sendHeartbeat.tryAcquireSlot()) {
+                    when (val outcome = sendHeartbeat()) {
+                        is DeviceCallResult.Success ->
+                            Timber.d("Foreground heartbeat sent: %s", outcome.value.serverTimeIso)
+                        is DeviceCallResult.Failure ->
+                            Timber.w("Foreground heartbeat failed: %s", outcome.message)
+                    }
+                } else {
+                    Timber.d("Foreground heartbeat skipped; another scheduler sent one recently")
                 }
                 delay(HEARTBEAT_INTERVAL_MS)
             }

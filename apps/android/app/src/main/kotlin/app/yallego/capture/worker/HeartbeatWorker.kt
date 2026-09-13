@@ -33,9 +33,13 @@ class HeartbeatWorker @AssistedInject constructor(
             return Result.success()
         }
 
-        when (val outcome = sendHeartbeat()) {
-            is DeviceCallResult.Success -> Timber.d("Heartbeat sent: %s", outcome.value.serverTimeIso)
-            is DeviceCallResult.Failure -> Timber.w("Heartbeat failed: %s", outcome.message)
+        if (sendHeartbeat.tryAcquireSlot()) {
+            when (val outcome = sendHeartbeat()) {
+                is DeviceCallResult.Success -> Timber.d("Backup heartbeat sent: %s", outcome.value.serverTimeIso)
+                is DeviceCallResult.Failure -> Timber.w("Backup heartbeat failed: %s", outcome.message)
+            }
+        } else {
+            Timber.d("Backup heartbeat skipped; foreground service sent one recently")
         }
 
         if (credentialsStore.isPaired) {

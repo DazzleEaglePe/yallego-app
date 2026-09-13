@@ -143,13 +143,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(yallego_http_request_duration_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(yallego_http_request_duration_seconds_bucket{route=~\"^/v1/.*\"}[5m])))",
           "legendFormat": "p95",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Latencia HTTP p95 · 5 min",
+      "title": "Latencia API pública p95 · 5 min",
       "type": "stat"
     },
     {
@@ -308,6 +308,93 @@
       ],
       "title": "Alertas Prometheus activas",
       "type": "table"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "yallego-prometheus" },
+      "description": "Mide por separado la sincronización periódica del Android; no afecta el p95 de las rutas que usa el panel web.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.3 },
+              { "color": "red", "value": 0.5 }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 27 },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(yallego_http_request_duration_seconds_bucket{route=\"/internal/v1/heartbeat\"}[5m])))",
+          "legendFormat": "p95 heartbeat",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Latencia heartbeat Android p95 · 5 min",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "yallego-prometheus" },
+      "description": "Frecuencia de señales de vida recibidas desde los dispositivos Android durante los últimos cinco minutos.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 0.01 }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 27 },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(yallego_http_requests_total{route=\"/internal/v1/heartbeat\"}[5m]))",
+          "legendFormat": "Heartbeats/s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Frecuencia de heartbeats · 5 min",
+      "type": "stat"
     }
   ],
   "refresh": "15s",
