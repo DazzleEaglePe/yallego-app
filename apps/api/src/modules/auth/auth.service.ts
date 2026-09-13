@@ -13,7 +13,10 @@ import type {
   ForgotPasswordInput,
   LoginInput,
   RegisterInput,
+  ResendVerificationEmailInput,
   ResetPasswordInput,
+  SwitchTenantInput,
+  UpdateProfileInput,
   VerifyEmailInput,
 } from '@yallego/contracts';
 
@@ -30,7 +33,7 @@ const MAX_FAILED_ATTEMPTS = 5;
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1_000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1_000;
 
-type UserWithMemberships = Prisma.UserGetPayload<{
+export type UserWithMemberships = Prisma.UserGetPayload<{
   include: { memberships: { include: { tenant: true } } };
 }>;
 
@@ -54,9 +57,9 @@ export class AuthService {
     const verificationHash = this.tokenService.hashOpaqueToken(verificationToken);
 
     try {
-      const result = await this.prisma.$transaction(async (transaction) => {
-        const freePlan = await transaction.plan.findUnique({ where: { code: 'FREE' } });
-        if (!freePlan) {
+      const result = await this.prisma.withoutTenantScope(async (transaction) => {
+        const trialPlan = await transaction.plan.findUnique({ where: { code: 'TRIAL' } });
+        if (!trialPlan) {
           throw new ApiHttpException(
             HttpStatus.SERVICE_UNAVAILABLE,
             'SERVICE_UNAVAILABLE',
@@ -85,14 +88,17 @@ export class AuthService {
             userId: user.id,
           },
         });
-        const periodStart = new Date();
-        const periodEnd = addCalendarMonth(periodStart);
+        // El trial no tiene ciclo de facturación: periodStart/periodEnd solo
+        // satisfacen columnas NOT NULL heredadas de planes pagados. La
+        // ventana real vive en trial_started_at/trial_ends_at, fijada al
+        // primer cobro válido por EntitlementService.commitQuota (docs/14 §2.3).
+        const registeredAt = new Date();
         await transaction.subscription.create({
           data: {
-            periodEnd,
-            periodStart,
-            planId: freePlan.id,
-            status: SubscriptionStatus.ACTIVE,
+            periodEnd: registeredAt,
+            periodStart: registeredAt,
+            planId: trialPlan.id,
+            status: SubscriptionStatus.PENDING_TRIAL,
             tenantId: tenant.id,
           },
         });
@@ -118,11 +124,19 @@ export class AuthService {
         return { tenant, user };
       });
 
-      await this.mailer.sendVerificationEmail({
-        email: result.user.email,
-        fullName: result.user.fullName,
-        token: verificationToken,
-      });
+      try {
+        await this.mailer.sendVerificationEmail({
+          email: result.user.email,
+          fullName: result.user.fullName,
+          token: verificationToken,
+        });
+      } catch {
+        throw new ApiHttpException(
+          HttpStatus.SERVICE_UNAVAILABLE,
+          'SERVICE_UNAVAILABLE',
+          'La cuenta fue creada, pero no pudimos enviar el correo de verificación. Inténtalo nuevamente más tarde.',
+        );
+      }
 
       return {
         user: {
@@ -167,7 +181,7 @@ export class AuthService {
       );
     }
 
-    await this.prisma.$transaction(async (transaction) => {
+    await this.prisma.withoutTenantScope(async (transaction) => {
       const consumed = await transaction.oneTimeToken.updateMany({
         where: { id: token.id, consumedAt: null, expiresAt: { gt: now } },
         data: { consumedAt: now },
@@ -196,6 +210,45 @@ export class AuthService {
     });
 
     return { message: 'Correo verificado correctamente.' };
+  }
+
+  async resendVerificationEmail(
+    input: ResendVerificationEmailInput,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email: input.email } });
+    if (user && !user.emailVerified) {
+      const rawToken = this.tokenService.createOpaqueToken('ev');
+      const tokenHash = this.tokenService.hashOpaqueToken(rawToken);
+      const now = new Date();
+      await this.prisma.$transaction([
+        this.prisma.oneTimeToken.updateMany({
+          where: {
+            userId: user.id,
+            purpose: OneTimeTokenPurpose.EMAIL_VERIFICATION,
+            consumedAt: null,
+          },
+          data: { consumedAt: now },
+        }),
+        this.prisma.oneTimeToken.create({
+          data: {
+            expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS),
+            purpose: OneTimeTokenPurpose.EMAIL_VERIFICATION,
+            tokenHash,
+            userId: user.id,
+          },
+        }),
+      ]);
+      await this.mailer.sendVerificationEmail({
+        email: user.email,
+        fullName: user.fullName,
+        token: rawToken,
+      });
+    }
+
+    return {
+      message:
+        'Si el correo está registrado y pendiente de verificación, recibirás un nuevo enlace.',
+    };
   }
 
   async login(input: LoginInput, metadata: RequestMetadata): Promise<SessionResult> {
@@ -250,22 +303,28 @@ export class AuthService {
     return this.startSession(user, metadata);
   }
 
-  async refresh(refreshToken: string, metadata: RequestMetadata): Promise<SessionResult> {
+  async refresh(
+    refreshToken: string,
+    metadata: RequestMetadata,
+    activeTenantId?: string,
+  ): Promise<SessionResult> {
     const tokenHash = this.tokenService.hashOpaqueToken(refreshToken);
-    const current = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
-      include: {
-        user: {
-          include: {
-            memberships: {
-              include: { tenant: true },
-              orderBy: { joinedAt: 'asc' },
-              where: { tenant: { status: TenantStatus.ACTIVE } },
+    const current = await this.prisma.withoutTenantScope((tx) =>
+      tx.refreshToken.findUnique({
+        where: { tokenHash },
+        include: {
+          user: {
+            include: {
+              memberships: {
+                include: { tenant: true },
+                orderBy: { joinedAt: 'asc' },
+                where: { tenant: { status: TenantStatus.ACTIVE } },
+              },
             },
           },
         },
-      },
-    });
+      }),
+    );
 
     if (!current) throw this.invalidSessionError();
     if (current.revokedAt) {
@@ -281,7 +340,9 @@ export class AuthService {
       throw this.invalidSessionError();
     }
 
-    const membership = current.user.memberships[0];
+    const membership =
+      current.user.memberships.find(({ tenantId }) => tenantId === activeTenantId) ??
+      current.user.memberships[0];
     if (!membership) throw this.invalidSessionError();
     const nextRawToken = this.tokenService.createOpaqueToken('rt');
     const nextHash = this.tokenService.hashOpaqueToken(nextRawToken);
@@ -323,16 +384,15 @@ export class AuthService {
       throw error;
     }
 
-    return this.mapSession(current.user, nextRawToken, access);
+    return this.mapSession(current.user, nextRawToken, access, membership.tenantId);
   }
 
   async logout(refreshToken: string | undefined, metadata: RequestMetadata): Promise<void> {
     if (!refreshToken) return;
     const tokenHash = this.tokenService.hashOpaqueToken(refreshToken);
-    const token = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
-      include: { user: true },
-    });
+    const token = await this.prisma.withoutTenantScope((tx) =>
+      tx.refreshToken.findUnique({ where: { tokenHash }, include: { user: true } }),
+    );
     if (!token) return;
 
     await this.prisma.refreshToken.updateMany({
@@ -397,7 +457,7 @@ export class AuthService {
     }
 
     const passwordHash = await this.passwordService.hash(input.password);
-    await this.prisma.$transaction(async (transaction) => {
+    await this.prisma.withoutTenantScope(async (transaction) => {
       const consumed = await transaction.oneTimeToken.updateMany({
         where: { id: token.id, consumedAt: null, expiresAt: { gt: now } },
         data: { consumedAt: now },
@@ -467,6 +527,40 @@ export class AuthService {
     return { message: 'La contraseña se actualizó. Ingresa nuevamente.' };
   }
 
+  /**
+   * Reemite el access token con otro tenant al que pertenece el usuario.
+   * El refresh token no se modifica (docs/07_SEGURIDAD_AUTH.md §2.4): es una
+   * operación ligera, no una nueva sesión.
+   */
+  async switchTenant(
+    session: AccessTokenPayload,
+    input: SwitchTenantInput,
+  ): Promise<{ access_token: string; active_tenant_id: string; expires_in: number }> {
+    const membership = await this.prisma.withoutTenantScope((tx) =>
+      tx.membership.findUnique({
+        where: { tenantId_userId: { tenantId: input.tenant_id, userId: session.sub } },
+        include: { tenant: { select: { status: true } } },
+      }),
+    );
+
+    if (!membership || membership.tenant.status !== TenantStatus.ACTIVE) {
+      throw new ApiHttpException(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'No perteneces a ese negocio.');
+    }
+
+    const access = this.tokenService.issueAccessToken({
+      email: session.email,
+      role: membership.role,
+      tenantId: membership.tenantId,
+      userId: session.sub,
+    });
+
+    return {
+      access_token: access.token,
+      active_tenant_id: membership.tenantId,
+      expires_in: access.expiresIn,
+    };
+  }
+
   async getProfile(session: AccessTokenPayload): Promise<{
     tenants: Array<{ business_name: string; id: string; role: MembershipRole; slug: string }>;
     user: { email: string; full_name: string; id: string };
@@ -485,10 +579,25 @@ export class AuthService {
     };
   }
 
-  private async startSession(
-    user: UserWithMemberships,
-    metadata: RequestMetadata,
-  ): Promise<SessionResult> {
+  async updateProfile(
+    session: AccessTokenPayload,
+    input: UpdateProfileInput,
+  ): Promise<{ user: { email: string; full_name: string; id: string } }> {
+    const user = await this.prisma.user.findUnique({ where: { id: session.sub } });
+    if (!user || user.email !== session.email) throw this.invalidSessionError();
+
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { fullName: input.full_name },
+    });
+
+    return {
+      user: { id: updated.id, email: updated.email, full_name: updated.fullName },
+    };
+  }
+
+  /** Público: lo reutiliza el módulo de miembros al aceptar una invitación con auto-ingreso. */
+  async startSession(user: UserWithMemberships, metadata: RequestMetadata): Promise<SessionResult> {
     const membership = user.memberships[0];
     if (!membership) throw this.invalidSessionError();
     const refreshToken = this.tokenService.createOpaqueToken('rt');
@@ -510,17 +619,20 @@ export class AuthService {
       },
     });
 
-    return this.mapSession(user, refreshToken, access);
+    return this.mapSession(user, refreshToken, access, membership.tenantId);
   }
 
-  private mapSession(
+  /** Público por la misma razón que `startSession`. */
+  mapSession(
     user: UserWithMemberships,
     refreshToken: string,
     access: { expiresIn: number; token: string },
+    activeTenantId: string,
   ): SessionResult {
     return {
       accessToken: access.token,
       accessTokenExpiresIn: access.expiresIn,
+      activeTenantId,
       refreshToken,
       refreshTokenExpiresIn: this.tokenService.getRefreshTokenTtlSeconds(),
       user: { id: user.id, email: user.email, fullName: user.fullName },
@@ -534,16 +646,18 @@ export class AuthService {
   }
 
   private findUserWithMemberships(email: string): Promise<UserWithMemberships | null> {
-    return this.prisma.user.findUnique({
-      where: { email },
-      include: {
-        memberships: {
-          include: { tenant: true },
-          orderBy: { joinedAt: 'asc' },
-          where: { tenant: { status: TenantStatus.ACTIVE } },
+    return this.prisma.withoutTenantScope((tx) =>
+      tx.user.findUnique({
+        where: { email },
+        include: {
+          memberships: {
+            include: { tenant: true },
+            orderBy: { joinedAt: 'asc' },
+            where: { tenant: { status: TenantStatus.ACTIVE } },
+          },
         },
-      },
-    });
+      }),
+    );
   }
 
   private async recordFailedLogin(
@@ -577,16 +691,18 @@ export class AuthService {
     user: { id: string; memberships?: Array<{ tenantId: string }> },
     metadata: RequestMetadata,
   ): Promise<void> {
-    await this.prisma.auditEvent.create({
-      data: {
-        action,
-        actorType: 'USER',
-        actorUserId: user.id,
-        ipAddress: metadata.ipAddress,
-        tenantId: user.memberships?.[0]?.tenantId,
-        userAgent: metadata.userAgent,
-      },
-    });
+    await this.prisma.withoutTenantScope((tx) =>
+      tx.auditEvent.create({
+        data: {
+          action,
+          actorType: 'USER',
+          actorUserId: user.id,
+          ipAddress: metadata.ipAddress,
+          tenantId: user.memberships?.[0]?.tenantId,
+          userAgent: metadata.userAgent,
+        },
+      }),
+    );
   }
 
   private revokeTokenFamily(familyId: string): Promise<Prisma.BatchPayload> {
@@ -635,12 +751,6 @@ function slugify(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
-}
-
-function addCalendarMonth(value: Date): Date {
-  const result = new Date(value);
-  result.setUTCMonth(result.getUTCMonth() + 1);
-  return result;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {

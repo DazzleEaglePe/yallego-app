@@ -7,13 +7,24 @@ import jwt from 'jsonwebtoken';
 
 import type { Environment } from '../../config/env.schema';
 import { ApiHttpException } from '../../shared/errors/api-http.exception';
+import type { PlatformAccessTokenPayload } from '../platform-auth/platform-auth.types';
 import type { AccessTokenPayload } from './auth.types';
+
+// Audiencia distinta de `JWT_AUDIENCE` (la del panel de tenants), a
+// propósito: aunque el claim `type` ya distingue los tokens, un valor de
+// audiencia separado es una segunda barrera independiente contra que un
+// token de un tipo se acepte donde no corresponde.
+const PLATFORM_AUDIENCE = 'yallego-platform';
+// docs/07_SEGURIDAD_AUTH.md §11: "vigencia de sesión reducida a 30 minutos
+// con renovación por actividad" — fija, no configurable por entorno como
+// `JWT_ACCESS_TTL` del panel de tenants.
+const PLATFORM_ACCESS_TTL_SECONDS = 30 * 60;
 
 @Injectable()
 export class TokenService {
   constructor(@Inject(ConfigService) private readonly config: ConfigService<Environment, true>) {}
 
-  createOpaqueToken(prefix: 'rt' | 'ev' | 'pr'): string {
+  createOpaqueToken(prefix: 'rt' | 'ev' | 'pr' | 'iv' | 'dvt'): string {
     return `${prefix}_${randomBytes(48).toString('base64url')}`;
   }
 
@@ -87,6 +98,52 @@ export class TokenService {
       return payload as AccessTokenPayload;
     } catch {
       throw new ApiHttpException(401, 'UNAUTHENTICATED', 'La sesión no es válida o expiró.');
+    }
+  }
+
+  issuePlatformAccessToken(input: { adminId: string; email: string }): {
+    token: string;
+    expiresIn: number;
+  } {
+    const privateKey = this.getKey('JWT_PRIVATE_KEY');
+    const token = jwt.sign({ email: input.email, type: 'platform_admin' }, privateKey, {
+      algorithm: 'RS256',
+      audience: PLATFORM_AUDIENCE,
+      expiresIn: PLATFORM_ACCESS_TTL_SECONDS,
+      issuer: this.config.get('JWT_ISSUER', { infer: true }),
+      jwtid: randomUUID(),
+      subject: input.adminId,
+    });
+    return { token, expiresIn: PLATFORM_ACCESS_TTL_SECONDS };
+  }
+
+  verifyPlatformAccessToken(token: string): PlatformAccessTokenPayload {
+    try {
+      const payload = jwt.verify(token, this.getKey('JWT_PUBLIC_KEY'), {
+        algorithms: ['RS256'],
+        audience: PLATFORM_AUDIENCE,
+        issuer: this.config.get('JWT_ISSUER', { infer: true }),
+      });
+
+      if (
+        typeof payload === 'string' ||
+        payload.type !== 'platform_admin' ||
+        typeof payload.sub !== 'string' ||
+        typeof payload.jti !== 'string' ||
+        typeof payload.email !== 'string' ||
+        typeof payload.iat !== 'number' ||
+        typeof payload.exp !== 'number'
+      ) {
+        throw new Error('Invalid platform access token payload.');
+      }
+
+      return payload as PlatformAccessTokenPayload;
+    } catch {
+      throw new ApiHttpException(
+        401,
+        'UNAUTHENTICATED',
+        'La sesión de administrador no es válida o expiró.',
+      );
     }
   }
 

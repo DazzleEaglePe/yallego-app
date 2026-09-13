@@ -8,6 +8,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { FormField } from '@/shared/components/FormField';
 
 import { ApiRequestError, apiRequest } from './api';
+import { resolvePostLoginPath } from './auth-redirect';
 import { useAuthSession } from './auth-session';
 
 const verificationRequests = new Map<string, Promise<unknown>>();
@@ -19,7 +20,7 @@ export function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/inicio');
+    if (status === 'authenticated') router.replace(currentPostLoginPath());
   }, [router, status]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -35,7 +36,7 @@ export function LoginForm() {
 
     try {
       await login(input);
-      router.replace('/inicio');
+      router.replace(currentPostLoginPath());
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -82,6 +83,10 @@ export function LoginForm() {
       </SubmitButton>
     </form>
   );
+}
+
+function currentPostLoginPath(): string {
+  return resolvePostLoginPath(new URLSearchParams(window.location.search).get('next'));
 }
 
 export function RegisterForm() {

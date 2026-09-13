@@ -19,6 +19,7 @@ export interface RequestMetadata {
 export interface SessionResult {
   accessToken: string;
   accessTokenExpiresIn: number;
+  activeTenantId: string;
   refreshToken: string;
   refreshTokenExpiresIn: number;
   user: {

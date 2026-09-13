@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Ícono placeholder: hasta contar con el asset final de marca, el launcher
+      usa el color de marca sólido en vez de un logotipo. Reemplazar antes de
+      publicar (Sprint 8, "Preparar la ficha de la tienda").
+    -->
+    <color name="ic_launcher_background">#8257E6</color>
+</resources>

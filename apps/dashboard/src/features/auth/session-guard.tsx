@@ -1,17 +1,20 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
 import { useAuthSession } from './auth-session';
 
 export function SessionGuard({ children }: Readonly<{ children: ReactNode }>) {
   const router = useRouter();
+  const pathname = usePathname();
   const { status } = useAuthSession();
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.replace('/login');
-  }, [router, status]);
+    if (status === 'unauthenticated') {
+      router.replace(`/login?next=${encodeURIComponent(pathname || '/inicio')}`);
+    }
+  }, [pathname, router, status]);
 
   if (status !== 'authenticated') {
     return (

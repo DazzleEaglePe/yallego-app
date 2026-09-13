@@ -1,0 +1,108 @@
+[
+  {
+    "name": "documented example",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Yape!",
+      "text": "Te Yapearon S/ 35.50 de JUAN CARLOS PEREZ R. Código de seguridad: 247",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "YAPE",
+      "senderName": "JUAN CARLOS PEREZ R.",
+      "amount": { "value": 35.5, "currency": "PEN" },
+      "securityCode": "247",
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "thousands separator",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Yape!",
+      "text": "Te Yapearon S/ 1,250.00 de MARIA ISABEL QUISPE HUAMAN. Código de seguridad: 981",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "YAPE",
+      "senderName": "MARIA ISABEL QUISPE HUAMAN.",
+      "amount": { "value": 1250, "currency": "PEN" },
+      "securityCode": "981",
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "special characters in sender name",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Yape!",
+      "text": "Te Yapearon S/ 10.00 de JOSÉ ÑAHUINCOPA D'ANGELO. Código de seguridad: 512",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "YAPE",
+      "senderName": "JOSÉ ÑAHUINCOPA D'ANGELO.",
+      "amount": { "value": 10, "currency": "PEN" },
+      "securityCode": "512",
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "missing security code",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Yape!",
+      "text": "Te Yapearon S/ 20.00 de ANA LUCIA TORRES",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": {
+      "walletCode": "YAPE",
+      "senderName": "ANA LUCIA TORRES",
+      "amount": { "value": 20, "currency": "PEN" },
+      "securityCode": null,
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "real Android payment format without decimals (anonymized)",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Confirmación de Pago",
+      "text": "Yape! PERSONA DE PRUEBA te envió un pago por S/ 1",
+      "postedAt": "2026-08-27T22:30:00.000Z"
+    },
+    "expected": {
+      "walletCode": "YAPE",
+      "senderName": "PERSONA DE PRUEBA",
+      "amount": { "value": 1, "currency": "PEN" },
+      "securityCode": null,
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "real Android payment format with security code (anonymized)",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Confirmación de Pago",
+      "text": "PERSONA DE PRUEBA te envió un pago por S/ 0.1. El cód. de seguridad es: 247",
+      "postedAt": "2026-08-30T07:17:19.581Z"
+    },
+    "expected": {
+      "walletCode": "YAPE",
+      "senderName": "PERSONA DE PRUEBA",
+      "amount": { "value": 0.1, "currency": "PEN" },
+      "securityCode": "247",
+      "approvalCode": null
+    }
+  },
+  {
+    "name": "unrelated notification from the same package",
+    "notification": {
+      "packageName": "com.bcp.innovacxion.yapeapp",
+      "title": "Yape!",
+      "text": "Tu saldo Yape es S/ 120.00",
+      "postedAt": "2026-05-14T18:32:07.412Z"
+    },
+    "expected": null
+  }
+]

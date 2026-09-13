@@ -19,7 +19,10 @@ export interface TokenPair {
   expires_in: number;
 }
 
-export interface LoginResponse extends TokenPair {
+export interface LoginResponse {
+  access_token: string;
+  active_tenant_id: string;
+  expires_in: number;
   user: AuthUser;
   tenants: AuthTenant[];
 }

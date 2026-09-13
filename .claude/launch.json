@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@yallego/api", "dev"],
+      "port": 3011
+    },
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@yallego/dashboard", "exec", "next", "dev", "--port", "3010"],
+      "port": 3010
+    }
+  ]
+}

@@ -8,7 +8,10 @@ export const metadata: Metadata = { title: 'Crear cuenta' };
 
 export default function RegisterPage() {
   return (
-    <AuthCard description="Empieza con el plan Free. No necesitas tarjeta." title="Crea tu cuenta">
+    <AuthCard
+      description="Empieza con una prueba de 72 horas o 100 cobros. No necesitas tarjeta."
+      title="Crea tu cuenta"
+    >
       <RegisterForm />
       <p className="mt-6 text-center text-sm text-neutral-500">
         ¿Ya tienes cuenta?{' '}

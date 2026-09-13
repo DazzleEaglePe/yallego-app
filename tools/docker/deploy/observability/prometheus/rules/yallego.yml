@@ -1,0 +1,110 @@
+groups:
+  - name: yallego-availability
+    rules:
+      - alert: YallegoApiUnavailable
+        expr: up{job="yallego-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: La API de Yallegó no responde al scraping
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHighServerErrorRate
+        expr: |
+          sum(rate(yallego_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(yallego_http_requests_total[5m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Más del 5% de solicitudes termina en error 5xx
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(yallego_http_request_duration_seconds_bucket{route=~"^/v1/.*"}[5m])
+            )
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: La latencia HTTP p95 supera 500 ms
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHeartbeatLatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(yallego_http_request_duration_seconds_bucket{route="/internal/v1/heartbeat"}[5m])
+            )
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: La latencia p95 de heartbeats Android supera un segundo
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHostMemoryPressure
+        expr: |
+          1 - (
+            node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes
+          ) > 0.80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: El uso de memoria disponible del VPS supera 80%
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHostDiskPressure
+        expr: |
+          1 - (
+            node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}
+            /
+            node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}
+          ) > 0.80
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: El disco raíz del VPS supera 80% de uso
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoHostCpuPressure
+        expr: |
+          1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) > 0.80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: El CPU del VPS supera 80% de uso sostenido
+          runbook: docs/runbook-incidentes.md
+
+  - name: yallego-domain-signals
+    rules:
+      - alert: YallegoParsingSuccessLow
+        expr: yallego_parsing_success_rate < 0.95
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: La tasa de parsing de una billetera está por debajo de 95%
+          runbook: docs/runbook-incidentes.md
+
+      - alert: YallegoWebhookQueueBacklog
+        expr: yallego_webhook_queue_depth > 200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: La cola de webhooks supera 200 trabajos pendientes
+          runbook: docs/runbook-incidentes.md
