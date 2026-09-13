@@ -43,6 +43,10 @@ export const envSchema = z
     SMTP_USER: optionalString,
     SMTP_PASSWORD: optionalString,
     MAIL_FROM: z.email().default('no-reply@yallego.app'),
+    // Los avisos de conectividad no son correo de autenticación. Se mantienen
+    // apagados por defecto para no agotar la cuota transaccional ni generar
+    // ruido ante reinicios o cortes breves; el estado sigue en el dashboard.
+    DEVICE_EMAIL_ALERTS_ENABLED: z.stringbool().default(false),
     STORAGE_ENDPOINT: optionalUrl,
     STORAGE_BUCKET: optionalString,
     STORAGE_ACCESS_KEY: optionalString,

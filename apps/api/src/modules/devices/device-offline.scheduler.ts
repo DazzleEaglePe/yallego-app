@@ -1,9 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Interval } from '@nestjs/schedule';
 import { DeviceStatus } from '@prisma/client';
 
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { MailerService } from '../../infrastructure/mailer/mailer.service';
+import type { Environment } from '../../config/env.schema';
 import { DEVICE_OFFLINE_THRESHOLD_MS } from './device-connectivity';
 
 const CHECK_INTERVAL_MS = 60 * 1_000;
@@ -24,6 +26,10 @@ export class DeviceOfflineScheduler {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(MailerService) private readonly mailer: MailerService,
+    @Inject(ConfigService)
+    private readonly config: ConfigService<Environment, true> = {
+      get: () => false,
+    } as unknown as ConfigService<Environment, true>,
   ) {}
 
   @Interval(CHECK_INTERVAL_MS)
@@ -71,6 +77,8 @@ export class DeviceOfflineScheduler {
         recipients: recipientsByTenant.get(device.tenantId) ?? [],
       }));
     });
+
+    if (!this.config.get('DEVICE_EMAIL_ALERTS_ENABLED', { infer: true })) return;
 
     await Promise.all(
       newlyOffline.flatMap(({ device, recipients }) =>

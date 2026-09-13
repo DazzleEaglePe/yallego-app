@@ -1,7 +1,9 @@
 import type { DeviceConnectivity } from '@yallego/contracts';
 
 export const DEVICE_ONLINE_THRESHOLD_MS = 3 * 60 * 1_000;
-export const DEVICE_OFFLINE_THRESHOLD_MS = 6 * 60 * 1_000;
+// El umbral coincide con el comunicado que ve el negocio: no elevamos una
+// desconexión transitoria a incidente hasta que pasan 15 minutos.
+export const DEVICE_OFFLINE_THRESHOLD_MS = 15 * 60 * 1_000;
 
 export function getDeviceConnectivity(
   lastSeenAt: Date | null,

@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createPublicKey, verify } from 'node:crypto';
 import { TenantStatus, TrialIdentityKind, UsageWindowType } from '@prisma/client';
 import type {
@@ -11,6 +12,7 @@ import type {
 } from '@yallego/contracts';
 
 import { EncryptionService } from '../../infrastructure/crypto/encryption.service';
+import type { Environment } from '../../config/env.schema';
 import { PrismaService, type ScopedClient } from '../../infrastructure/database/prisma.service';
 import { MailerService } from '../../infrastructure/mailer/mailer.service';
 import { MetricsService } from '../../infrastructure/observability/metrics.service';
@@ -38,6 +40,10 @@ export class DeviceGatewayService {
     @Inject(TrialIdentityRolloutService)
     private readonly identityRollout: TrialIdentityRolloutService,
     @Inject(MetricsService) private readonly metrics: MetricsService,
+    @Inject(ConfigService)
+    private readonly config: ConfigService<Environment, true> = {
+      get: () => false,
+    } as unknown as ConfigService<Environment, true>,
   ) {}
 
   async pairDevice(input: PairDeviceInput): Promise<PairDeviceResponse> {
@@ -433,12 +439,12 @@ export class DeviceGatewayService {
   }
 
   private async notifyRecovery(tenantId: string, deviceId: string): Promise<void> {
-    await this.prisma.withoutTenantScope(async (tx) => {
+    const notification = await this.prisma.withoutTenantScope(async (tx) => {
       const cleared = await tx.device.updateMany({
         where: { id: deviceId, offlineNotifiedAt: { not: null } },
         data: { offlineNotifiedAt: null },
       });
-      if (cleared.count !== 1) return;
+      if (cleared.count !== 1) return null;
 
       const [device, tenant, recipients] = await Promise.all([
         tx.device.findUniqueOrThrow({ where: { id: deviceId } }),
@@ -449,17 +455,29 @@ export class DeviceGatewayService {
         }),
       ]);
 
-      await Promise.all(
-        recipients.map((membership) =>
-          this.mailer.sendDeviceRecoveredEmail({
-            email: membership.user.email,
-            fullName: membership.user.fullName,
-            deviceLabel: device.label,
-            businessName: tenant.businessName,
-          }),
-        ),
-      );
+      return {
+        deviceLabel: device.label,
+        businessName: tenant.businessName,
+        recipients: recipients.map((membership) => ({
+          email: membership.user.email,
+          fullName: membership.user.fullName,
+        })),
+      };
     });
+
+    // La recuperación siempre se persiste, incluso con avisos de correo
+    // apagados. SMTP se ejecuta fuera de la transacción de PostgreSQL.
+    if (!notification || !this.config.get('DEVICE_EMAIL_ALERTS_ENABLED', { infer: true })) return;
+
+    await Promise.all(
+      notification.recipients.map((recipient) =>
+        this.mailer.sendDeviceRecoveredEmail({
+          ...recipient,
+          deviceLabel: notification.deviceLabel,
+          businessName: notification.businessName,
+        }),
+      ),
+    );
   }
 }
 

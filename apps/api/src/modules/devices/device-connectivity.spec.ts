@@ -14,7 +14,7 @@ describe('getDeviceConnectivity', () => {
     expect(getDeviceConnectivity(lastSeenAt, nowMs)).toBe('ONLINE');
   });
 
-  it('reports a delayed signal between three and six minutes', () => {
+  it('reports a delayed signal between three and fifteen minutes', () => {
     expect(getDeviceConnectivity(new Date(nowMs - DEVICE_ONLINE_THRESHOLD_MS), nowMs)).toBe(
       'DEGRADED',
     );
@@ -23,7 +23,7 @@ describe('getDeviceConnectivity', () => {
     );
   });
 
-  it('reports offline at six minutes or without a heartbeat', () => {
+  it('reports offline at fifteen minutes or without a heartbeat', () => {
     expect(getDeviceConnectivity(new Date(nowMs - DEVICE_OFFLINE_THRESHOLD_MS), nowMs)).toBe(
       'OFFLINE',
     );

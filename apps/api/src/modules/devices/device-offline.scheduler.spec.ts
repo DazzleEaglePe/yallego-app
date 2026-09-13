@@ -34,6 +34,7 @@ describe('DeviceOfflineScheduler', () => {
     scheduler = new DeviceOfflineScheduler(
       prisma as never,
       { sendDeviceOfflineEmail } as never,
+      { get: () => true } as never,
     );
   });
 

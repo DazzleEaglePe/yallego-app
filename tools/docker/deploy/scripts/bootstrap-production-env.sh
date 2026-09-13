@@ -49,6 +49,7 @@ umask 077
   printf 'SMTP_USER=\n'
   printf 'SMTP_PASSWORD=\n'
   printf 'MAIL_FROM=no-reply@ecabot.site\n'
+  printf 'DEVICE_EMAIL_ALERTS_ENABLED=false\n'
   printf 'GRAFANA_PORT=3002\n'
   printf 'GRAFANA_ADMIN_USER=admin\n'
   printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$(openssl rand -hex 24)"
