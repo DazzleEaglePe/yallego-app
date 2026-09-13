@@ -112,7 +112,7 @@
   "schemaVersion": 41,
   "tags": ["yallego", "product", "adoption"],
   "templating": { "list": [] },
-  "time": { "from": "now-30d", "to": "now" },
+  "time": { "from": "now-6h", "to": "now" },
   "timepicker": { "refresh_intervals": ["15s", "30s", "1m", "5m", "15m"] },
   "timezone": "browser",
   "title": "Yallegó · Producto y adopción",
